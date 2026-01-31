@@ -1,7 +1,8 @@
-import { Button, Dimensions, Platform, StyleSheet } from "react-native";
+import { Dimensions, Platform, StyleSheet } from "react-native";
 
 import { ThemedView } from "@/components/themed-view";
 import { AppStore, StoreContext } from "@/utils";
+import { Button } from "@react-navigation/elements";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
@@ -53,10 +54,18 @@ export default function HomeScreen() {
   const ref = React.useRef<WebView>(null);
   const { stateChanged } = React.useContext(StoreContext);
   const [url, setUrl] = React.useState<string>(WEBSITE_URI);
+  const [can, setCan] = React.useState({
+    goBack: false,
+    goForward: false,
+  });
   const [watchMode, setWatchMode] = React.useState(false);
 
   const onNavigation = (e: WebViewNavigationEvent) => {
     setUrl(e.url);
+    setCan({
+      goBack: e.canGoBack,
+      goForward: e.canGoForward,
+    });
     const inWatchMode = e.url.startsWith(`${WEBSITE_URI}/play`);
     setWatchMode(inWatchMode);
     if (!inWatchMode) return;
@@ -74,12 +83,11 @@ export default function HomeScreen() {
     AppStore.Update((prev) => ({
       ...prev,
       [payload.animeTitle]: {
-        watched: [
-          ...new Set([
-            ...(prev[payload.animeTitle]?.watched ?? []),
-            payload.episode,
-          ]),
-        ],
+        latestWatchedEpisode:
+          (prev[payload.animeTitle]?.latestWatchedEpisode ?? 0) >
+          payload.episode
+            ? prev[payload.animeTitle].latestWatchedEpisode
+            : payload.episode,
         total: +payload.info["Episodi"],
       },
     })).then(stateChanged);
@@ -104,16 +112,30 @@ export default function HomeScreen() {
         bounces={true}
       ></WebView>
       <ThemedView style={styles.buttons}>
-        <Button title="<" onPress={() => ref.current?.goBack()} />
-        <Button title="reload" onPress={() => ref.current?.reload()} />
         <Button
-          title="AW Home"
+          disabled={!can.goBack}
+          variant={can.goBack ? "tinted" : "plain"}
+          onPress={() => ref.current?.goBack()}
+        >
+          &lt;
+        </Button>
+        <Button onPress={() => ref.current?.reload()}>&#10226;</Button>
+        <Button
+          variant="plain"
           onPress={() => {
             setUrl(WEBSITE_URI);
             ref.current?.reload();
           }}
-        />
-        <Button title=">" onPress={() => ref.current?.goForward()} />
+        >
+          AW Home
+        </Button>
+        <Button
+          disabled={!can.goForward}
+          variant={can.goForward ? "tinted" : "plain"}
+          onPress={() => ref.current?.goForward()}
+        >
+          &gt;
+        </Button>
       </ThemedView>
     </SafeAreaView>
   );

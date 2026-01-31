@@ -1,17 +1,46 @@
 import { ThemedView } from "@/components/themed-view";
-import { StoreContext } from "@/utils";
+import { Storage, StoreContext } from "@/utils";
+import { Button } from "@react-navigation/elements";
 import React from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/themed-text";
 
 export default function TabTwoScreen() {
-  const { state } = React.useContext(StoreContext);
+  const { state, stateChanged } = React.useContext(StoreContext);
+
+  const anyItems = React.useMemo(() => Object.keys(state).length > 0, [state]);
+
+  const onClear = () =>
+    Alert.alert(
+      "Clear Watched",
+      "Are you sure you want to clear your watched list?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: () => {
+            Storage.removeItem("state").then(() => {
+              stateChanged();
+            });
+          },
+        },
+      ],
+    );
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
         <ThemedText style={styles.title}>Watched</ThemedText>
+        {anyItems && (
+          <Button variant="tinted" color="red" onPress={onClear}>
+            CLEAR
+          </Button>
+        )}
         <View style={styles.animeList}>
           <View style={styles.anime}>
             <ThemedText
@@ -22,14 +51,24 @@ export default function TabTwoScreen() {
             <ThemedText style={styles.tableHeader}>Episode</ThemedText>
           </View>
           <ScrollView contentContainerStyle={{ gap: 8 }}>
-            {Object.entries(state).map(([animeName, data]) => (
-              <View key={animeName} style={styles.anime}>
-                <ThemedText style={styles.animeTitle}>{animeName}</ThemedText>
-                <ThemedText>
-                  {`${Math.max(...data.watched.map((x) => +x))} / ${data.total ?? "?"}`}
-                </ThemedText>
-              </View>
-            ))}
+            {anyItems ? (
+              <>
+                {Object.entries(state).map(([animeName, data]) => (
+                  <View key={animeName} style={styles.anime}>
+                    <ThemedText style={styles.animeTitle}>
+                      {animeName}
+                    </ThemedText>
+                    <ThemedText>
+                      {`${data.latestWatchedEpisode} / ${data.total ?? "?"}`}
+                    </ThemedText>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <ThemedText style={{ textAlign: "center" }}>
+                nothing to see here 👁️👄👁️
+              </ThemedText>
+            )}
           </ScrollView>
         </View>
       </ThemedView>
