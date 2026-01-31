@@ -1,5 +1,6 @@
 export type AppState = {
   [animeName: string]: {
-    watched: string[];
+    watched: number[];
+    total: number;
   };
 };

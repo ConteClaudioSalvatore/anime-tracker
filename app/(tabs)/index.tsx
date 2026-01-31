@@ -1,7 +1,7 @@
-import { Button, Dimensions, StyleSheet } from "react-native";
+import { Button, Dimensions, Platform, StyleSheet } from "react-native";
 
 import { ThemedView } from "@/components/themed-view";
-import { AppStore } from "@/utils";
+import { AppStore, StoreContext } from "@/utils";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
@@ -12,9 +12,21 @@ const WEBSITE_URI = "https://www.animeworld.ac";
 const WATCH_MODE_JS = `
 const notifyAnimeEpisode = (ep) => {
   const animeTitle = document.querySelector('#anime-title.title')?.textContent;
-  const episode = ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent;
+  const episode = +(ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent ?? 0);
+  const infoKeys = [];
+  const infoValues = [];
+  document.querySelectorAll('.info > .row > .meta > dt, .info > .row > .meta > dd').forEach((el) => {
+    if(el.nodeName === 'DT') {
+      infoKeys.push(el.textContent.slice(0, -1))
+    }
+    if(el.nodeName === 'DD') {
+      infoValues.push(el.textContent)
+    }
+  });
+  const info = Object.fromEntries(infoKeys.map((k, i) => [k, infoValues[i]]));
+  
   window.ReactNativeWebView.postMessage(
-    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle } })
+    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info } })
   );
 }
 notifyAnimeEpisode();
@@ -39,6 +51,7 @@ ${watchMode ? WATCH_MODE_JS : ""}
 
 export default function HomeScreen() {
   const ref = React.useRef<WebView>(null);
+  const { stateChanged } = React.useContext(StoreContext);
   const [url, setUrl] = React.useState<string>(WEBSITE_URI);
   const [watchMode, setWatchMode] = React.useState(false);
 
@@ -53,17 +66,23 @@ export default function HomeScreen() {
     if (!e.nativeEvent.data) return;
     const message = JSON.parse(e.nativeEvent.data);
     if (message.type !== "anime-found") return;
+    const payload: {
+      animeTitle: string;
+      episode: number;
+      info: any;
+    } = message.payload;
     AppStore.Update((prev) => ({
       ...prev,
-      [message.payload.animeTitle]: {
+      [payload.animeTitle]: {
         watched: [
           ...new Set([
-            ...(prev[message.payload.animeTitle]?.watched ?? []),
-            message.payload.episode,
+            ...(prev[payload.animeTitle]?.watched ?? []),
+            payload.episode,
           ]),
         ],
+        total: +payload.info["Episodi"],
       },
-    }));
+    })).then(stateChanged);
   };
 
   const onShouldStart = (e: WebViewNavigationEvent) => {
@@ -104,11 +123,17 @@ const styles = StyleSheet.create({
   buttons: {
     justifyContent: "space-between",
     flexDirection: "row",
+    paddingBlock: 8,
+    paddingInline: 12,
   },
   container: {
     flex: 1,
     width: Dimensions.get("window").width,
     height: Dimensions.get("window").height,
-    marginBottom: -35,
+    ...Platform.select({
+      ios: {
+        marginBottom: -35,
+      },
+    }),
   },
 });

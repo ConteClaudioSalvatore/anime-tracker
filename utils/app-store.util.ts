@@ -1,5 +1,11 @@
 import { AppState } from "@/model";
+import React from "react";
 import { Storage } from "./storage.util";
+
+export const StoreContext = React.createContext<{
+  state: AppState;
+  stateChanged: () => void;
+}>({ state: {}, stateChanged: () => {} });
 
 export class AppStore {
   private static readonly STATE_KEY = "state";
