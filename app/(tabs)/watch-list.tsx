@@ -1,5 +1,5 @@
 import { ThemedView } from "@/components/themed-view";
-import { Storage, StoreContext } from "@/utils";
+import { AppStore, Storage, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
 import React from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
@@ -32,6 +32,30 @@ export default function TabTwoScreen() {
       ],
     );
 
+  const onSingleItemRemove = (animeName: string) => {
+    Alert.alert(
+      `Remove "${animeName}"`,
+      "Are you sure you want to remove this anime from the list?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: () => {
+            AppStore.Update((prev) =>
+              Object.fromEntries(
+                Object.entries(prev).filter(([k]) => k !== animeName),
+              ),
+            ).then(stateChanged);
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
@@ -49,6 +73,11 @@ export default function TabTwoScreen() {
               Anime
             </ThemedText>
             <ThemedText style={styles.tableHeader}>Episode</ThemedText>
+            <ThemedText
+              style={StyleSheet.compose(styles.tableHeader, styles.animeAction)}
+            >
+              Action
+            </ThemedText>
           </View>
           <ScrollView contentContainerStyle={{ gap: 8 }}>
             {anyItems ? (
@@ -61,6 +90,26 @@ export default function TabTwoScreen() {
                     <ThemedText>
                       {`${data.latestWatchedEpisode} / ${data.total ?? "?"}`}
                     </ThemedText>
+                    <View style={styles.animeAction}>
+                      <Button
+                        variant="tinted"
+                        color="blue"
+                        screen="anime-modal"
+                        params={{
+                          animeName,
+                          episode: data.latestWatchedEpisode,
+                        }}
+                      >
+                        🖋️
+                      </Button>
+                      <Button
+                        variant="tinted"
+                        color="red"
+                        onPress={() => onSingleItemRemove(animeName)}
+                      >
+                        🗑️
+                      </Button>
+                    </View>
                   </View>
                 ))}
               </>
@@ -71,6 +120,9 @@ export default function TabTwoScreen() {
             )}
           </ScrollView>
         </View>
+        <Button variant="tinted" color="green" screen="anime-modal" params={{}}>
+          ADD MANUALLY
+        </Button>
       </ThemedView>
     </SafeAreaView>
   );
@@ -102,6 +154,7 @@ const styles = StyleSheet.create({
   anime: {
     flexDirection: "row",
     gap: 8,
+    alignItems: "center",
   },
   tableHeader: {
     fontSize: 20,
@@ -110,6 +163,10 @@ const styles = StyleSheet.create({
   animeTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    width: "50%",
+    flex: 1,
+  },
+  animeAction: {
+    width: 70,
+    gap: 8,
   },
 });

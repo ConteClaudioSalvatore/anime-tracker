@@ -45,8 +45,11 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
+            name="anime-modal"
+            options={{
+              presentation: "modal",
+              title: "Add/Edit Anime",
+            }}
           />
         </Stack>
         <StatusBar style="auto" />
