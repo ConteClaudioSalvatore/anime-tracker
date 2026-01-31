@@ -1,98 +1,107 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Button, Dimensions, View } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { Storage } from "@/utils";
+import React from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
+import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
+
+const WEBSITE_URI = "https://www.animeworld.ac";
 
 export default function HomeScreen() {
+  const ref = React.useRef<WebView>(null);
+  const [url, setUrl] = React.useState<string>(WEBSITE_URI);
+  const [watchMode, setWatchMode] = React.useState(false);
+  const [animeState, setAnimeState] = React.useState<
+    Record<string, { watched: string[] }>
+  >({});
+  const fetchingState = React.useRef<boolean>(false);
+
+  const onNavigation = (e: WebViewNavigationEvent) => {
+    setUrl(e.url);
+    const inWatchMode = e.url.startsWith(`${WEBSITE_URI}/play`);
+    setWatchMode(inWatchMode);
+    if (!inWatchMode) return;
+  };
+
+  const onMessage = (e: any) => {
+    if (!e.nativeEvent?.data) return;
+    const message = JSON.parse(e.nativeEvent.data);
+    if (message.type !== "anime-found") return;
+    setAnimeState((prev) => {
+      const next = {
+        ...prev,
+        [message.payload.animeTitle]: {
+          watched: [
+            ...new Set([
+              ...(prev[message.payload.animeTitle]?.watched ?? []),
+              message.payload.episode,
+            ]),
+          ],
+        },
+      };
+      Storage.setItem("state", next);
+      console.log("next", next);
+      return next;
+    });
+    console.log(message);
+  };
+
+  const onShouldStart = (e: WebViewNavigationEvent) => {
+    return e.url.startsWith(WEBSITE_URI);
+  };
+
+  React.useEffect(() => {
+    fetchingState.current = true;
+    Storage.getItem<typeof animeState>("state").then((x) => {
+      fetchingState.current = false;
+      console.log("stored", x);
+      return x ?? {};
+    });
+  }, []);
+
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+    >
+      <SafeAreaView
+        style={{
+          flex: 1,
+          width: Dimensions.get("screen").width,
+          height: Dimensions.get("screen").height,
+        }}
+      >
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Button title="<" onPress={() => ref.current?.goBack()} />
+          <Button title="reload" onPress={() => ref.current?.reload()} />
+          <Button title=">" onPress={() => ref.current?.goForward()} />
+        </View>
+        <WebView
+          ref={ref}
+          source={{ uri: url }}
+          onNavigationStateChange={onNavigation}
+          onShouldStartLoadWithRequest={onShouldStart}
+          injectedJavaScript={
+            watchMode
+              ? `
+              const notifyANime = () => {
+                const animeTitle = document.querySelector('#anime-title.title')?.textContent;
+                const episode = document.querySelector('.episodes > .episode > a.active')?.textContent;
+                window.ReactNativeWebView.postMessage(
+                  JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle } })
+                );
+              }
+              notifyAnime();
+              document.querySelectorAll('.episodes > .episode > a').forEach((e) => e.on('click', notifyAnime))
+              `
+              : undefined
+          }
+          onMessage={onMessage}
+          javaScriptEnabled
+          domStorageEnabled
+        ></WebView>
+      </SafeAreaView>
     </ParallaxScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
