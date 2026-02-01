@@ -50,6 +50,10 @@ if(!document.querySelector('head > link[rel=stylesheet]#aw-theme-1')) {
 ${watchMode ? WATCH_MODE_JS : ""}
 `;
 
+const WATCH_MODE_MATCHER = new RegExp(
+  "^" + WEBSITE_URI.replace(".ac/", String.raw`.\w+/play`),
+);
+
 export default function HomeScreen() {
   const ref = React.useRef<WebView>(null);
   const { url, ...params } = useLocalSearchParams();
@@ -57,7 +61,7 @@ export default function HomeScreen() {
   const canGoBack = Boolean(Number(params.canGoBack));
   const router = useRouter();
   const { stateChanged } = React.useContext(StoreContext);
-  const [watchMode, setWatchMode] = React.useState(false);
+  const watchMode = !!WATCH_MODE_MATCHER.exec(url as string);
 
   const onNavigation = (e: WebViewNavigationEvent) => {
     if (url === e.url) return;
@@ -66,9 +70,6 @@ export default function HomeScreen() {
       canGoBack: Number(e.canGoBack),
       canGoForward: Number(e.canGoForward),
     });
-    const inWatchMode = e.url.startsWith(`${WEBSITE_URI}/play`);
-    setWatchMode(inWatchMode);
-    if (!inWatchMode) return;
   };
 
   const onMessage = (e: WebViewMessageEvent) => {

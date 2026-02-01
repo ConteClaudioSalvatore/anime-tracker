@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
 
 export class Storage {
   public static async setItem<T>(key: string, value: T): Promise<void> {
@@ -6,6 +7,9 @@ export class Storage {
       await AsyncStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
       console.error("Error setting item:", e);
+      Alert.alert(
+        `Error settings item {key: ${key}, value: ${JSON.stringify(value)}}`,
+      );
     }
   }
 
@@ -15,6 +19,7 @@ export class Storage {
       return value ? JSON.parse(value) : null;
     } catch (e) {
       console.error("Error getting item:", e);
+      Alert.alert(`Error settings item key: ${key}`);
     }
     return null;
   }
@@ -24,6 +29,7 @@ export class Storage {
       await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error("Error removing item:", error);
+      Alert.alert(`Error removing item key: ${key}`);
     }
   }
 }
