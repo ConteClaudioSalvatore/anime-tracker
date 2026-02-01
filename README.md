@@ -1,104 +1,89 @@
-# AnimeWorld Tracker (Unofficial Client)
+# Anime Tracker (Unofficial AnimeWorld client) 💫
 
-_`!! CREATED ONLY FOR EDUCATIONAL PURPOSES !!`_
-A lightweight, privacy-focused mobile application that wraps [AnimeWorld](https://www.animeworld.ac) to provide an automatic and persistent watch history.
+> Lightweight, privacy-minded mobile app that embeds AnimeWorld and keeps a local watch history.
 
-## 📖 About
+---
 
-This application is designed to solve the problem of losing track of your anime progress. It serves as a smart browser for AnimeWorld, automatically detecting your navigation and saving your progress locally. It combines the vast library of the web with the convenience of a dedicated watchlist app.
+## 📌 TL;DR
 
-## ✨ Key Features
+- Wraps https://www.animeworld.ac inside a WebView and automatically detects when you open an anime episode.
+- Stores watch progress locally (AsyncStorage) and exposes a simple **Watch List** UI to view / edit items.
+- Export and import your data as a JSON backup from the **Settings** screen.
+- Built with Expo — runs on iOS add Android (behavior may vary by platform, web is not supported by the webview library).
 
-- **Integrated Webview:** Browse the full AnimeWorld library directly within the app.
+---
 
-- **Auto-Tracking:** The app listens to your navigation events. When you visit an anime or a specific episode, it is automatically added to your local database.
+## ✨ Features
 
-- **Smart Watchlist Tab:** A dedicated "History/Watchlist" tab parses your local data to show:
-- - Animes you are currently watching.
-- - The last episode you visited.
-- - A direct link to resume exactly where you left off.
+- Embedded WebView with injected JavaScript that detects anime title and episode and posts messages to the app ✅
+- Auto-tracking of the last watched episode per anime (updates only when a higher episode number is detected) ✅
+- Manual add/edit via the **Add/Edit Anime** modal ✅
+- Watch List with filtering (in-progress / watched), remove items, and clear watched ✅
+- Backup (export) and Restore (import) via device sharing / document picker (exports `anime-tracker/backup.json`) ✅
+- All data stored locally — no servers, no accounts 🔒
 
-- **Data Portability:** Includes a **Backup & Restore** feature. You can export your `backup.json` and import it onto a new device, so you never lose your progress.
+---
 
-- **Privacy First: 🔒 No servers. No accounts.** All data is stored strictly locally on your device in a JSON format.
+## How it works (quick)
 
-## ⚙️ How It Works
+1. The main WebView (see `app/(tabs)/index.tsx`) injects JS into AnimeWorld pages and posts messages to React Native when it detects an anime/episode.
+2. Messages are parsed and persisted in the AppStore (`utils/app-store.util.ts`) which uses `AsyncStorage` under the hood (`utils/storage.util.ts`).
+3. The Watch List screen (`app/(tabs)/watch-list.tsx`) reads the stored state and shows the current progress for each anime.
+4. Backup and restore flows are implemented via `expo-file-system`, `expo-sharing` and `expo-document-picker`.
 
-1. **Navigation:** The app renders AnimeWorld in a webview component.
-
-2. **Interception:** As you navigate the site, the app intercepts the URL changes.
-
-3. **Parsing:** It extracts the Anime Title and Episode Number.
-
-4. **Storage:** This data is written to the `AsyncStorage` which can then be backed-up in a json file. If the anime already exists, it updates the "Last Watched" index.
-
-5. **Display:** The main view reads this JSON file to render your personal list.
+---
 
 ## 📱 Screenshots
 
-[home](/assets/images/home.jpg)
-[list](/assets/images/list.jpg)
-[backup](/assets/images/backup.jpg)
+[assets/images/home.jpg](assets/images/home.jpg)
+[assets/images/list.jpg](assets/images/list.jpg)
+[assets/images/backup.jpg](assets/images/backup.jpg)
 
-## 🛠 Technical Overview
+---
 
-- **Source:** Relies on [AnimeWorld](https://www.animeworld.ac) for content.
+## Getting started (development) 🔧
 
-- **Storage:** Local AsyncStorage + JSON backup file.
+Requirements: Node.js and npm, plus Xcode/Android Studio if using simulators/emulators.
 
-- **Permissions:** Internet access (for the webview) and File Storage access (for backup/restore).
-
-# ⚠️ Disclaimer
-
-This application is an unofficial client and is not affiliated with AnimeWorld. It acts solely as a web browser with history management features. `Please respect the terms of service of the content providers`.
-
-`TESTED SOLELY ON IOS`
-
-## Get started
-
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Install
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Start
 
-## Learn more
+```bash
+npm start
+# or use platform scripts
+npm run ios
+npm run android
+npm run web
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Notes:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Expo powers this project — see `package.json` for scripts.
+- The app uses file-based routing (see the `app` folder) via `expo-router`.
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## Developer notes
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Main WebView code and injected JS: `app/(tabs)/index.tsx` 🔍
+- Watch list UI & actions: `app/(tabs)/watch-list.tsx` ✅
+- Add/Edit modal: `app/anime-modal.tsx`
+- Backup / Restore: `utils/app-store.util.ts` (creates `anime-tracker/backup.json` and uses system sharing/document picker)
+- Type definitions: `model/*.ts`
+
+---
+
+## Legal / Disclaimer ⚠️
+
+This is an **unofficial** client and is not affiliated with AnimeWorld. It only embeds the AnimeWorld site and stores local navigation history. Please respect the website's terms of use and copyright.
+
+---
+
+## License
+
+See `LICENSE` in this repository.
