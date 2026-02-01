@@ -1,18 +1,56 @@
-# Welcome to AnimeTracker 🖥️
+# AnimeWorld Tracker (Unofficial Client)
 
 _`!! CREATED ONLY FOR EDUCATIONAL PURPOSES !!`_
+A lightweight, privacy-focused mobile application that wraps [AnimeWorld](https://www.animeworld.ac) to provide an automatic and persistent watch history.
 
-This application aims to have an easy and self updated anime watch list.
+## 📖 About
 
-The application relies on [AnimeWorld](https://www.animeworld.ac) as an anime library.
+This application is designed to solve the problem of losing track of your anime progress. It serves as a smart browser for AnimeWorld, automatically detecting your navigation and saving your progress locally. It combines the vast library of the web with the convenience of a dedicated watchlist app.
 
-It:
+## ✨ Key Features
 
-- renders the website in a webview which the user can navigate
-- registers the interactions made within it and stores it in a json
-- shows the json as an app tab which allows the user to search and go back to the latest visited episode page of the visited anime(s)
-- allows the user to backup and restore the json (in case of a device change)
-- stores data only locally in your device
+- **Integrated Webview:** Browse the full AnimeWorld library directly within the app.
+
+- **Auto-Tracking:** The app listens to your navigation events. When you visit an anime or a specific episode, it is automatically added to your local database.
+
+- **Smart Watchlist Tab:** A dedicated "History/Watchlist" tab parses your local data to show:
+- - Animes you are currently watching.
+- - The last episode you visited.
+- - A direct link to resume exactly where you left off.
+
+- **Data Portability:** Includes a **Backup & Restore** feature. You can export your `backup.json` and import it onto a new device, so you never lose your progress.
+
+- **Privacy First: 🔒 No servers. No accounts.** All data is stored strictly locally on your device in a JSON format.
+
+## ⚙️ How It Works
+
+1. **Navigation:** The app renders AnimeWorld in a webview component.
+
+2. **Interception:** As you navigate the site, the app intercepts the URL changes.
+
+3. **Parsing:** It extracts the Anime Title and Episode Number.
+
+4. **Storage:** This data is written to the `AsyncStorage` which can then be backed-up in a json file. If the anime already exists, it updates the "Last Watched" index.
+
+5. **Display:** The main view reads this JSON file to render your personal list.
+
+## 📱 Screenshots
+
+[home](/assets/images/home.jpg)
+[list](/assets/images/list.jpg)
+[backup](/assets/images/backup.jpg)
+
+## 🛠 Technical Overview
+
+- **Source:** Relies on [AnimeWorld](https://www.animeworld.ac) for content.
+
+- **Storage:** Local AsyncStorage + JSON backup file.
+
+- **Permissions:** Internet access (for the webview) and File Storage access (for backup/restore).
+
+# ⚠️ Disclaimer
+
+This application is an unofficial client and is not affiliated with AnimeWorld. It acts solely as a web browser with history management features. `Please respect the terms of service of the content providers`.
 
 `TESTED SOLELY ON IOS`
 
