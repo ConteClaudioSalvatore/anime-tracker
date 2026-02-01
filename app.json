@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.laudiosalvatoreconte.animetracker"
+      "package": "com.claudiosalvatoreconte.animetracker"
     },
     "web": {
       "output": "static",
