@@ -6,7 +6,7 @@ import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/themed-text";
 
-export default function TabTwoScreen() {
+export default function WatchListScreen() {
   const { state, stateChanged } = React.useContext(StoreContext);
 
   const anyItems = React.useMemo(() => Object.keys(state).length > 0, [state]);
