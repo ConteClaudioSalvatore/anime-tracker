@@ -111,6 +111,7 @@ export default function HomeScreen() {
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled
+        onOpenWindow={() => false}
         bounces={true}
       ></WebView>
       <ThemedView style={styles.buttons}>
@@ -158,6 +159,9 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         marginBottom: -35,
+      },
+      android: {
+        marginBottom: -25,
       },
     }),
   },

@@ -21,7 +21,7 @@ export default function WatchListScreen() {
       Object.entries(state).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? v.latestWatchedEpisode !== (v.total ?? 0) : true),
+          (onlyInProgress ? v.latestWatchedEpisode !== (v.total ?? -1) : true),
       ),
     [state, searchValue, onlyInProgress],
   );
