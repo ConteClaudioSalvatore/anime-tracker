@@ -1,14 +1,13 @@
+import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
-import { useColorScheme } from "@/hooks/use-color-scheme.web";
 import { Anime } from "@/model";
 import { AppStore, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, TextInput } from "react-native";
+import { StyleSheet } from "react-native";
 
 function AddAnimeModal() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { stateChanged } = React.useContext(StoreContext);
@@ -41,25 +40,17 @@ function AddAnimeModal() {
 
   return (
     <ThemedView style={styles.container}>
-      <TextInput
+      <TextBox
         value={state.animeName}
-        style={{
-          ...styles.input,
-          ...styles.name,
-          ...(colorScheme === "light" ? styles.inputLight : styles.inputDark),
-        }}
+        style={styles.name}
         onChangeText={onAnimeNameChange}
-      ></TextInput>
-      <TextInput
+      ></TextBox>
+      <TextBox
         value={state.episode.toString()}
-        style={{
-          ...styles.input,
-          ...styles.episode,
-          ...(colorScheme === "light" ? styles.inputLight : styles.inputDark),
-        }}
+        style={styles.episode}
         keyboardType="numeric"
         onChangeText={onEpisodeChange}
-      ></TextInput>
+      ></TextBox>
       <Button
         variant={state.animeName.length === 0 ? "tinted" : "filled"}
         disabled={state.animeName.length === 0}
@@ -76,20 +67,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     gap: 16,
-  },
-  inputDark: {
-    backgroundColor: "rgb(255,255,255, .6)",
-  },
-  inputLight: {
-    backgroundColor: "rgb(0,0,0, .16)",
-  },
-  input: {
-    padding: 8,
-    height: 40,
-    borderRadius: 16,
-    borderCurve: "continuous",
-    fontSize: 20,
-    elevation: 1,
   },
   name: {},
   episode: {},

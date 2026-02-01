@@ -1,16 +1,35 @@
+import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
+import { AppState } from "@/model";
 import { AppStore, Storage, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
 import { Link } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/themed-text";
 
 export default function WatchListScreen() {
   const { state, stateChanged } = React.useContext(StoreContext);
+  const [searchValue, setSearchValue] = React.useState("");
+  const [onlyInProgress, setOnlyInProgress] = React.useState(false);
+  const router = useRouter();
 
-  const anyItems = React.useMemo(() => Object.keys(state).length > 0, [state]);
+  const filteredState = React.useMemo(
+    () =>
+      Object.entries(state).filter(
+        ([k, v]) =>
+          k.toLowerCase().includes(searchValue.toLowerCase()) &&
+          (onlyInProgress ? v.latestWatchedEpisode !== (v.total ?? 0) : true),
+      ),
+    [state, searchValue, onlyInProgress],
+  );
+
+  const anyItems = React.useMemo(
+    () => filteredState.length > 0,
+    [filteredState],
+  );
 
   const onClear = () =>
     Alert.alert(
@@ -57,15 +76,59 @@ export default function WatchListScreen() {
     );
   };
 
+  const onItemActions = (data: AppState["string"] & { animeName: string }) => {
+    Alert.alert("", "", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Edit",
+        style: "default",
+        onPress: () => {
+          router.navigate({
+            pathname: "/anime-modal",
+            params: {
+              animeName: data.animeName,
+              episode: data.latestWatchedEpisode,
+            },
+          });
+        },
+      },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          onSingleItemRemove(data.animeName);
+        },
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
-        <ThemedText style={styles.title}>Watched</ThemedText>
-        {anyItems && (
-          <Button variant="tinted" color="red" onPress={onClear}>
-            CLEAR
-          </Button>
-        )}
+        <View style={styles.header}>
+          <ThemedText style={styles.title}>Watched</ThemedText>
+          {anyItems && (
+            <Button variant="tinted" color="red" onPress={onClear}>
+              CLEAR
+            </Button>
+          )}
+        </View>
+        <TextBox
+          value={searchValue}
+          onChangeText={setSearchValue}
+          placeholder="🔍 Search..."
+        ></TextBox>
+        <View style={styles.inProgressFilter}>
+          <ThemedText>Only in progress</ThemedText>
+          <Switch
+            value={onlyInProgress}
+            onValueChange={setOnlyInProgress}
+          ></Switch>
+        </View>
+
         <View style={styles.animeList}>
           <View style={styles.anime}>
             <ThemedText
@@ -83,44 +146,49 @@ export default function WatchListScreen() {
           <ScrollView contentContainerStyle={{ gap: 8 }}>
             {anyItems ? (
               <>
-                {Object.entries(state).map(([animeName, data]) => (
-                  <View key={animeName} style={styles.anime}>
-                    <Link
-                      screen="index"
-                      params={
-                        data.latestVisitedUrl
-                          ? { url: data.latestVisitedUrl }
-                          : {}
-                      }
-                      style={styles.animeTitle}
-                    >
-                      <ThemedText style={{ flex: 1 }}>{animeName}</ThemedText>
-                    </Link>
-                    <ThemedText>
-                      {`${data.latestWatchedEpisode} / ${data.total ?? "?"}`}
-                    </ThemedText>
-                    <View style={styles.animeAction}>
-                      <Button
-                        variant="tinted"
-                        color="blue"
-                        screen="anime-modal"
-                        params={{
-                          animeName,
-                          episode: data.latestWatchedEpisode,
-                        }}
+                {filteredState
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([animeName, data]) => (
+                    <View key={animeName} style={styles.anime}>
+                      {data.latestVisitedUrl ? (
+                        <Link
+                          screen="index"
+                          params={
+                            data.latestVisitedUrl
+                              ? { url: data.latestVisitedUrl }
+                              : {}
+                          }
+                          style={{ ...styles.animeTitle, ...styles.animeLink }}
+                        >
+                          <ThemedText style={{ ...styles.animeLink, flex: 1 }}>
+                            {animeName}
+                          </ThemedText>
+                        </Link>
+                      ) : (
+                        <ThemedText style={styles.animeTitle}>
+                          {animeName}
+                        </ThemedText>
+                      )}
+
+                      <ThemedText
+                        style={
+                          data.latestWatchedEpisode === data.total &&
+                          styles.animeFinished
+                        }
                       >
-                        🖋️
-                      </Button>
-                      <Button
-                        variant="tinted"
-                        color="red"
-                        onPress={() => onSingleItemRemove(animeName)}
-                      >
-                        🗑️
-                      </Button>
+                        {`${data.latestWatchedEpisode} / ${data.total ?? "?"}`}
+                      </ThemedText>
+                      <View style={styles.animeAction}>
+                        <Button
+                          variant="tinted"
+                          color="blue"
+                          onPress={() => onItemActions({ ...data, animeName })}
+                        >
+                          ⛓️
+                        </Button>
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  ))}
               </>
             ) : (
               <ThemedText style={{ textAlign: "center" }}>
@@ -146,6 +214,18 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     borderRadius: 32,
     gap: 16,
+  },
+  header: {
+    flexDirection: "row",
+    gap: 24,
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  searchBox: {},
+  inProgressFilter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   title: {
     fontSize: 24,
@@ -175,8 +255,14 @@ const styles = StyleSheet.create({
     flex: 1,
     display: "flex",
   },
+  animeLink: {
+    color: "rgb(0, 100, 255)",
+  },
   animeAction: {
     width: 70,
     gap: 8,
+  },
+  animeFinished: {
+    color: "green",
   },
 });
