@@ -4,6 +4,7 @@ import React from "react";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
+import { WEBSITE_URI } from "@/constants/website";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function TabLayout() {
@@ -25,6 +26,7 @@ export default function TabLayout() {
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
         }}
+        initialParams={{ url: WEBSITE_URI }}
       />
       <Tabs.Screen
         name="watch-list"

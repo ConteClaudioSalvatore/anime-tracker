@@ -1,14 +1,14 @@
 import { Dimensions, Platform, StyleSheet } from "react-native";
 
 import { ThemedView } from "@/components/themed-view";
+import { WEBSITE_URI } from "@/constants/website";
 import { AppStore, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
-
-const WEBSITE_URI = "https://www.animeworld.ac";
 
 const WATCH_MODE_JS = `
 const notifyAnimeEpisode = (ep) => {
@@ -52,19 +52,19 @@ ${watchMode ? WATCH_MODE_JS : ""}
 
 export default function HomeScreen() {
   const ref = React.useRef<WebView>(null);
+  const { url, ...params } = useLocalSearchParams();
+  const canGoForward = Boolean(Number(params.canGoForward));
+  const canGoBack = Boolean(Number(params.canGoBack));
+  const router = useRouter();
   const { stateChanged } = React.useContext(StoreContext);
-  const [url, setUrl] = React.useState<string>(WEBSITE_URI);
-  const [can, setCan] = React.useState({
-    goBack: false,
-    goForward: false,
-  });
   const [watchMode, setWatchMode] = React.useState(false);
 
   const onNavigation = (e: WebViewNavigationEvent) => {
-    setUrl(e.url);
-    setCan({
-      goBack: e.canGoBack,
-      goForward: e.canGoForward,
+    if (url === e.url) return;
+    router.setParams({
+      url: e.url,
+      canGoBack: Number(e.canGoBack),
+      canGoForward: Number(e.canGoForward),
     });
     const inWatchMode = e.url.startsWith(`${WEBSITE_URI}/play`);
     setWatchMode(inWatchMode);
@@ -88,6 +88,7 @@ export default function HomeScreen() {
           payload.episode
             ? prev[payload.animeTitle].latestWatchedEpisode
             : payload.episode,
+        latestVisitedUrl: url as string,
         total: +payload.info["Episodi"],
       },
     })).then(stateChanged);
@@ -101,7 +102,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <WebView
         ref={ref}
-        source={{ uri: url }}
+        source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
         injectedJavaScript={JS_TO_INJECT(watchMode)}
@@ -113,8 +114,8 @@ export default function HomeScreen() {
       ></WebView>
       <ThemedView style={styles.buttons}>
         <Button
-          disabled={!can.goBack}
-          variant={can.goBack ? "tinted" : "plain"}
+          disabled={!canGoBack}
+          variant={canGoBack ? "tinted" : "plain"}
           onPress={() => ref.current?.goBack()}
         >
           &lt;
@@ -123,15 +124,16 @@ export default function HomeScreen() {
         <Button
           variant="plain"
           onPress={() => {
-            setUrl(WEBSITE_URI);
-            ref.current?.reload();
+            router.setParams({
+              url: WEBSITE_URI,
+            });
           }}
         >
           AW Home
         </Button>
         <Button
-          disabled={!can.goForward}
-          variant={can.goForward ? "tinted" : "plain"}
+          disabled={!canGoForward}
+          variant={canGoForward ? "tinted" : "plain"}
           onPress={() => ref.current?.goForward()}
         >
           &gt;

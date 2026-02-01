@@ -1,6 +1,7 @@
 import { ThemedView } from "@/components/themed-view";
 import { AppStore, Storage, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
+import { Link } from "@react-navigation/native";
 import React from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -84,9 +85,17 @@ export default function WatchListScreen() {
               <>
                 {Object.entries(state).map(([animeName, data]) => (
                   <View key={animeName} style={styles.anime}>
-                    <ThemedText style={styles.animeTitle}>
-                      {animeName}
-                    </ThemedText>
+                    <Link
+                      screen="index"
+                      params={
+                        data.latestVisitedUrl
+                          ? { url: data.latestVisitedUrl }
+                          : {}
+                      }
+                      style={styles.animeTitle}
+                    >
+                      <ThemedText style={{ flex: 1 }}>{animeName}</ThemedText>
+                    </Link>
                     <ThemedText>
                       {`${data.latestWatchedEpisode} / ${data.total ?? "?"}`}
                     </ThemedText>
@@ -164,6 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     flex: 1,
+    display: "flex",
   },
   animeAction: {
     width: 70,

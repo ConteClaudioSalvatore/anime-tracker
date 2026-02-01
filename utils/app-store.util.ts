@@ -1,5 +1,7 @@
 import { AppState } from "@/model";
+import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import React from "react";
 import { Storage } from "./storage.util";
 
@@ -28,17 +30,43 @@ export class AppStore {
   }
 
   public static async Backup(): Promise<void> {
-    return await this.Get().then((res) => {
-      this.BACKUP.create({
-        overwrite: true,
-        intermediates: true,
-      });
-      this.BACKUP.write(JSON.stringify(res));
+    const res = await this.Get();
+    this.BACKUP.create({
+      overwrite: true,
+      intermediates: true,
+    });
+    this.BACKUP.write(JSON.stringify(res));
+
+    if (!(await Sharing.isAvailableAsync())) {
+      throw new Error("System sharing not available");
+    }
+
+    await Sharing.shareAsync(this.BACKUP.uri, {
+      mimeType: "application/json",
+      dialogTitle: "Export Anime Tracker Backup",
     });
   }
 
   public static async RestoreBackup(): Promise<void> {
-    if (!this.BACKUP.exists) return;
-    return await this.Update(() => JSON.parse(this.BACKUP.textSync()));
+    const result = await DocumentPicker.getDocumentAsync({
+      type: "application/json",
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled) return;
+
+    const pickedUri = result.assets[0].uri;
+
+    // read picked file via File handle
+    const pickedFile = new File(pickedUri);
+    try {
+      const jsonString = await pickedFile.text();
+
+      const json = JSON.parse(jsonString);
+
+      return await this.Update(() => json);
+    } catch (err) {
+      console.error(err);
+    }
   }
 }
