@@ -1,8 +1,22 @@
-# Welcome to your Expo app 👋
+# Welcome to AnimeTracker 🖥️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+_`!! CREATED ONLY FOR EDUCATIONAL PURPOSES !!`_
+
+This application aims to have an easy and self updated anime watch list.
+
+The application relies on [AnimeWorld](https://www.animeworld.ac) as an anime library.
+
+It:
+
+- renders the website in a webview which the user can navigate
+- registers the interactions made within it and stores it in a json
+- shows the json as an app tab which allows the user to search and go back to the latest visited episode page of the visited anime(s)
+- allows the user to backup and restore the json (in case of a device change)
+- stores data only locally in your device
 
 ## Get started
+
+This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 1. Install dependencies
 
