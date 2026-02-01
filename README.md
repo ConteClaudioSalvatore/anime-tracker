@@ -14,6 +14,8 @@ It:
 - allows the user to backup and restore the json (in case of a device change)
 - stores data only locally in your device
 
+`TESTED SOLELY ON IOS`
+
 ## Get started
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
