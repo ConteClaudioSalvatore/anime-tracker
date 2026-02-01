@@ -35,9 +35,9 @@
 
 ## 📱 Screenshots
 
-[assets/images/home.jpg](assets/images/home.jpg)
-[assets/images/list.jpg](assets/images/list.jpg)
-[assets/images/backup.jpg](assets/images/backup.jpg)
+![assets/images/home.jpg](assets/images/home.jpg)
+![assets/images/list.jpg](assets/images/list.jpg)
+![assets/images/backup.jpg](assets/images/backup.jpg)
 
 ---
 
