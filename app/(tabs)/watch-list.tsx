@@ -21,7 +21,7 @@ export default function WatchListScreen() {
       Object.entries(state).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? v.latestWatchedEpisode !== (v.total ?? -1) : true),
+          (onlyInProgress ? v.highestWatchedEpisode !== (v.total ?? -1) : true),
       ),
     [state, searchValue, onlyInProgress],
   );
@@ -30,6 +30,25 @@ export default function WatchListScreen() {
     () => filteredState.length > 0,
     [filteredState],
   );
+
+  const computeTimeStamp = (progress: number) => {
+    if (typeof progress !== "number" || Number.isNaN(progress)) {
+      throw new TypeError("Input must be a valid number.");
+    }
+    if (progress < 0) {
+      throw new Error("Seconds cannot be negative.");
+    }
+
+    // Calculate hours, minutes, seconds
+    const hours = Math.floor(progress / 3600);
+    const minutes = Math.floor((progress % 3600) / 60);
+    const seconds = Math.floor(progress % 60);
+
+    // Pad with leading zeros
+    const pad = (num: number) => String(num).padStart(2, "0");
+
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
 
   const onClear = () =>
     Alert.alert(
@@ -77,32 +96,40 @@ export default function WatchListScreen() {
   };
 
   const onItemActions = (data: AppState["string"] & { animeName: string }) => {
-    Alert.alert("", "", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Edit",
-        style: "default",
-        onPress: () => {
-          router.navigate({
-            pathname: "/anime-modal",
-            params: {
-              animeName: data.animeName,
-              episode: data.latestWatchedEpisode,
-            },
-          });
+    Alert.alert(
+      "Actions",
+      `Latest watched episode: ${data.latestWatchedEpisode}`.concat(
+        data.episodeProgress?.[data.latestWatchedEpisode]
+          ? `\nTime: ${computeTimeStamp(data.episodeProgress?.[data.latestWatchedEpisode] ?? 0)}`
+          : "",
+      ),
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
         },
-      },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: () => {
-          onSingleItemRemove(data.animeName);
+        {
+          text: "Edit",
+          style: "default",
+          onPress: () => {
+            router.navigate({
+              pathname: "/anime-modal",
+              params: {
+                animeName: data.animeName,
+                episode: data.highestWatchedEpisode,
+              },
+            });
+          },
         },
-      },
-    ]);
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            onSingleItemRemove(data.animeName);
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -155,7 +182,10 @@ export default function WatchListScreen() {
                           screen="index"
                           params={
                             data.latestVisitedUrl
-                              ? { url: data.latestVisitedUrl }
+                              ? {
+                                  url: data.latestVisitedUrl,
+                                  reload: true,
+                                }
                               : {}
                           }
                           style={{ ...styles.animeTitle, ...styles.animeLink }}
@@ -172,11 +202,11 @@ export default function WatchListScreen() {
 
                       <ThemedText
                         style={
-                          data.latestWatchedEpisode === data.total &&
+                          data.highestWatchedEpisode === data.total &&
                           styles.animeFinished
                         }
                       >
-                        {`${data.latestWatchedEpisode} / ${data.total ?? "?"}`}
+                        {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                       </ThemedText>
                       <View style={styles.animeAction}>
                         <Button

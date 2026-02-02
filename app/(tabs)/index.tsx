@@ -10,10 +10,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
 
-const WATCH_MODE_JS = `
-const notifyAnimeEpisode = (ep) => {
+const WATCH_MODE_JS = (
+  possibleResume: {
+    episode: number;
+    progress?: number;
+  } | null,
+) => `
+function debounceFunction(f, time) {
+  let timeout = null;
+  return (...args) => {
+    if(timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      f.apply(this, args);
+    }, time)
+  }
+}
+const getCurrentEpisode = (ep) => +(ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent ?? 0);
+const notifyAnimeEpisode = (progress, ep) => {
   const animeTitle = document.querySelector('#anime-title.title')?.textContent;
-  const episode = +(ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent ?? 0);
+  const episode = getCurrentEpisode(ep);
   const infoKeys = [];
   const infoValues = [];
   document.querySelectorAll('.info > .row > .meta > dt, .info > .row > .meta > dd').forEach((el) => {
@@ -27,19 +42,52 @@ const notifyAnimeEpisode = (ep) => {
   const info = Object.fromEntries(infoKeys.map((k, i) => [k, infoValues[i]]));
   
   window.ReactNativeWebView.postMessage(
-    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info } })
+    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info, progress } })
   );
 }
-notifyAnimeEpisode();
-document.querySelectorAll('.episodes > .episode > a').forEach((e) => e.addEventListener('click', (event) => notifyAnimeEpisode(event.target.textContent)))
+const debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
+let player = null;
+const retrievePlayer = () => setInterval(() => {
+  if(player) {
+    clearInterval(interval);
+    return;
+  }
+  player = document.querySelector('iframe#player-iframe')?.contentDocument.querySelector('video#video-player');
+  if(!player) return;
+  ${
+    possibleResume?.progress
+      ? `
+  if(getCurrentEpisode() === ${possibleResume.episode}) {
+    const playCallback = () => {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({ type: 'anime-play', payload: ${JSON.stringify(possibleResume)} })
+      );
+      player.currentTime = ${possibleResume.progress};
+      player.removeEventListener('play', playCallback);
+    }
+    player.addEventListener('play', playCallback);
+  }
+  `
+      : ""
+  }
+  player.addEventListener('timeupdate', () => debouncedNAE(player.currentTime));
+}, 500);
+let interval = retrievePlayer();
+notifyAnimeEpisode(null);
+document.querySelectorAll('.episodes > .episode > a').forEach((e) => e.addEventListener('click', (event) => {
+  notifyAnimeEpisode(null, event.target.textContent);
+  player = null;
+  window.ReactNativeWebView.postMessage(
+    JSON.stringify({ type: 'anime-reload' })
+  );
+  interval = retrievePlayer();
+}));
 `;
 
-const JS_TO_INJECT = (watchMode: boolean) => `
-const THEME_COOKIE = 'theme=dark;path=/;';
-const THEME_REGEXP = /theme=(\\w+);path=\\/;/;
-if(THEME_REGEXP.exec(document.cookie)) {
-  document.cookie = \`\${THEME_COOKIE}\${document.cookie.replace(THEME_REGEXP, '')}\`;
-}
+const JS_TO_INJECT = (
+  watchMode: boolean,
+  possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
+) => `
 if(!document.querySelector('head > link[rel=stylesheet]#aw-theme-1')) {
   const roundedTheme = document.createElement('link');
   roundedTheme.setAttribute('rel', 'stylesheet');
@@ -47,7 +95,7 @@ if(!document.querySelector('head > link[rel=stylesheet]#aw-theme-1')) {
   roundedTheme.setAttribute('id', 'aw-theme-1');
   document.querySelector('head').append(roundedTheme);
 }
-${watchMode ? WATCH_MODE_JS : ""}
+${watchMode ? WATCH_MODE_JS(possibleResume) : ""}
 `;
 
 const WATCH_MODE_MATCHER = new RegExp(
@@ -59,8 +107,26 @@ export default function HomeScreen() {
   const { url, ...params } = useLocalSearchParams();
   const canGoForward = Boolean(Number(params.canGoForward));
   const canGoBack = Boolean(Number(params.canGoBack));
+  const [currentAnime, setCurrentAnime] = React.useState<{
+    episode: number;
+    animeName: string;
+  } | null>(null);
+  const { state, stateChanged } = React.useContext(StoreContext);
+  const resume = React.useMemo<
+    Parameters<typeof WATCH_MODE_JS>[0] | null
+  >(() => {
+    if (currentAnime) {
+      return {
+        episode: currentAnime.episode,
+        progress:
+          state[currentAnime.animeName]?.episodeProgress?.[
+            currentAnime.episode
+          ],
+      };
+    }
+    return null;
+  }, [currentAnime, state]);
   const router = useRouter();
-  const { stateChanged } = React.useContext(StoreContext);
   const watchMode = !!WATCH_MODE_MATCHER.exec(url as string);
 
   const onNavigation = (e: WebViewNavigationEvent) => {
@@ -75,22 +141,38 @@ export default function HomeScreen() {
   const onMessage = (e: WebViewMessageEvent) => {
     if (!e.nativeEvent.data) return;
     const message = JSON.parse(e.nativeEvent.data);
+    if (message.type === "anime-reload") {
+      ref.current?.injectJavaScript(JS_TO_INJECT(watchMode, resume));
+      ref.current?.reload();
+    }
     if (message.type !== "anime-found") return;
     const payload: {
       animeTitle: string;
       episode: number;
       info: any;
+      progress: number;
     } = message.payload;
+    setCurrentAnime({
+      animeName: payload.animeTitle,
+      episode: payload.episode,
+    });
     AppStore.Update((prev) => ({
       ...prev,
       [payload.animeTitle]: {
-        latestWatchedEpisode:
-          (prev[payload.animeTitle]?.latestWatchedEpisode ?? 0) >
+        highestWatchedEpisode:
+          (prev[payload.animeTitle]?.highestWatchedEpisode ?? 0) >
           payload.episode
-            ? prev[payload.animeTitle].latestWatchedEpisode
+            ? prev[payload.animeTitle].highestWatchedEpisode
             : payload.episode,
+        latestWatchedEpisode: payload.episode,
         latestVisitedUrl: url as string,
         total: +payload.info["Episodi"],
+        episodeProgress: {
+          ...prev[payload.animeTitle]?.episodeProgress,
+          [payload.episode]:
+            payload.progress ??
+            prev[payload.animeTitle]?.episodeProgress?.[payload.episode],
+        },
       },
     })).then(stateChanged);
   };
@@ -106,8 +188,13 @@ export default function HomeScreen() {
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
-        injectedJavaScript={JS_TO_INJECT(watchMode)}
+        injectedJavaScript={JS_TO_INJECT(watchMode, resume)}
         onMessage={onMessage}
+        onLoadEnd={() => {
+          if (!params.reload) return;
+          router.replace({ pathname: "/", params: { url } });
+          ref.current?.reload();
+        }}
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled
