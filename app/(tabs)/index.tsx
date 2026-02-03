@@ -26,7 +26,7 @@ function debounceFunction(f, time) {
   }
 }
 const getCurrentEpisode = (ep) => +(ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent ?? 0);
-const notifyAnimeEpisode = (progress, ep) => {
+const notifyAnimeEpisode = (progress, ep, url) => {
   const animeTitle = document.querySelector('#anime-title.title')?.textContent;
   const episode = getCurrentEpisode(ep);
   const infoKeys = [];
@@ -42,7 +42,7 @@ const notifyAnimeEpisode = (progress, ep) => {
   const info = Object.fromEntries(infoKeys.map((k, i) => [k, infoValues[i]]));
   
   window.ReactNativeWebView.postMessage(
-    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info, progress } })
+    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info, progress, url } })
   );
 }
 const debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
@@ -70,7 +70,7 @@ const retrievePlayer = () => setInterval(() => {
   `
       : ""
   }
-  player.addEventListener('timeupdate', () => debouncedNAE(player.currentTime));
+  player.addEventListener('timeupdate', () => debouncedNAE(player.currentTime, null, location.href));
 }, 500);
 let interval = retrievePlayer();
 notifyAnimeEpisode(null);
@@ -151,6 +151,7 @@ export default function HomeScreen() {
       episode: number;
       info: any;
       progress: number;
+      url?: string;
     } = message.payload;
     setCurrentAnime({
       animeName: payload.animeTitle,
@@ -165,7 +166,7 @@ export default function HomeScreen() {
             ? prev[payload.animeTitle].highestWatchedEpisode
             : payload.episode,
         latestWatchedEpisode: payload.episode,
-        latestVisitedUrl: url as string,
+        latestVisitedUrl: payload.url ?? (url as string),
         total: +payload.info["Episodi"],
         episodeProgress: {
           ...prev[payload.animeTitle]?.episodeProgress,
@@ -192,8 +193,17 @@ export default function HomeScreen() {
         onMessage={onMessage}
         onLoadEnd={() => {
           if (!params.reload) return;
-          router.replace({ pathname: "/", params: { url } });
-          ref.current?.reload();
+          router.replace({
+            pathname: "/",
+            params: {
+              url,
+              canGoBack: Number(canGoBack),
+              canGoForward: Number(canGoBack),
+            },
+          });
+          if (Platform.OS === "ios") {
+            ref.current?.reload();
+          }
         }}
         javaScriptEnabled
         domStorageEnabled
