@@ -16,12 +16,20 @@ export default function WatchListScreen() {
   const [onlyInProgress, setOnlyInProgress] = React.useState(false);
   const router = useRouter();
 
+  const isAnimeFinished = (anime: AppState[string]): boolean => {
+    const progress = anime.episodeProgress?.[anime.highestWatchedEpisode];
+    return (
+      anime.highestWatchedEpisode !== (anime.total ?? -1) &&
+      (progress?.progress ?? 0) < (progress?.total ?? 0)
+    );
+  };
+
   const filteredState = React.useMemo(
     () =>
       Object.entries(state).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? v.highestWatchedEpisode !== (v.total ?? -1) : true),
+          (onlyInProgress ? isAnimeFinished(v) : true),
       ),
     [state, searchValue, onlyInProgress],
   );
@@ -100,7 +108,7 @@ export default function WatchListScreen() {
       "Actions",
       `Latest watched episode: ${data.latestWatchedEpisode}`.concat(
         data.episodeProgress?.[data.latestWatchedEpisode]
-          ? `\nTime: ${computeTimeStamp(data.episodeProgress?.[data.latestWatchedEpisode] ?? 0)}`
+          ? `\nTime: ${computeTimeStamp(data.episodeProgress?.[data.latestWatchedEpisode]?.progress ?? 0)}`
           : "",
       ),
       [
@@ -201,10 +209,7 @@ export default function WatchListScreen() {
                       )}
 
                       <ThemedText
-                        style={
-                          data.highestWatchedEpisode === data.total &&
-                          styles.animeFinished
-                        }
+                        style={isAnimeFinished(data) && styles.animeFinished}
                       >
                         {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                       </ThemedText>

@@ -3,7 +3,7 @@ export type AppState = {
     latestWatchedEpisode: number;
     latestVisitedUrl: string;
     highestWatchedEpisode: number;
-    episodeProgress?: Record<number, number>;
+    episodeProgress?: Record<number, { progress: number; total: number }>;
     total?: number;
   };
 };

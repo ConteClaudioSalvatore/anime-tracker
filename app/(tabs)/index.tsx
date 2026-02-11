@@ -26,7 +26,8 @@ function debounceFunction(f, time) {
   }
 }
 const getCurrentEpisode = (ep) => +(ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent ?? 0);
-const notifyAnimeEpisode = (progress, ep, url) => {
+const notifyAnimeEpisode = (videoData, ep, url) => {
+  const { progress = null, total = null } = videoData ?? {};
   const animeTitle = document.querySelector('#anime-title.title')?.textContent;
   const episode = getCurrentEpisode(ep);
   const infoKeys = [];
@@ -42,7 +43,7 @@ const notifyAnimeEpisode = (progress, ep, url) => {
   const info = Object.fromEntries(infoKeys.map((k, i) => [k, infoValues[i]]));
   
   window.ReactNativeWebView.postMessage(
-    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info, progress, url } })
+    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info, progress, total, url } })
   );
 }
 const debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
@@ -70,7 +71,7 @@ const retrievePlayer = () => setInterval(() => {
   `
       : ""
   }
-  player.addEventListener('timeupdate', () => debouncedNAE(player.currentTime, null, location.href));
+  player.addEventListener('timeupdate', () => debouncedNAE({ progress: player.currentTime, total: player.duration }, null, location.href));
 }, 500);
 let interval = retrievePlayer();
 notifyAnimeEpisode(null);
@@ -119,9 +120,8 @@ export default function HomeScreen() {
       return {
         episode: currentAnime.episode,
         progress:
-          state[currentAnime.animeName]?.episodeProgress?.[
-            currentAnime.episode
-          ],
+          state[currentAnime.animeName]?.episodeProgress?.[currentAnime.episode]
+            .progress,
       };
     }
     return null;
@@ -151,6 +151,7 @@ export default function HomeScreen() {
       episode: number;
       info: any;
       progress: number;
+      total: number;
       url?: string;
     } = message.payload;
     setCurrentAnime({
@@ -170,9 +171,16 @@ export default function HomeScreen() {
         total: +payload.info["Episodi"],
         episodeProgress: {
           ...prev[payload.animeTitle]?.episodeProgress,
-          [payload.episode]:
-            payload.progress ??
-            prev[payload.animeTitle]?.episodeProgress?.[payload.episode],
+          [payload.episode]: {
+            progress:
+              payload.progress ??
+              prev[payload.animeTitle]?.episodeProgress?.[payload.episode]
+                .progress,
+            total:
+              payload.total ??
+              prev[payload.animeTitle]?.episodeProgress?.[payload.episode]
+                .total,
+          },
         },
       },
     })).then(stateChanged);
@@ -256,9 +264,6 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         marginBottom: -35,
-      },
-      android: {
-        marginBottom: -25,
       },
     }),
   },
