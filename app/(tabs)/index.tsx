@@ -138,7 +138,7 @@ export default function HomeScreen() {
     });
   };
 
-  const onMessage = (e: WebViewMessageEvent) => {
+  const onMessage = async (e: WebViewMessageEvent) => {
     if (!e.nativeEvent.data) return;
     const message = JSON.parse(e.nativeEvent.data);
     if (message.type === "anime-reload") {
@@ -158,9 +158,10 @@ export default function HomeScreen() {
       animeName: payload.animeTitle,
       episode: payload.episode,
     });
-    AppStore.Update((prev) => ({
+    await AppStore.Update((prev) => ({
       ...prev,
       [payload.animeTitle]: {
+        ...prev[payload.animeTitle],
         highestWatchedEpisode:
           (prev[payload.animeTitle]?.highestWatchedEpisode ?? 0) >
           payload.episode

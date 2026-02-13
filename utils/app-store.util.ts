@@ -16,17 +16,22 @@ export class AppStore {
     Paths.document,
     "anime-tracker/backup.json",
   );
+  private static updateQueue = Promise.resolve();
 
   public static async Get(): Promise<AppState> {
-    return Storage.getItem<AppState>(this.STATE_KEY).then((res) => res ?? {});
+    return await Storage.getItem<AppState>(this.STATE_KEY).then(
+      (res) => res ?? {},
+    );
   }
 
   public static async Update(
     updater: (prev: AppState) => AppState,
   ): Promise<void> {
-    return this.Get().then((prev) =>
-      Storage.setItem(this.STATE_KEY, updater(prev)),
-    );
+    this.updateQueue = this.updateQueue.then(async () => {
+      const prev = await this.Get();
+      return await Storage.setItem(this.STATE_KEY, updater(prev));
+    });
+    return await this.updateQueue;
   }
 
   public static async Backup(): Promise<void> {

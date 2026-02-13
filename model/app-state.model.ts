@@ -4,6 +4,7 @@ export type AppState = {
     latestVisitedUrl: string;
     highestWatchedEpisode: number;
     episodeProgress?: Record<number, { progress: number; total: number }>;
+    finished?: boolean;
     total?: number;
   };
 };

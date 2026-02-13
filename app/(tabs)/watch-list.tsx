@@ -19,8 +19,9 @@ export default function WatchListScreen() {
   const isAnimeFinished = (anime: AppState[string]): boolean => {
     const progress = anime.episodeProgress?.[anime.highestWatchedEpisode];
     return (
-      anime.highestWatchedEpisode !== (anime.total ?? -1) &&
-      (progress?.progress ?? 0) < (progress?.total ?? 0)
+      (anime.highestWatchedEpisode !== (anime.total ?? -1) &&
+        (progress?.progress ?? 0) < (progress?.total ?? 0)) ||
+      (anime.finished ?? false)
     );
   };
 
@@ -29,7 +30,7 @@ export default function WatchListScreen() {
       Object.entries(state).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? isAnimeFinished(v) : true),
+          (onlyInProgress ? !isAnimeFinished(v) : true),
       ),
     [state, searchValue, onlyInProgress],
   );
