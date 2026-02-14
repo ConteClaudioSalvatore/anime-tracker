@@ -121,7 +121,7 @@ export default function HomeScreen() {
         episode: currentAnime.episode,
         progress:
           state[currentAnime.animeName]?.episodeProgress?.[currentAnime.episode]
-            .progress,
+            ?.progress,
       };
     }
     return null;
@@ -176,11 +176,11 @@ export default function HomeScreen() {
             progress:
               payload.progress ??
               prev[payload.animeTitle]?.episodeProgress?.[payload.episode]
-                .progress,
+                ?.progress,
             total:
               payload.total ??
               prev[payload.animeTitle]?.episodeProgress?.[payload.episode]
-                .total,
+                ?.total,
           },
         },
       },

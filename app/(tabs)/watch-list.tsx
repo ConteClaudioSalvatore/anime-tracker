@@ -6,7 +6,14 @@ import { Button } from "@react-navigation/elements";
 import { Link } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, ScrollView, StyleSheet, Switch, View } from "react-native";
+import {
+  Alert,
+  AlertButton,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/themed-text";
 
@@ -19,8 +26,9 @@ export default function WatchListScreen() {
   const isAnimeFinished = (anime: AppState[string]): boolean => {
     const progress = anime.episodeProgress?.[anime.highestWatchedEpisode];
     return (
-      (anime.highestWatchedEpisode !== (anime.total ?? -1) &&
-        (progress?.progress ?? 0) < (progress?.total ?? 0)) ||
+      (anime.highestWatchedEpisode === (anime.total ?? -1) &&
+        // if watched for more than 90% we consider the episode finished
+        (progress?.progress ?? 0) > (progress?.total ?? 0) * 0.9) ||
       (anime.finished ?? false)
     );
   };
@@ -55,6 +63,10 @@ export default function WatchListScreen() {
 
     // Pad with leading zeros
     const pad = (num: number) => String(num).padStart(2, "0");
+
+    if (hours === 0) {
+      return `${pad(minutes)}:${pad(seconds)}`;
+    }
 
     return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
   };
@@ -104,19 +116,41 @@ export default function WatchListScreen() {
     );
   };
 
+  const markAsFinished = async (animeName: string) => {
+    await AppStore.Update((prev) => ({
+      ...prev,
+      [animeName]: { ...prev[animeName], finished: true },
+    }));
+  };
+
   const onItemActions = (data: AppState["string"] & { animeName: string }) => {
+    let timeText = "";
+    if (data.episodeProgress?.[data.latestWatchedEpisode]) {
+      timeText = `\nTime: ${computeTimeStamp(data.episodeProgress?.[data.latestWatchedEpisode]?.progress ?? 0)}`;
+      if (data.episodeProgress[data.latestWatchedEpisode].total)
+        timeText = timeText.concat(
+          ` / ${computeTimeStamp(data.episodeProgress[data.latestWatchedEpisode]?.total ?? 0)}`,
+        );
+    }
     Alert.alert(
       "Actions",
-      `Latest watched episode: ${data.latestWatchedEpisode}`.concat(
-        data.episodeProgress?.[data.latestWatchedEpisode]
-          ? `\nTime: ${computeTimeStamp(data.episodeProgress?.[data.latestWatchedEpisode]?.progress ?? 0)}`
-          : "",
-      ),
+      `Latest watched episode: ${data.latestWatchedEpisode}`.concat(timeText),
       [
         {
           text: "Cancel",
           style: "cancel",
         },
+        ...(data.latestWatchedEpisode === data.total
+          ? ([
+              {
+                text: "Mark as finished",
+                style: "default",
+                onPress: () => {
+                  markAsFinished(data.animeName);
+                },
+              },
+            ] as AlertButton[])
+          : []),
         {
           text: "Edit",
           style: "default",
