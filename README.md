@@ -35,9 +35,11 @@
 
 ## 📱 Screenshots
 
-![assets/images/home.jpg](assets/images/home.jpg)
-![assets/images/list.jpg](assets/images/list.jpg)
-![assets/images/backup.jpg](assets/images/backup.jpg)
+<div style="display: flex;">  
+  <img alt="home" src="assets/images/home.jpg" height="400" />
+  <img alt="list" src="assets/images/list.jpg" height="400" />
+  <img alt="backup" src="assets/images/backup.jpg" height="400" />
+</div>
 
 ---
 
