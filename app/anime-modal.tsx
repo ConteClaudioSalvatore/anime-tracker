@@ -31,6 +31,7 @@ function AddAnimeModal() {
       [state.animeName]: {
         ...prev[state.animeName],
         latestWatchedEpisode: state.episode,
+        highestWatchedEpisode: state.episode,
       },
     })).then(() => {
       stateChanged();

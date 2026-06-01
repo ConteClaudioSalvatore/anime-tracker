@@ -75,14 +75,22 @@ const retrievePlayer = () => setInterval(() => {
 }, 500);
 let interval = retrievePlayer();
 notifyAnimeEpisode(null);
-document.querySelectorAll('.episodes > .episode > a').forEach((e) => e.addEventListener('click', (event) => {
-  notifyAnimeEpisode(null, event.target.textContent);
+function clickActionHandler(event) {
   player = null;
   window.ReactNativeWebView.postMessage(
     JSON.stringify({ type: 'anime-reload' })
   );
   interval = retrievePlayer();
+}
+document.querySelectorAll('.episodes > .episode > a').forEach((e) => e.addEventListener('click', (event) => {
+  notifyAnimeEpisode(null, event.target.textContent);
+  chickActionHandler(event);
 }));
+document.querySelectorAll('#controls > .control.prevnext').forEach(
+  (e) => e.addEventListener('click', (e) => {
+    setTimeout(() => clickActionHandler(e), 0);
+  })
+);
 `;
 
 const JS_TO_INJECT = (
