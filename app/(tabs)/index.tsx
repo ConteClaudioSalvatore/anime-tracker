@@ -10,42 +10,20 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
 
+import debounceFunction from "@/assets/js/debounce-function_t.cjs";
+import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
+import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
+import { AnimePayload } from "@/model";
+import { animeUpdate } from "@/store/app.actions";
+
 const WATCH_MODE_JS = (
   possibleResume: {
     episode: number;
     progress?: number;
   } | null,
 ) => `
-function debounceFunction(f, time) {
-  let timeout = null;
-  return (...args) => {
-    if(timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      f.apply(this, args);
-    }, time)
-  }
-}
-const getCurrentEpisode = (ep) => +(ep ?? document.querySelector('.episodes > .episode > a.active')?.textContent ?? 0);
-const notifyAnimeEpisode = (videoData, ep, url) => {
-  const { progress = null, total = null } = videoData ?? {};
-  const animeTitle = document.querySelector('#anime-title.title')?.textContent;
-  const episode = getCurrentEpisode(ep);
-  const infoKeys = [];
-  const infoValues = [];
-  document.querySelectorAll('.info > .row > .meta > dt, .info > .row > .meta > dd').forEach((el) => {
-    if(el.nodeName === 'DT') {
-      infoKeys.push(el.textContent.slice(0, -1))
-    }
-    if(el.nodeName === 'DD') {
-      infoValues.push(el.textContent)
-    }
-  });
-  const info = Object.fromEntries(infoKeys.map((k, i) => [k, infoValues[i]]));
-  
-  window.ReactNativeWebView.postMessage(
-    JSON.stringify({ type: 'anime-found', payload: { episode, animeTitle, info, progress, total, url } })
-  );
-}
+${debounceFunction}
+${notifyAnimeEpisode}
 const debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
 let player = null;
 const retrievePlayer = () => setInterval(() => {
@@ -96,17 +74,11 @@ document.querySelectorAll('#controls > .control.prevnext').forEach(
 const JS_TO_INJECT = (
   watchMode: boolean,
   possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
-) => `
-if(!document.querySelector('head > link[rel=stylesheet]#aw-theme-1')) {
-  const roundedTheme = document.createElement('link');
-  roundedTheme.setAttribute('rel', 'stylesheet');
-  roundedTheme.setAttribute('href', 'https://static.animeworld.ac/dist/frontend/themes/theme-1.css');
-  roundedTheme.setAttribute('id', 'aw-theme-1');
-  document.querySelector('head').append(roundedTheme);
-}
-${watchMode ? WATCH_MODE_JS(possibleResume) : ""}
-`;
+) => `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume) : ""}`;
 
+/**
+ * A regex matching the url only when in play mode
+ */
 const WATCH_MODE_MATCHER = new RegExp(
   "^" + WEBSITE_URI.replace(".ac/", String.raw`.\w+/play`),
 );
@@ -154,45 +126,14 @@ export default function HomeScreen() {
       ref.current?.reload();
     }
     if (message.type !== "anime-found") return;
-    const payload: {
-      animeTitle: string;
-      episode: number;
-      info: any;
-      progress: number;
-      total: number;
-      url?: string;
-    } = message.payload;
+    const payload: AnimePayload = message.payload;
     setCurrentAnime({
       animeName: payload.animeTitle,
       episode: payload.episode,
     });
-    await AppStore.Update((prev) => ({
-      ...prev,
-      [payload.animeTitle]: {
-        ...prev[payload.animeTitle],
-        highestWatchedEpisode:
-          (prev[payload.animeTitle]?.highestWatchedEpisode ?? 0) >
-          payload.episode
-            ? prev[payload.animeTitle].highestWatchedEpisode
-            : payload.episode,
-        latestWatchedEpisode: payload.episode,
-        latestVisitedUrl: payload.url ?? (url as string),
-        total: +payload.info["Episodi"],
-        episodeProgress: {
-          ...prev[payload.animeTitle]?.episodeProgress,
-          [payload.episode]: {
-            progress:
-              payload.progress ??
-              prev[payload.animeTitle]?.episodeProgress?.[payload.episode]
-                ?.progress,
-            total:
-              payload.total ??
-              prev[payload.animeTitle]?.episodeProgress?.[payload.episode]
-                ?.total,
-          },
-        },
-      },
-    })).then(stateChanged);
+    await AppStore.Dispatch(animeUpdate(url as string, payload)).then(
+      stateChanged,
+    );
   };
 
   const onShouldStart = (e: WebViewNavigationEvent) => {

@@ -1,6 +1,6 @@
 import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
-import { Anime } from "@/model";
+import { AnimeModalPayload } from "@/model";
 import { AppStore, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -12,7 +12,7 @@ function AddAnimeModal() {
   const params = useLocalSearchParams();
   const { stateChanged } = React.useContext(StoreContext);
 
-  const [state, setState] = React.useState<Anime>({
+  const [state, setState] = React.useState<AnimeModalPayload>({
     animeName: (params.animeName as string) ?? "",
     episode: +((params.episode as string | null) ?? "1"),
   });

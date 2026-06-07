@@ -1,4 +1,5 @@
-import { AppState } from "@/model";
+import { Action, AppState } from "@/model";
+import { reducer } from "@/store/app.state";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -17,6 +18,7 @@ export class AppStore {
     "anime-tracker/backup.json",
   );
   private static updateQueue = Promise.resolve();
+  private static readonly reducer = reducer;
 
   public static async Get(): Promise<AppState> {
     return await Storage.getItem<AppState>(this.STATE_KEY).then(
@@ -32,6 +34,12 @@ export class AppStore {
       return await Storage.setItem(this.STATE_KEY, updater(prev));
     });
     return await this.updateQueue;
+  }
+
+  public static async Dispatch<TAction extends string, TPayload = never>(
+    action: Action<TAction, TPayload>,
+  ): Promise<void> {
+    await this.Update((prev) => this.reducer(prev, action));
   }
 
   public static async Backup(): Promise<void> {

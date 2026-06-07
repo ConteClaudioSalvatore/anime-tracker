@@ -1,3 +1,4 @@
+import { ThemedButton } from "@/components/themed-button";
 import { ThemedView } from "@/components/themed-view";
 import { AppStore, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
@@ -38,9 +39,13 @@ export default function SettingsScreen() {
         >
           BACKUP
         </Button>
-        <Button color="yellow" onPress={onRestore}>
+        <ThemedButton
+          darkColor="yellow"
+          lightColor="orange"
+          onPress={onRestore}
+        >
           RESTORE BACKUP
-        </Button>
+        </ThemedButton>
       </ThemedView>
     </SafeAreaView>
   );
