@@ -14,7 +14,7 @@ import debounceFunction from "@/assets/js/debounce-function_t.cjs";
 import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
 import { AnimePayload } from "@/model";
-import { animeUpdate } from "@/store/app.actions";
+import { animeUpdated } from "@/store/app.actions";
 
 const WATCH_MODE_JS = (
   possibleResume: {
@@ -131,7 +131,7 @@ export default function HomeScreen() {
       animeName: payload.animeTitle,
       episode: payload.episode,
     });
-    await AppStore.Dispatch(animeUpdate(url as string, payload)).then(
+    await AppStore.Dispatch(animeUpdated(url as string, payload)).then(
       stateChanged,
     );
   };

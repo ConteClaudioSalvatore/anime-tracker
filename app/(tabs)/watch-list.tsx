@@ -1,6 +1,7 @@
 import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
 import { AppState } from "@/model";
+import { markAnimeFinished, removeAnime } from "@/store/app.actions";
 import { AppStore, Storage, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
 import { Link } from "@react-navigation/native";
@@ -105,11 +106,7 @@ export default function WatchListScreen() {
           text: "Yes",
           style: "destructive",
           onPress: () => {
-            AppStore.Update((prev) =>
-              Object.fromEntries(
-                Object.entries(prev).filter(([k]) => k !== animeName),
-              ),
-            ).then(stateChanged);
+            AppStore.Dispatch(removeAnime(animeName)).then(stateChanged);
           },
         },
       ],
@@ -117,10 +114,7 @@ export default function WatchListScreen() {
   };
 
   const markAsFinished = async (animeName: string) => {
-    await AppStore.Update((prev) => ({
-      ...prev,
-      [animeName]: { ...prev[animeName], finished: true },
-    }));
+    await AppStore.Dispatch(markAnimeFinished(animeName)).then(stateChanged);
   };
 
   const onItemActions = (data: AppState["string"] & { animeName: string }) => {
