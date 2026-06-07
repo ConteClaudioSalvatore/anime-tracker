@@ -15,3 +15,7 @@ export const markAnimeFinished = createAction(
   "@app/mark-anime-finished",
   (payload: string) => ({ payload }),
 );
+export const upsertAnime = createAction(
+  "@app/upsert-anime",
+  (animeName: string, episode: number) => ({ payload: { animeName, episode } }),
+);

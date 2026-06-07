@@ -1,6 +1,7 @@
 import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
 import { AnimeModalPayload } from "@/model";
+import { upsertAnime } from "@/store/app.actions";
 import { AppStore, StoreContext } from "@/utils";
 import { Button } from "@react-navigation/elements";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -26,14 +27,7 @@ function AddAnimeModal() {
   };
 
   const onUpdateState = () => {
-    AppStore.Update((prev) => ({
-      ...prev,
-      [state.animeName]: {
-        ...prev[state.animeName],
-        latestWatchedEpisode: state.episode,
-        highestWatchedEpisode: state.episode,
-      },
-    })).then(() => {
+    AppStore.Dispatch(upsertAnime(state.animeName, state.episode)).then(() => {
       stateChanged();
       router.back();
     });

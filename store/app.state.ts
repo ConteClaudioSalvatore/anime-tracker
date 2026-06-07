@@ -1,7 +1,12 @@
 import { AppState } from "@/model";
 import { createReducer } from "@/utils/create-reducer.util";
 import { on } from "@/utils/on.util";
-import { animeUpdated, markAnimeFinished, removeAnime } from "./app.actions";
+import {
+  animeUpdated,
+  markAnimeFinished,
+  removeAnime,
+  upsertAnime,
+} from "./app.actions";
 
 export const reducer = createReducer<AppState>(
   on(animeUpdated, (state, { payload: { defaultUrl, payload } }) => ({
@@ -34,8 +39,16 @@ export const reducer = createReducer<AppState>(
   on(removeAnime, (state, { payload: animeName }) =>
     Object.fromEntries(Object.entries(state).filter(([k]) => k !== animeName)),
   ),
-  on(markAnimeFinished, (state, {payload:animeName}) => ({
-      ...state,
-      [animeName]: { ...state[animeName], finished: true },
-    }))
+  on(markAnimeFinished, (state, { payload: animeName }) => ({
+    ...state,
+    [animeName]: { ...state[animeName], finished: true },
+  })),
+  on(upsertAnime, (state, { payload: { animeName, episode } }) => ({
+    ...state,
+    [animeName]: {
+      ...state[animeName],
+      latestWatchedEpisode: episode,
+      highestWatchedEpisode: episode,
+    },
+  })),
 );
