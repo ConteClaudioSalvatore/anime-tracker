@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 function debounceFunction(f, time) {
   let timeout = null;
   return (...args) => {

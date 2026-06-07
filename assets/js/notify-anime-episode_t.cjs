@@ -4,6 +4,7 @@ const getCurrentEpisode = (ep) =>
     document.querySelector(".episodes > .episode > a.active")?.textContent ??
     0
   );
+// eslint-disable-next-line no-unused-vars
 const notifyAnimeEpisode = (videoData, ep, url) => {
   const { progress = null, total = null } = videoData ?? {};
   const animeTitle = document.querySelector("#anime-title.title")?.textContent;
