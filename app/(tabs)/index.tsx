@@ -167,6 +167,7 @@ export default function HomeScreen() {
         domStorageEnabled
         scrollEnabled
         onOpenWindow={() => false}
+        useWebView2
         bounces={true}
       ></WebView>
       <ThemedView style={styles.buttons}>
