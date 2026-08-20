@@ -13,17 +13,20 @@ import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativ
 import debounceFunction from "@/assets/js/debounce-function_t.cjs";
 import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
-import { AnimePayload } from "@/model";
+import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
 
 const WATCH_MODE_JS = (
-  possibleResume: {
-    episode: number;
-    progress?: number;
-  } | null,
+  possibleResume:
+    | ({
+        episode: number;
+      } & Partial<EpisodeProgress>)
+    | null,
+  episodes: ({ episode: number } & EpisodeProgress)[],
 ) => `
 ${debounceFunction}
 ${notifyAnimeEpisode}
+const episodes = ${JSON.stringify(episodes)};
 const debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
 let player = null;
 const retrievePlayer = () => setInterval(() => {
@@ -60,10 +63,18 @@ function clickActionHandler(event) {
   );
   interval = retrievePlayer();
 }
-document.querySelectorAll('.episodes > .episode > a').forEach((e) => e.addEventListener('click', (event) => {
-  notifyAnimeEpisode(null, event.target.textContent);
-  chickActionHandler(event);
-}));
+document.querySelectorAll('.episodes > .episode > a').forEach((e) => {
+  e.addEventListener('click', (event) => {
+    notifyAnimeEpisode(null, event.target.textContent);
+    chickActionHandler(event);
+  });
+  const episodeIndex = episodes.findIndex(x => x.episode === +e.textContent);
+  if(episodeIndex === -1) return;
+  const episode = episodes[episodeIndex];
+  if(episode.progress + episode.total === 0) return;
+  const progress = (episode.progress / episode.total * 100).toFixed();
+  e.style.backgroundImage = \`linear-gradient(to right, #00d30045 \${progress}%, transparent \${progress}%, transparent)\`;
+});
 document.querySelectorAll('#controls > .control.prevnext').forEach(
   (e) => e.addEventListener('click', (e) => {
     setTimeout(() => clickActionHandler(e), 0);
@@ -74,7 +85,9 @@ document.querySelectorAll('#controls > .control.prevnext').forEach(
 const JS_TO_INJECT = (
   watchMode: boolean,
   possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
-) => `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume) : ""}`;
+  episodes: Parameters<typeof WATCH_MODE_JS>[1] = [],
+) =>
+  `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}`;
 
 /**
  * A regex matching the url only when in play mode
@@ -96,16 +109,26 @@ export default function HomeScreen() {
   const resume = React.useMemo<
     Parameters<typeof WATCH_MODE_JS>[0] | null
   >(() => {
-    if (currentAnime) {
-      return {
-        episode: currentAnime.episode,
-        progress:
-          state[currentAnime.animeName]?.episodeProgress?.[currentAnime.episode]
-            ?.progress,
-      };
-    }
-    return null;
+    if (!currentAnime) return null;
+    return {
+      episode: currentAnime.episode,
+      progress:
+        state[currentAnime.animeName]?.episodeProgress?.[currentAnime.episode]
+          ?.progress,
+    };
   }, [currentAnime, state]);
+  const playedEpisodes = React.useMemo<
+    ({ episode: number } & EpisodeProgress)[]
+  >(() => {
+    if (!currentAnime) return [];
+    return Object.entries(
+      state[currentAnime.animeName].episodeProgress ?? {},
+    ).map(([ep, progressInfo]) => ({
+      episode: +ep,
+      ...progressInfo,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAnime]);
   const router = useRouter();
   const watchMode = !!WATCH_MODE_MATCHER.exec(url as string);
 
@@ -131,6 +154,7 @@ export default function HomeScreen() {
       animeName: payload.animeTitle,
       episode: payload.episode,
     });
+    ref.current?.injectJavaScript(JS_TO_INJECT(watchMode, resume));
     await AppStore.Dispatch(animeUpdated(url as string, payload)).then(
       stateChanged,
     );
@@ -147,7 +171,7 @@ export default function HomeScreen() {
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
-        injectedJavaScript={JS_TO_INJECT(watchMode, resume)}
+        injectedJavaScript={JS_TO_INJECT(watchMode, resume, playedEpisodes)}
         onMessage={onMessage}
         onLoadEnd={() => {
           if (!params.reload) return;
