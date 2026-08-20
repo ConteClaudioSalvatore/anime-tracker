@@ -154,7 +154,6 @@ export default function HomeScreen() {
       animeName: payload.animeTitle,
       episode: payload.episode,
     });
-    ref.current?.injectJavaScript(JS_TO_INJECT(watchMode, resume));
     await AppStore.Dispatch(animeUpdated(url as string, payload)).then(
       stateChanged,
     );
