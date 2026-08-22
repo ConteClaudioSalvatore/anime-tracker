@@ -122,7 +122,7 @@ export default function HomeScreen() {
   >(() => {
     if (!currentAnime) return [];
     return Object.entries(
-      state[currentAnime.animeName].episodeProgress ?? {},
+      state[currentAnime.animeName]?.episodeProgress ?? {},
     ).map(([ep, progressInfo]) => ({
       episode: +ep,
       ...progressInfo,
