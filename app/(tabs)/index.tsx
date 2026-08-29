@@ -24,37 +24,30 @@ const WATCH_MODE_JS = (
     | null,
   episodes: ({ episode: number } & EpisodeProgress)[],
 ) => `
-${debounceFunction}
-${notifyAnimeEpisode}
-const episodes = ${JSON.stringify(episodes)};
-const debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
-let player = null;
-const retrievePlayer = () => setInterval(() => {
+episodes = ${JSON.stringify(episodes)};
+debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
+possibleResume = ${JSON.stringify(possibleResume)};
+player = null;
+retrievePlayer = () => setInterval(() => {
   if(player) {
     clearInterval(interval);
     return;
   }
   player = document.querySelector('iframe#player-iframe')?.contentDocument.querySelector('video#video-player');
   if(!player) return;
-  ${
-    possibleResume?.progress
-      ? `
-  if(getCurrentEpisode() === ${possibleResume.episode}) {
+  if(possibleResume?.progress && getCurrentEpisode() === possibleResume.episode) {
     const playCallback = () => {
       window.ReactNativeWebView.postMessage(
-        JSON.stringify({ type: 'anime-play', payload: ${JSON.stringify(possibleResume)} })
+        JSON.stringify({ type: 'anime-play', payload: possibleResume })
       );
-      player.currentTime = ${possibleResume.progress};
+      player.currentTime = possibleResume.progress;
       player.removeEventListener('play', playCallback);
     }
     player.addEventListener('play', playCallback);
   }
-  `
-      : ""
-  }
   player.addEventListener('timeupdate', () => debouncedNAE({ progress: player.currentTime, total: player.duration }, null, location.href));
 }, 500);
-let interval = retrievePlayer();
+interval = retrievePlayer();
 notifyAnimeEpisode(null);
 function clickActionHandler(event) {
   player = null;
@@ -66,7 +59,7 @@ function clickActionHandler(event) {
 document.querySelectorAll('.episodes > .episode > a').forEach((e) => {
   e.addEventListener('click', (event) => {
     notifyAnimeEpisode(null, event.target.textContent);
-    chickActionHandler(event);
+    clickActionHandler(event);
   });
   const episodeIndex = episodes.findIndex(x => x.episode === +e.textContent);
   if(episodeIndex === -1) return;
@@ -170,6 +163,7 @@ export default function HomeScreen() {
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
+        injectedJavaScriptBeforeContentLoaded={`${debounceFunction}${notifyAnimeEpisode}`}
         injectedJavaScript={JS_TO_INJECT(watchMode, resume, playedEpisodes)}
         onMessage={onMessage}
         onLoadEnd={() => {

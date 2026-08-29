@@ -7,7 +7,8 @@ const getCurrentEpisode = (ep) =>
 // eslint-disable-next-line no-unused-vars
 const notifyAnimeEpisode = (videoData, ep, url) => {
   const { progress = null, total = null } = videoData ?? {};
-  const animeTitle = document.querySelector("#anime-title.title")?.textContent;
+  // gently provided by animeWorld
+  const animeTitle = window.animeName;
   const episode = getCurrentEpisode(ep);
   const infoKeys = [];
   const infoValues = [];

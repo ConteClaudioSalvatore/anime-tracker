@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-function debounceFunction(f, time) {
+const debounceFunction = (f, time) => {
   let timeout = null;
   return (...args) => {
     if (timeout) clearTimeout(timeout);
@@ -7,4 +7,4 @@ function debounceFunction(f, time) {
       f.apply(this, args);
     }, time);
   };
-}
+};
