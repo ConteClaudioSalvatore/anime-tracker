@@ -183,9 +183,16 @@ export default function HomeScreen() {
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled
+        webviewDebuggingEnabled
         onOpenWindow={() => false}
         useWebView2
         bounces={true}
+        {...(Platform.OS === "android"
+          ? {
+              allowsFullscreenVideo: true,
+              allowsInlineMediaPlayback: true,
+            }
+          : {})}
       ></WebView>
       <ThemedView style={styles.buttons}>
         <Button
