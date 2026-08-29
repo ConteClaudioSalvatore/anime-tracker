@@ -80,10 +80,8 @@ const JS_TO_INJECT = (
   watchMode: boolean,
   possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
   episodes: Parameters<typeof WATCH_MODE_JS>[1] = [],
-) => {
-  console.log("injected");
-  return `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}`;
-};
+) =>
+  `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}`;
 
 /**
  * A regex matching the url only when in play mode
@@ -141,8 +139,6 @@ export default function HomeScreen() {
     if (!e.nativeEvent.data) return;
     const message = JSON.parse(e.nativeEvent.data);
     if (message.type === "anime-reload") {
-      console.log("reload");
-      // ref.current?.injectJavaScript(JS_TO_INJECT(watchMode, resume));
       ref.current?.reload();
     }
     if (message.type !== "anime-found") return;
