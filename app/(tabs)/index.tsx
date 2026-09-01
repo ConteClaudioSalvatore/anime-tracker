@@ -1,20 +1,19 @@
-import { Dimensions, Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
-import { ThemedView } from "@/components/themed-view";
 import { WEBSITE_URI } from "@/constants/website";
 import { AppStore, StoreContext } from "@/utils";
-import { Button } from "@react-navigation/elements";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
 
 import debounceFunction from "@/assets/js/debounce-function_t.cjs";
 import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
+import { ThemedView } from "@/components/themed-view";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
+import { Button } from "@react-navigation/elements";
 
 const WATCH_MODE_JS = (
   possibleResume:
@@ -92,7 +91,7 @@ const WATCH_MODE_MATCHER = new RegExp(
 
 export default function HomeScreen() {
   const ref = React.useRef<WebView>(null);
-  const { url, ...params } = useLocalSearchParams();
+  const { url = WEBSITE_URI, ...params } = useLocalSearchParams();
   const canGoForward = Boolean(Number(params.canGoForward));
   const canGoBack = Boolean(Number(params.canGoBack));
   const [currentAnime, setCurrentAnime] = React.useState<{
@@ -157,7 +156,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <WebView
         ref={ref}
         source={{ uri: url as string }}
@@ -180,6 +179,7 @@ export default function HomeScreen() {
             ref.current?.reload();
           }
         }}
+        contentInsetAdjustmentBehavior="always"
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled
@@ -221,7 +221,7 @@ export default function HomeScreen() {
           &gt;
         </Button>
       </ThemedView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -234,12 +234,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
-    ...Platform.select({
-      ios: {
-        marginBottom: -35,
-      },
-    }),
+    flexDirection: "column",
   },
 });
