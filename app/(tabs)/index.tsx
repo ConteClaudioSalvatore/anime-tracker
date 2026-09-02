@@ -12,7 +12,7 @@ import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
-import { Button, Host, Icon, Text } from "@expo/ui";
+import { Button, Host, Icon } from "@expo/ui";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const WATCH_MODE_JS = (
@@ -209,7 +209,7 @@ export default function HomeScreen() {
         <Host matchContents>
           <Button
             disabled={!canGoBack}
-            variant={canGoBack ? "filled" : "text"}
+            variant={canGoBack ? "filled" : "outlined"}
             onPress={() => ref.current?.goBack()}
           >
             <Icon name="lessthan" />
@@ -222,20 +222,8 @@ export default function HomeScreen() {
         </Host>
         <Host matchContents>
           <Button
-            variant="outlined"
-            onPress={() => {
-              router.setParams({
-                url: WEBSITE_URI,
-              });
-            }}
-          >
-            <Text>AW Home</Text>
-          </Button>
-        </Host>
-        <Host matchContents>
-          <Button
             disabled={!canGoForward}
-            variant={canGoForward ? "filled" : "text"}
+            variant={canGoForward ? "filled" : "outlined"}
             onPress={() => ref.current?.goForward()}
           >
             <Icon name="greaterthan" />
