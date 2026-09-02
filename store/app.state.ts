@@ -1,14 +1,14 @@
-import { AppState } from "@/model";
+import { AppStoreState } from "@/model";
 import { createReducer } from "@/utils/create-reducer.util";
 import { on } from "@/utils/on.util";
 import {
-  animeUpdated,
-  markAnimeFinished,
-  removeAnime,
-  upsertAnime,
+    animeUpdated,
+    markAnimeFinished,
+    removeAnime,
+    upsertAnime,
 } from "./app.actions";
 
-export const reducer = createReducer<AppState>(
+export const reducer = createReducer<AppStoreState>(
   on(animeUpdated, (state, { payload: { defaultUrl, payload } }) => ({
     ...state,
     [payload.animeTitle]: {

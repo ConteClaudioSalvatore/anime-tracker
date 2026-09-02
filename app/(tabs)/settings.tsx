@@ -1,6 +1,7 @@
 import { ThemedView } from "@/components/themed-view";
 import { AppStore, StoreContext } from "@/utils";
 import { Button, Host } from "@expo/ui";
+import { buttonStyle, tint } from "@expo/ui/swift-ui/modifiers";
 import React from "react";
 import { Alert, Dimensions, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,12 +36,14 @@ export default function SettingsScreen() {
           <Button
             variant="filled"
             label="BACKUP"
+            modifiers={[buttonStyle("glassProminent"), tint("#00ff5588")]}
             onPress={() => AppStore.Backup()}
           />
         </Host>
         <Host matchContents style={{ width: Dimensions.get("window").width }}>
           <Button
             variant="outlined"
+            modifiers={[buttonStyle("glassProminent"), tint("#88880088")]}
             label="RESTORE BACKUP"
             onPress={onRestore}
           />

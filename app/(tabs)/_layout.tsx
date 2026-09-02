@@ -1,23 +1,22 @@
 import React from "react";
 
 import { WEBSITE_URI } from "@/constants/website";
-import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
+import { AppStateContext } from "@/utils/app-state.util";
+import { usePathname } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   const pathName = usePathname();
-  const params = useLocalSearchParams();
-  const router = useRouter();
+  const { updateState } = React.useContext(AppStateContext);
 
   return (
-    <NativeTabs minimizeBehavior="onScrollDown">
+    <NativeTabs blurEffect="dark">
       <NativeTabs.Trigger
         name="index"
         listeners={{
           tabPress: (e) => {
             if (pathName !== "/") return;
-            router.setParams({
-              ...params,
+            updateState({
               url: WEBSITE_URI,
             });
           },

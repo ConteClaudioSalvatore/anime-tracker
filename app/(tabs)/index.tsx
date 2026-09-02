@@ -2,8 +2,7 @@ import { Dimensions, Platform, StyleSheet, View } from "react-native";
 
 import { WEBSITE_URI } from "@/constants/website";
 import { AppStore, StoreContext } from "@/utils";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import React, { useContext } from "react";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
 
@@ -12,7 +11,18 @@ import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
-import { Button, Host, Icon } from "@expo/ui";
+import { AppStateContext } from "@/utils/app-state.util";
+import { Button, Group, Host, HStack } from "@expo/ui/swift-ui";
+import {
+  buttonBorderShape,
+  buttonStyle,
+  controlSize,
+  disabled,
+  frame,
+  labelStyle,
+  padding,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const WATCH_MODE_JS = (
@@ -91,14 +101,13 @@ const WATCH_MODE_MATCHER = new RegExp(
 
 export default function HomeScreen() {
   const ref = React.useRef<WebView>(null);
-  const { url = WEBSITE_URI, ...params } = useLocalSearchParams();
-  const canGoForward = Boolean(Number(params.canGoForward));
-  const canGoBack = Boolean(Number(params.canGoBack));
+  const { state, updateState } = useContext(AppStateContext);
+  const { url, canGoForward = false, canGoBack = false, ...params } = state;
   const [currentAnime, setCurrentAnime] = React.useState<{
     episode: number;
     animeName: string;
   } | null>(null);
-  const { state, stateChanged } = React.useContext(StoreContext);
+  const { state: storeState, stateChanged } = React.useContext(StoreContext);
   const resume = React.useMemo<
     Parameters<typeof WATCH_MODE_JS>[0] | null
   >(() => {
@@ -106,31 +115,31 @@ export default function HomeScreen() {
     return {
       episode: currentAnime.episode,
       progress:
-        state[currentAnime.animeName]?.episodeProgress?.[currentAnime.episode]
-          ?.progress,
+        storeState[currentAnime.animeName]?.episodeProgress?.[
+          currentAnime.episode
+        ]?.progress,
     };
-  }, [currentAnime, state]);
+  }, [currentAnime, storeState]);
   const playedEpisodes = React.useMemo<
     ({ episode: number } & EpisodeProgress)[]
   >(() => {
     if (!currentAnime) return [];
     return Object.entries(
-      state[currentAnime.animeName]?.episodeProgress ?? {},
+      storeState[currentAnime.animeName]?.episodeProgress ?? {},
     ).map(([ep, progressInfo]) => ({
       episode: +ep,
       ...progressInfo,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAnime]);
-  const router = useRouter();
   const watchMode = !!WATCH_MODE_MATCHER.exec(url as string);
 
   const onNavigation = (e: WebViewNavigationEvent) => {
     if (url === e.url) return;
-    router.setParams({
+    updateState({
       url: e.url,
-      canGoBack: Number(e.canGoBack),
-      canGoForward: Number(e.canGoForward),
+      canGoBack: e.canGoBack,
+      canGoForward: e.canGoForward,
     });
   };
 
@@ -167,13 +176,10 @@ export default function HomeScreen() {
         onMessage={onMessage}
         onLoadEnd={() => {
           if (!params.reload) return;
-          router.replace({
-            pathname: "/",
-            params: {
-              url,
-              canGoBack: Number(canGoBack),
-              canGoForward: Number(canGoBack),
-            },
+          updateState({
+            url,
+            canGoBack,
+            canGoForward,
           });
           if (Platform.OS === "ios") {
             ref.current?.reload();
@@ -202,32 +208,61 @@ export default function HomeScreen() {
           width: Dimensions.get("window").width,
           display: "flex",
           flexDirection: "row",
-          justifyContent: "space-evenly",
           alignItems: "center",
         }}
       >
         <Host matchContents>
-          <Button
-            disabled={!canGoBack}
-            variant={canGoBack ? "filled" : "outlined"}
-            onPress={() => ref.current?.goBack()}
+          <HStack
+            modifiers={[
+              frame({ width: Dimensions.get("window").width - 16 }),
+              padding({ horizontal: 8 }),
+            ]}
           >
-            <Icon name="lessthan" />
-          </Button>
-        </Host>
-        <Host matchContents>
-          <Button variant="filled" onPress={() => ref.current?.reload()}>
-            <Icon name="arrow.2.circlepath" />
-          </Button>
-        </Host>
-        <Host matchContents>
-          <Button
-            disabled={!canGoForward}
-            variant={canGoForward ? "filled" : "outlined"}
-            onPress={() => ref.current?.goForward()}
-          >
-            <Icon name="greaterthan" />
-          </Button>
+            <Group>
+              <Button
+                modifiers={[
+                  disabled(!canGoBack),
+                  buttonStyle("glass"),
+                  labelStyle("iconOnly"),
+                  tint("#000000aa"),
+                  controlSize("large"),
+                  buttonBorderShape("circle"),
+                ]}
+                // variant={canGoBack ? "filled" : "outlined"}
+                label="back"
+                onPress={() => ref.current?.goBack()}
+                systemImage="lessthan"
+              />
+              {canGoForward && (
+                <Button
+                  modifiers={[
+                    disabled(!canGoForward),
+                    buttonStyle("glass"),
+                    labelStyle("iconOnly"),
+                    tint("#000000aa"),
+                    controlSize("large"),
+                    buttonBorderShape("circle"),
+                  ]}
+                  // variant={canGoForward ? "filled" : "outlined"}
+                  systemImage="greaterthan"
+                  label="forward"
+                  onPress={() => ref.current?.goForward()}
+                />
+              )}
+            </Group>
+            <Button
+              modifiers={[
+                buttonStyle("glassProminent"),
+                labelStyle("iconOnly"),
+                tint("#000000aa"),
+                controlSize("large"),
+                buttonBorderShape("circle"),
+              ]}
+              systemImage="arrow.2.circlepath"
+              label="reload"
+              onPress={() => ref.current?.reload()}
+            />
+          </HStack>
         </Host>
       </SafeAreaView>
     </View>

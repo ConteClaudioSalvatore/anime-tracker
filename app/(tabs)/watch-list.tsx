@@ -1,14 +1,24 @@
 import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
-import { AppState } from "@/model";
+import { AppStoreState } from "@/model";
 import { markAnimeFinished, removeAnime } from "@/store/app.actions";
 import { AppStore, Storage, StoreContext } from "@/utils";
+import { AppStateContext } from "@/utils/app-state.util";
 import { Button, Host, Text } from "@expo/ui";
-import { Link, useRouter } from "expo-router";
+import { HStack } from "@expo/ui/swift-ui";
+import {
+  buttonStyle,
+  frame,
+  multilineTextAlignment,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
   AlertButton,
+  Dimensions,
+  DynamicColorIOS,
   ScrollView,
   StyleSheet,
   Switch,
@@ -18,12 +28,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/themed-text";
 
 export default function WatchListScreen() {
-  const { state, stateChanged } = React.useContext(StoreContext);
+  const { state: storeState, stateChanged } = React.useContext(StoreContext);
+  const { updateState } = React.useContext(AppStateContext);
   const [searchValue, setSearchValue] = React.useState("");
   const [onlyInProgress, setOnlyInProgress] = React.useState(false);
   const router = useRouter();
 
-  const isAnimeFinished = (anime: AppState[string]): boolean => {
+  const isAnimeFinished = (anime: AppStoreState[string]): boolean => {
     const progress = anime.episodeProgress?.[anime.highestWatchedEpisode];
     return (
       (anime.highestWatchedEpisode === (anime.total ?? -1) &&
@@ -35,12 +46,12 @@ export default function WatchListScreen() {
 
   const filteredState = React.useMemo(
     () =>
-      Object.entries(state).filter(
+      Object.entries(storeState).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
           (onlyInProgress ? !isAnimeFinished(v) : true),
       ),
-    [state, searchValue, onlyInProgress],
+    [storeState, searchValue, onlyInProgress],
   );
 
   const anyItems = React.useMemo(
@@ -116,7 +127,9 @@ export default function WatchListScreen() {
     await AppStore.Dispatch(markAnimeFinished(animeName)).then(stateChanged);
   };
 
-  const onItemActions = (data: AppState["string"] & { animeName: string }) => {
+  const onItemActions = (
+    data: AppStoreState["string"] & { animeName: string },
+  ) => {
     let timeText = "";
     if (data.episodeProgress?.[data.latestWatchedEpisode]) {
       timeText = `\nTime: ${computeTimeStamp(data.episodeProgress?.[data.latestWatchedEpisode]?.progress ?? 0)}`;
@@ -177,7 +190,7 @@ export default function WatchListScreen() {
             <Host matchContents>
               <Button
                 variant="outlined"
-                style={{ backgroundColor: "red", borderRadius: 200 }}
+                modifiers={[tint("#ff000044"), buttonStyle("glassProminent")]}
                 onPress={onClear}
               >
                 <Text textStyle={{ color: "white" }}>CLEAR</Text>
@@ -218,48 +231,57 @@ export default function WatchListScreen() {
                 {filteredState
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([animeName, data]) => (
-                    <View key={animeName} style={styles.anime}>
-                      {data.latestVisitedUrl ? (
-                        <Link
-                          href={{
-                            pathname: "/",
-                            params: data.latestVisitedUrl
-                              ? {
-                                  url: data.latestVisitedUrl,
-                                  reload: Number(true),
-                                }
-                              : {},
-                          }}
-                          style={{ ...styles.animeTitle, ...styles.animeLink }}
-                        >
-                          <ThemedText style={{ ...styles.animeLink, flex: 1 }}>
-                            {animeName}
-                          </ThemedText>
-                        </Link>
-                      ) : (
-                        <ThemedText style={styles.animeTitle}>
-                          {animeName}
-                        </ThemedText>
-                      )}
-
-                      <ThemedText
-                        style={isAnimeFinished(data) && styles.animeFinished}
+                    <Host key={animeName} matchContents style={styles.anime}>
+                      <HStack
+                        modifiers={[
+                          frame({
+                            width: Dimensions.get("window").width - 52,
+                          }),
+                        ]}
                       >
-                        {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
-                      </ThemedText>
-                      <View style={styles.animeAction}>
-                        <Host matchContents>
-                          <Button
-                            variant="outlined"
-                            onPress={() =>
-                              onItemActions({ ...data, animeName })
-                            }
-                          >
-                            <Text>⛓️</Text>
-                          </Button>
-                        </Host>
-                      </View>
-                    </View>
+                        <Button
+                          onPress={() => {
+                            updateState(
+                              data.latestVisitedUrl
+                                ? {
+                                    url: data.latestVisitedUrl,
+                                    reload: true,
+                                  }
+                                : {},
+                            );
+                            router.navigate("/");
+                          }}
+                          modifiers={[
+                            buttonStyle("borderless"),
+                            tint(
+                              data.latestVisitedUrl
+                                ? "rgb(0, 100, 255)"
+                                : DynamicColorIOS({
+                                    dark: "white",
+                                    light: "black",
+                                  }),
+                            ),
+                            frame({ maxWidth: Infinity, alignment: "leading" }),
+                          ]}
+                        >
+                          <Text modifiers={[multilineTextAlignment("leading")]}>
+                            {animeName}
+                          </Text>
+                        </Button>
+                        <Text
+                        // style={isAnimeFinished(data) && styles.animeFinished}
+                        >
+                          {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
+                        </Text>
+                        <Button
+                          variant="outlined"
+                          modifiers={[buttonStyle("glass")]}
+                          onPress={() => onItemActions({ ...data, animeName })}
+                        >
+                          <Text>⛓️</Text>
+                        </Button>
+                      </HStack>
+                    </Host>
                   ))}
               </>
             ) : (
@@ -272,6 +294,7 @@ export default function WatchListScreen() {
         <Host matchContents style={{ alignSelf: "center" }}>
           <Button
             variant="filled"
+            modifiers={[buttonStyle("glassProminent"), tint("#0088ff88")]}
             onPress={() =>
               router.navigate({
                 pathname: "/anime-modal",
