@@ -1,14 +1,28 @@
 import React from "react";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { WEBSITE_URI } from "@/constants/website";
+import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const pathName = usePathname();
+  const params = useLocalSearchParams();
+  const router = useRouter();
 
   return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
+    <NativeTabs minimizeBehavior="onScrollDown">
+      <NativeTabs.Trigger
+        name="index"
+        listeners={{
+          tabPress: (e) => {
+            if (pathName !== "/") return;
+            router.setParams({
+              ...params,
+              url: WEBSITE_URI,
+            });
+          },
+        }}
+      >
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house.fill"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>

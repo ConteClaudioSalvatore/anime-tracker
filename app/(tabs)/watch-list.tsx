@@ -3,9 +3,8 @@ import { ThemedView } from "@/components/themed-view";
 import { AppState } from "@/model";
 import { markAnimeFinished, removeAnime } from "@/store/app.actions";
 import { AppStore, Storage, StoreContext } from "@/utils";
-import { Button } from "@react-navigation/elements";
-import { Link } from "@react-navigation/native";
-import { useRouter } from "expo-router";
+import { Button, Host, Text } from "@expo/ui";
+import { Link, useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
@@ -175,9 +174,15 @@ export default function WatchListScreen() {
         <View style={styles.header}>
           <ThemedText style={styles.title}>Watched</ThemedText>
           {anyItems && (
-            <Button variant="tinted" color="red" onPress={onClear}>
-              CLEAR
-            </Button>
+            <Host matchContents>
+              <Button
+                variant="outlined"
+                style={{ backgroundColor: "red", borderRadius: 200 }}
+                onPress={onClear}
+              >
+                <Text textStyle={{ color: "white" }}>CLEAR</Text>
+              </Button>
+            </Host>
           )}
         </View>
         <TextBox
@@ -216,15 +221,15 @@ export default function WatchListScreen() {
                     <View key={animeName} style={styles.anime}>
                       {data.latestVisitedUrl ? (
                         <Link
-                          screen="index"
-                          params={
-                            data.latestVisitedUrl
+                          href={{
+                            pathname: "/",
+                            params: data.latestVisitedUrl
                               ? {
                                   url: data.latestVisitedUrl,
-                                  reload: true,
+                                  reload: Number(true),
                                 }
-                              : {}
-                          }
+                              : {},
+                          }}
                           style={{ ...styles.animeTitle, ...styles.animeLink }}
                         >
                           <ThemedText style={{ ...styles.animeLink, flex: 1 }}>
@@ -243,13 +248,16 @@ export default function WatchListScreen() {
                         {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                       </ThemedText>
                       <View style={styles.animeAction}>
-                        <Button
-                          variant="tinted"
-                          color="blue"
-                          onPress={() => onItemActions({ ...data, animeName })}
-                        >
-                          ⛓️
-                        </Button>
+                        <Host matchContents>
+                          <Button
+                            variant="outlined"
+                            onPress={() =>
+                              onItemActions({ ...data, animeName })
+                            }
+                          >
+                            <Text>⛓️</Text>
+                          </Button>
+                        </Host>
                       </View>
                     </View>
                   ))}
@@ -261,9 +269,19 @@ export default function WatchListScreen() {
             )}
           </ScrollView>
         </View>
-        <Button variant="tinted" color="green" screen="anime-modal" params={{}}>
-          ADD MANUALLY
-        </Button>
+        <Host matchContents style={{ alignSelf: "center" }}>
+          <Button
+            variant="filled"
+            onPress={() =>
+              router.navigate({
+                pathname: "/anime-modal",
+                params: {},
+              })
+            }
+          >
+            <Text>ADD MANUALLY</Text>
+          </Button>
+        </Host>
       </ThemedView>
     </SafeAreaView>
   );

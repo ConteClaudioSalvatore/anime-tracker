@@ -1,9 +1,8 @@
-import { ThemedButton } from "@/components/themed-button";
 import { ThemedView } from "@/components/themed-view";
 import { AppStore, StoreContext } from "@/utils";
-import { Button } from "@react-navigation/elements";
+import { Button, Host } from "@expo/ui";
 import React from "react";
-import { Alert, StyleSheet } from "react-native";
+import { Alert, Dimensions, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
@@ -32,20 +31,20 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <ThemedView style={styles.container}>
-        <Button
-          variant="filled"
-          color="green"
-          onPress={() => AppStore.Backup()}
-        >
-          BACKUP
-        </Button>
-        <ThemedButton
-          darkColor="yellow"
-          lightColor="orange"
-          onPress={onRestore}
-        >
-          RESTORE BACKUP
-        </ThemedButton>
+        <Host matchContents>
+          <Button
+            variant="filled"
+            label="BACKUP"
+            onPress={() => AppStore.Backup()}
+          />
+        </Host>
+        <Host matchContents style={{ width: Dimensions.get("window").width }}>
+          <Button
+            variant="outlined"
+            label="RESTORE BACKUP"
+            onPress={onRestore}
+          />
+        </Host>
       </ThemedView>
     </SafeAreaView>
   );
@@ -60,5 +59,6 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     borderRadius: 32,
     gap: 16,
+    alignItems: "center",
   },
 });

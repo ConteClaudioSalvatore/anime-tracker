@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View } from "react-native";
+import { Dimensions, Platform, StyleSheet, View } from "react-native";
 
 import { WEBSITE_URI } from "@/constants/website";
 import { AppStore, StoreContext } from "@/utils";
@@ -10,10 +10,10 @@ import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativ
 import debounceFunction from "@/assets/js/debounce-function_t.cjs";
 import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
-import { ThemedView } from "@/components/themed-view";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
-import { Button } from "@react-navigation/elements";
+import { Button, Host, Icon, Text } from "@expo/ui";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const WATCH_MODE_JS = (
   possibleResume:
@@ -194,33 +194,54 @@ export default function HomeScreen() {
             }
           : {})}
       ></WebView>
-      <ThemedView style={styles.buttons}>
-        <Button
-          disabled={!canGoBack}
-          variant={canGoBack ? "tinted" : "plain"}
-          onPress={() => ref.current?.goBack()}
-        >
-          &lt;
-        </Button>
-        <Button onPress={() => ref.current?.reload()}>&#10226;</Button>
-        <Button
-          variant="plain"
-          onPress={() => {
-            router.setParams({
-              url: WEBSITE_URI,
-            });
-          }}
-        >
-          AW Home
-        </Button>
-        <Button
-          disabled={!canGoForward}
-          variant={canGoForward ? "tinted" : "plain"}
-          onPress={() => ref.current?.goForward()}
-        >
-          &gt;
-        </Button>
-      </ThemedView>
+      <SafeAreaView
+        style={{
+          position: "absolute",
+          bottom: 8,
+          backgroundColor: "transparent",
+          width: Dimensions.get("window").width,
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-evenly",
+          alignItems: "center",
+        }}
+      >
+        <Host matchContents>
+          <Button
+            disabled={!canGoBack}
+            variant={canGoBack ? "filled" : "text"}
+            onPress={() => ref.current?.goBack()}
+          >
+            <Icon name="lessthan" />
+          </Button>
+        </Host>
+        <Host matchContents>
+          <Button variant="filled" onPress={() => ref.current?.reload()}>
+            <Icon name="arrow.2.circlepath" />
+          </Button>
+        </Host>
+        <Host matchContents>
+          <Button
+            variant="outlined"
+            onPress={() => {
+              router.setParams({
+                url: WEBSITE_URI,
+              });
+            }}
+          >
+            <Text>AW Home</Text>
+          </Button>
+        </Host>
+        <Host matchContents>
+          <Button
+            disabled={!canGoForward}
+            variant={canGoForward ? "filled" : "text"}
+            onPress={() => ref.current?.goForward()}
+          >
+            <Icon name="greaterthan" />
+          </Button>
+        </Host>
+      </SafeAreaView>
     </View>
   );
 }
