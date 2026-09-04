@@ -5,15 +5,31 @@ import { markAnimeFinished, removeAnime } from "@/store/app.actions";
 import { AppStore, Storage, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import { Button, Host, Text } from "@expo/ui";
-import { HStack, ScrollView, VStack } from "@expo/ui/swift-ui";
 import {
+  HStack,
+  Menu,
+  Overlay,
+  Picker,
+  ScrollView,
+  Toggle,
+  VStack,
+} from "@expo/ui/swift-ui";
+import {
+  background,
   buttonStyle,
+  clipShape,
+  font,
   foregroundStyle,
   frame,
+  labelStyle,
   multilineTextAlignment,
-  tint
+  offset,
+  pickerStyle,
+  tag,
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
+import { SFSymbol } from "expo-symbols";
 import React from "react";
 import {
   Alert,
@@ -21,7 +37,6 @@ import {
   Dimensions,
   DynamicColorIOS,
   StyleSheet,
-  Switch,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,7 +46,8 @@ export default function WatchListScreen() {
   const { state: storeState, stateChanged } = React.useContext(StoreContext);
   const { updateState } = React.useContext(AppStateContext);
   const [searchValue, setSearchValue] = React.useState("");
-  const [onlyInProgress, setOnlyInProgress] = React.useState(false);
+  const [onlyInProgress, setOnlyInProgress] = React.useState(true);
+  const [sortMode, setSortMode] = React.useState<1 | -1>(1);
   const router = useRouter();
 
   const isAnimeFinished = (anime: AppStoreState[string]): boolean => {
@@ -203,13 +219,51 @@ export default function WatchListScreen() {
           onChangeText={setSearchValue}
           placeholder="🔍 Search..."
         ></TextBox>
-        <View style={styles.inProgressFilter}>
-          <ThemedText>Only in progress</ThemedText>
-          <Switch
-            value={onlyInProgress}
-            onValueChange={setOnlyInProgress}
-          ></Switch>
-        </View>
+        <Host matchContents style={{ alignSelf: "flex-end" }}>
+          <HStack modifiers={[frame({ alignment: "trailing" })]}>
+            <Overlay alignment="topTrailing">
+              <Menu
+                label={"Settings"}
+                modifiers={[labelStyle("titleAndIcon")]}
+                systemImage={"slider.horizontal.3" satisfies SFSymbol}
+              >
+                <Picker
+                  selection={sortMode}
+                  onSelectionChange={setSortMode}
+                  modifiers={[pickerStyle("menu")]}
+                  label="Sort By"
+                >
+                  {[1, -1].map((sort) => (
+                    <Text key={sort} modifiers={[tag(sort)]}>
+                      {sort > 0 ? "A-Z" : "Z-A"}
+                    </Text>
+                  ))}
+                </Picker>
+                <Toggle
+                  isOn={onlyInProgress}
+                  onIsOnChange={setOnlyInProgress}
+                  label="Only show in progress"
+                />
+              </Menu>
+              <Overlay.Content>
+                {onlyInProgress && (
+                  <Text
+                    modifiers={[
+                      font({ size: 11, weight: "bold" }),
+                      foregroundStyle("#FFFFFF"),
+                      frame({ width: 18, height: 18 }),
+                      background("#00aaff"),
+                      clipShape("circle"),
+                      offset({ x: 8, y: -8 }),
+                    ]}
+                  >
+                    1
+                  </Text>
+                )}
+              </Overlay.Content>
+            </Overlay>
+          </HStack>
+        </Host>
 
         <View style={styles.animeList}>
           <View style={styles.anime}>
@@ -231,7 +285,9 @@ export default function WatchListScreen() {
                 {anyItems ? (
                   <>
                     {filteredState
-                      .sort(([a], [b]) => a.localeCompare(b))
+                      .sort(([a], [b]) =>
+                        sortMode > 0 ? a.localeCompare(b) : b.localeCompare(b),
+                      )
                       .map(([animeName, data]) => (
                         <HStack
                           key={animeName}

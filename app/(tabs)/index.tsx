@@ -167,6 +167,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <WebView
         ref={ref}
+        style={{ backgroundColor: "transparent" }}
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
