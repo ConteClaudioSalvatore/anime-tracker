@@ -1,4 +1,4 @@
-import { Dimensions, Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { WEBSITE_URI } from "@/constants/website";
 import { AppStore, StoreContext } from "@/utils";
@@ -18,7 +18,6 @@ import {
   buttonStyle,
   controlSize,
   disabled,
-  frame,
   labelStyle,
   padding,
   tint,
@@ -205,19 +204,18 @@ export default function HomeScreen() {
           position: "absolute",
           bottom: 8,
           backgroundColor: "transparent",
-          width: Dimensions.get("window").width,
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
+          alignSelf: "center",
+        }}
+        edges={{
+          top: "off",
+          bottom: "additive",
         }}
       >
         <Host matchContents>
-          <HStack
-            modifiers={[
-              frame({ width: Dimensions.get("window").width - 16 }),
-              padding({ horizontal: 8 }),
-            ]}
-          >
+          <HStack modifiers={[padding({ horizontal: 8 })]}>
             <Group>
               <Button
                 modifiers={[

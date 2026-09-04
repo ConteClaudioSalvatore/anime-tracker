@@ -5,12 +5,13 @@ import { markAnimeFinished, removeAnime } from "@/store/app.actions";
 import { AppStore, Storage, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import { Button, Host, Text } from "@expo/ui";
-import { HStack } from "@expo/ui/swift-ui";
+import { HStack, ScrollView, VStack } from "@expo/ui/swift-ui";
 import {
   buttonStyle,
+  foregroundStyle,
   frame,
   multilineTextAlignment,
-  tint,
+  tint
 } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -19,7 +20,6 @@ import {
   AlertButton,
   Dimensions,
   DynamicColorIOS,
-  ScrollView,
   StyleSheet,
   Switch,
   View,
@@ -225,71 +225,86 @@ export default function WatchListScreen() {
               Action
             </ThemedText>
           </View>
-          <ScrollView contentContainerStyle={{ gap: 8 }}>
-            {anyItems ? (
-              <>
-                {filteredState
-                  .sort(([a], [b]) => a.localeCompare(b))
-                  .map(([animeName, data]) => (
-                    <Host key={animeName} matchContents style={styles.anime}>
-                      <HStack
-                        modifiers={[
-                          frame({
-                            width: Dimensions.get("window").width - 52,
-                          }),
-                        ]}
-                      >
-                        <Button
-                          onPress={() => {
-                            updateState(
-                              data.latestVisitedUrl
-                                ? {
-                                    url: data.latestVisitedUrl,
-                                    reload: true,
-                                  }
-                                : {},
-                            );
-                            router.navigate("/");
-                          }}
+          <Host style={{ flex: 1 }}>
+            <ScrollView>
+              <VStack>
+                {anyItems ? (
+                  <>
+                    {filteredState
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([animeName, data]) => (
+                        <HStack
+                          key={animeName}
                           modifiers={[
-                            buttonStyle("borderless"),
-                            tint(
-                              data.latestVisitedUrl
-                                ? "rgb(0, 100, 255)"
-                                : DynamicColorIOS({
-                                    dark: "white",
-                                    light: "black",
-                                  }),
-                            ),
-                            frame({ maxWidth: Infinity, alignment: "leading" }),
+                            frame({
+                              width: Dimensions.get("window").width - 52,
+                            }),
                           ]}
                         >
-                          <Text modifiers={[multilineTextAlignment("leading")]}>
-                            {animeName}
+                          <Button
+                            onPress={() => {
+                              updateState(
+                                data.latestVisitedUrl
+                                  ? {
+                                      url: data.latestVisitedUrl,
+                                      reload: true,
+                                    }
+                                  : {},
+                              );
+                              router.navigate("/");
+                            }}
+                            modifiers={[
+                              buttonStyle("borderless"),
+                              tint(
+                                data.latestVisitedUrl
+                                  ? "rgb(0, 100, 255)"
+                                  : DynamicColorIOS({
+                                      dark: "white",
+                                      light: "black",
+                                    }),
+                              ),
+                              frame({
+                                maxWidth: Infinity,
+                                alignment: "leading",
+                              }),
+                            ]}
+                          >
+                            <Text
+                              modifiers={[multilineTextAlignment("leading")]}
+                            >
+                              {animeName}
+                            </Text>
+                          </Button>
+                          <Text
+                            modifiers={
+                              isAnimeFinished(data)
+                                ? [foregroundStyle("green")]
+                                : []
+                            }
+                            // style={isAnimeFinished(data) && styles.animeFinished}
+                          >
+                            {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                           </Text>
-                        </Button>
-                        <Text
-                        // style={isAnimeFinished(data) && styles.animeFinished}
-                        >
-                          {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
-                        </Text>
-                        <Button
-                          variant="outlined"
-                          modifiers={[buttonStyle("glass")]}
-                          onPress={() => onItemActions({ ...data, animeName })}
-                        >
-                          <Text>⛓️</Text>
-                        </Button>
-                      </HStack>
-                    </Host>
-                  ))}
-              </>
-            ) : (
-              <ThemedText style={{ textAlign: "center" }}>
-                nothing to see here 👁️👄👁️
-              </ThemedText>
-            )}
-          </ScrollView>
+                          <Button
+                            variant="outlined"
+                            modifiers={[buttonStyle("glass")]}
+                            onPress={() =>
+                              onItemActions({ ...data, animeName })
+                            }
+                          >
+                            <Text>⛓️</Text>
+                          </Button>
+                        </HStack>
+                      ))}
+                  </>
+                ) : (
+                  <Text modifiers={[multilineTextAlignment("center")]}>
+                    nothing to see here 👁️👄👁️
+                  </Text>
+                )}
+              </VStack>
+            </ScrollView>
+          </Host>
         </View>
         <Host matchContents style={{ alignSelf: "center" }}>
           <Button
