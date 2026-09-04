@@ -229,19 +229,22 @@ export default function WatchListScreen() {
               >
                 <Picker
                   selection={sortMode}
-                  onSelectionChange={setSortMode}
+                  onSelectionChange={(e) => setSortMode(e)}
                   modifiers={[pickerStyle("menu")]}
                   label="Sort By"
                 >
                   {[1, -1].map((sort) => (
-                    <Text key={sort} modifiers={[tag(sort)]}>
+                    <Text
+                      key={`${sort > 0 ? "A-Z" : "Z-A"}`}
+                      modifiers={[tag(sort)]}
+                    >
                       {sort > 0 ? "A-Z" : "Z-A"}
                     </Text>
                   ))}
                 </Picker>
                 <Toggle
                   isOn={onlyInProgress}
-                  onIsOnChange={setOnlyInProgress}
+                  onIsOnChange={(e) => setOnlyInProgress(e)}
                   label="Only show in progress"
                 />
               </Menu>
@@ -286,7 +289,7 @@ export default function WatchListScreen() {
                   <>
                     {filteredState
                       .sort(([a], [b]) =>
-                        sortMode > 0 ? a.localeCompare(b) : b.localeCompare(b),
+                        sortMode > 0 ? a.localeCompare(b) : b.localeCompare(a),
                       )
                       .map(([animeName, data]) => (
                         <HStack
