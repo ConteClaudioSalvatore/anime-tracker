@@ -11,18 +11,8 @@ import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
+import { AccessoryContext } from "@/utils/accessory.util";
 import { AppStateContext } from "@/utils/app-state.util";
-import { Button, Group, Host, HStack } from "@expo/ui/swift-ui";
-import {
-  buttonBorderShape,
-  buttonStyle,
-  controlSize,
-  disabled,
-  foregroundStyle,
-  labelStyle,
-  padding,
-  tint,
-} from "@expo/ui/swift-ui/modifiers";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const WATCH_MODE_JS = (
@@ -100,7 +90,7 @@ const WATCH_MODE_MATCHER = new RegExp(
 );
 
 export default function HomeScreen() {
-  const ref = React.useRef<WebView>(null);
+  const { webViewRef } = React.useContext(AccessoryContext);
   const { state, updateState } = useContext(AppStateContext);
   const { url, canGoForward = false, canGoBack = false, ...params } = state;
   const [currentAnime, setCurrentAnime] = React.useState<{
@@ -147,7 +137,7 @@ export default function HomeScreen() {
     if (!e.nativeEvent.data) return;
     const message = JSON.parse(e.nativeEvent.data);
     if (message.type === "anime-reload") {
-      ref.current?.reload();
+      webViewRef?.current?.reload();
     }
     if (message.type !== "anime-found") return;
     const payload: AnimePayload = message.payload;
@@ -167,7 +157,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <WebView
-        ref={ref}
+        ref={webViewRef}
         style={{ backgroundColor: "transparent" }}
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
@@ -183,7 +173,7 @@ export default function HomeScreen() {
             canGoForward,
           });
           if (Platform.OS === "ios") {
-            ref.current?.reload();
+            webViewRef?.current?.reload();
           }
         }}
         contentInsetAdjustmentBehavior="always"
@@ -215,58 +205,7 @@ export default function HomeScreen() {
           top: "off",
           bottom: "additive",
         }}
-      >
-        <Host matchContents>
-          <HStack modifiers={[padding({ horizontal: 8 })]}>
-            <Group>
-              {canGoBack && (
-                <Button
-                  modifiers={[
-                    disabled(!canGoBack),
-                    buttonStyle("glass"),
-                    labelStyle("iconOnly"),
-                    tint("#000000aa"),
-                    controlSize("large"),
-                    buttonBorderShape("circle"),
-                    foregroundStyle("white"),
-                  ]}
-                  label="back"
-                  onPress={() => ref.current?.goBack()}
-                  systemImage="lessthan"
-                />
-              )}
-              {canGoForward && (
-                <Button
-                  modifiers={[
-                    disabled(!canGoForward),
-                    buttonStyle("glass"),
-                    labelStyle("iconOnly"),
-                    tint("#000000aa"),
-                    controlSize("large"),
-                    buttonBorderShape("circle"),
-                    foregroundStyle("white"),
-                  ]}
-                  systemImage="greaterthan"
-                  label="forward"
-                  onPress={() => ref.current?.goForward()}
-                />
-              )}
-            </Group>
-            <Button
-              modifiers={[
-                buttonStyle("glassProminent"),
-                labelStyle("iconOnly"),
-                tint("#000000aa"),
-                controlSize("large"),
-                buttonBorderShape("circle"),
-              ]}
-              systemImage="arrow.2.circlepath"
-              label="reload"
-              onPress={() => ref.current?.reload()}
-            />
-          </HStack>
-        </Host>
-      </SafeAreaView>
+      ></SafeAreaView>
     </View>
   );
 }

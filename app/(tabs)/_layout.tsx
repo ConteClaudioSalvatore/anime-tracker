@@ -1,5 +1,6 @@
 import React from "react";
 
+import NavigationAccessory from "@/components/navigation-accessory";
 import { WEBSITE_URI } from "@/constants/website";
 import { AppStateContext } from "@/utils/app-state.util";
 import { usePathname } from "expo-router";
@@ -7,10 +8,16 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   const pathName = usePathname();
+
   const { updateState } = React.useContext(AppStateContext);
 
   return (
-    <NativeTabs blurEffect="dark">
+    <NativeTabs blurEffect="dark" minimizeBehavior="onScrollDown">
+      {pathName === "/" && (
+        <NativeTabs.BottomAccessory>
+          <NavigationAccessory />
+        </NativeTabs.BottomAccessory>
+      )}
       <NativeTabs.Trigger
         name="index"
         listeners={{
@@ -22,7 +29,9 @@ export default function TabLayout() {
           },
         }}
       >
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>
+          {pathName === "/" ? "AW" : "Anime World"}
+        </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house.fill"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="watch-list">

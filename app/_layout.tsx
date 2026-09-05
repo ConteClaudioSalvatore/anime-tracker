@@ -8,6 +8,8 @@ import { AppState, AppStoreState } from "@/model";
 import { AppStore, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import React from "react";
+import { AccessoryContext } from "@/utils/accessory.util";
+import WebView from "react-native-webview";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -20,6 +22,7 @@ export default function RootLayout() {
   const [appState, setAppState] = React.useState<AppState>({
     url: WEBSITE_URI,
   });
+  const webViewRef = React.useRef<WebView>(null);
 
   const stateChanged = () => {
     AppStore.Get().then(setStoreState);
@@ -48,17 +51,23 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <StoreContext.Provider value={contextData}>
         <AppStateContext.Provider value={appStateContextValue}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="anime-modal"
-              options={{
-                presentation: "modal",
-                title: "Add/Edit Anime",
-              }}
-            />
-          </Stack>
-          <StatusBar style="auto" />
+          <AccessoryContext
+            value={{
+              webViewRef,
+            }}
+          >
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="anime-modal"
+                options={{
+                  presentation: "modal",
+                  title: "Add/Edit Anime",
+                }}
+              />
+            </Stack>
+            <StatusBar style="auto" />
+          </AccessoryContext>
         </AppStateContext.Provider>
       </StoreContext.Provider>
     </ThemeProvider>
