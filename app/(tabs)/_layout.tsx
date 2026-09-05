@@ -11,9 +11,14 @@ export default function TabLayout() {
 
   const { updateState } = React.useContext(AppStateContext);
 
+  const isHome = pathName === "/";
+
   return (
-    <NativeTabs blurEffect="dark" minimizeBehavior="onScrollDown">
-      {pathName === "/" && (
+    <NativeTabs
+      blurEffect="dark"
+      minimizeBehavior={isHome ? "onScrollDown" : "never"}
+    >
+      {isHome && (
         <NativeTabs.BottomAccessory>
           <NavigationAccessory />
         </NativeTabs.BottomAccessory>
@@ -30,7 +35,7 @@ export default function TabLayout() {
         }}
       >
         <NativeTabs.Trigger.Label>
-          {pathName === "/" ? "AW" : "Anime World"}
+          {isHome ? "AW" : "Anime World"}
         </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house.fill"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
