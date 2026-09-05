@@ -1,4 +1,5 @@
 import { TextBox } from "@/components/text-box";
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { AppStoreState } from "@/model";
 import { markAnimeFinished, removeAnime } from "@/store/app.actions";
@@ -40,7 +41,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ThemedText } from "../../components/themed-text";
 
 export default function WatchListScreen() {
   const { state: storeState, stateChanged } = React.useContext(StoreContext);

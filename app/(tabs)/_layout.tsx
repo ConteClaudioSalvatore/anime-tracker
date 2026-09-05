@@ -27,7 +27,7 @@ export default function TabLayout() {
         name="index"
         listeners={{
           tabPress: (e) => {
-            if (pathName !== "/") return;
+            if (!isHome) return;
             updateState({
               url: WEBSITE_URI,
             });
