@@ -2,12 +2,14 @@ import WatchListHeader, {
   WatchListHeaderContext,
 } from "@/components/watch-list/header";
 import { AppStoreState } from "@/model";
-import { markAnimeFinished, removeAnime } from "@/store/app.actions";
+import { removeAnime, toggleAnimeFinished } from "@/store/app.actions";
 import { AppStore, Storage, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
-import { Button, Host } from "@expo/ui";
+
 import {
+  Button,
   Divider,
+  Host,
   HStack,
   ScrollView,
   Spacer,
@@ -46,11 +48,13 @@ export default function WatchListScreen() {
 
   const isAnimeFinished = (anime: AppStoreState[string]): boolean => {
     const progress = anime.episodeProgress?.[anime.highestWatchedEpisode];
+    const watchedFor90Percent =
+      progress?.progress !== undefined &&
+      progress.progress > progress.total * 0.9;
     return (
-      (anime.highestWatchedEpisode === (anime.total ?? -1) &&
-        // if watched for more than 90% we consider the episode finished
-        (progress?.progress ?? 0) > (progress?.total ?? 0) * 0.9) ||
-      (anime.finished ?? false)
+      anime.highestWatchedEpisode === (anime.total ?? -1) &&
+      // if watched for more than 90% we consider the episode finished
+      (anime.finished || watchedFor90Percent)
     );
   };
 
@@ -59,7 +63,7 @@ export default function WatchListScreen() {
       Object.entries(storeState).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? !isAnimeFinished(v) : true),
+          (onlyInProgress ? !(isAnimeFinished(v) || v.finished) : true),
       ),
     [storeState, searchValue, onlyInProgress],
   );
@@ -133,8 +137,8 @@ export default function WatchListScreen() {
     );
   };
 
-  const markAsFinished = async (animeName: string) => {
-    await AppStore.Dispatch(markAnimeFinished(animeName)).then(stateChanged);
+  const toggleAnimeProgress = async (animeName: string) => {
+    await AppStore.Dispatch(toggleAnimeFinished(animeName)).then(stateChanged);
   };
 
   const onItemActions = (
@@ -148,6 +152,10 @@ export default function WatchListScreen() {
           ` / ${computeTimeStamp(data.episodeProgress[data.latestWatchedEpisode]?.total ?? 0)}`,
         );
     }
+    let finishedText = "Drop Anime";
+    if (data.latestWatchedEpisode === data.total)
+      finishedText = "Mark as finished";
+    if (data.finished) finishedText = "Resume Anime";
     Alert.alert(
       "Actions",
       `Latest watched episode: ${data.latestWatchedEpisode}`.concat(timeText),
@@ -156,17 +164,6 @@ export default function WatchListScreen() {
           text: "Cancel",
           style: "cancel",
         },
-        ...(data.latestWatchedEpisode === data.total
-          ? ([
-              {
-                text: "Mark as finished",
-                style: "default",
-                onPress: () => {
-                  markAsFinished(data.animeName);
-                },
-              },
-            ] as AlertButton[])
-          : []),
         {
           text: "Edit",
           style: "default",
@@ -180,6 +177,17 @@ export default function WatchListScreen() {
             });
           },
         },
+        ...(!(data.latestWatchedEpisode === data.total && data.finished)
+          ? ([
+              {
+                text: finishedText,
+                style: "default",
+                onPress: () => {
+                  toggleAnimeProgress(data.animeName);
+                },
+              },
+            ] as AlertButton[])
+          : []),
         {
           text: "Remove",
           style: "destructive",
@@ -195,7 +203,7 @@ export default function WatchListScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Watch List",
+          title: "Watch History",
           headerStyle: {
             backgroundColor: "transparent",
           },
@@ -299,21 +307,21 @@ export default function WatchListScreen() {
                             modifiers={
                               isAnimeFinished(data)
                                 ? [foregroundStyle("green")]
-                                : []
+                                : data.finished
+                                  ? [foregroundStyle("orange")]
+                                  : []
                             }
                             // style={isAnimeFinished(data) && styles.animeFinished}
                           >
                             {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                           </Text>
                           <Button
-                            variant="outlined"
                             modifiers={[buttonStyle("glass")]}
                             onPress={() =>
                               onItemActions({ ...data, animeName })
                             }
-                          >
-                            <Text>⛓️</Text>
-                          </Button>
+                            label="⛓️"
+                          />
                         </HStack>
                       ))}
                   </>
@@ -326,7 +334,6 @@ export default function WatchListScreen() {
             </ScrollView>
           </VStack>
           <Button
-            variant="filled"
             modifiers={[buttonStyle("glassProminent"), tint("#0088ff88")]}
             onPress={() =>
               router.navigate({
@@ -334,9 +341,9 @@ export default function WatchListScreen() {
                 params: {},
               })
             }
-          >
-            <Text>ADD MANUALLY</Text>
-          </Button>
+            label="Add manually"
+            systemImage="plus"
+          />
         </VStack>
       </Host>
     </>

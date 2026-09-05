@@ -1,14 +1,18 @@
-import { ThemedView } from "@/components/themed-view";
 import { AppStore, StoreContext } from "@/utils";
-import { Button, Host } from "@expo/ui";
-import { VStack } from "@expo/ui/swift-ui";
-import { buttonStyle, frame, tint } from "@expo/ui/swift-ui/modifiers";
+import { Host, Spacer, VStack, Button, HStack } from "@expo/ui/swift-ui";
+import {
+  buttonStyle,
+  controlSize,
+  frame,
+  padding,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
 import React from "react";
-import { Alert, Dimensions, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Alert, useWindowDimensions } from "react-native";
 
 export default function SettingsScreen() {
   const { stateChanged } = React.useContext(StoreContext);
+  const { width } = useWindowDimensions();
 
   const onRestore = () => {
     Alert.alert(
@@ -31,44 +35,45 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ThemedView style={styles.container}>
-        <Host matchContents>
-          <VStack
+    <Host
+      style={{
+        flex: 1,
+      }}
+    >
+      <VStack
+        modifiers={[
+          frame({
+            width,
+          }),
+          padding({
+            vertical: 8,
+          }),
+        ]}
+      >
+        <Spacer />
+        <HStack>
+          <Button
+            label="BACKUP"
+            systemImage="square.and.arrow.up"
             modifiers={[
-              frame({
-                width: Dimensions.get("window").width,
-              }),
+              buttonStyle("glassProminent"),
+              tint("#00ff5588"),
+              controlSize("large"),
             ]}
-          >
-            <Button
-              variant="filled"
-              label="BACKUP"
-              modifiers={[buttonStyle("glassProminent"), tint("#00ff5588")]}
-              onPress={() => AppStore.Backup()}
-            />
-            <Button
-              variant="outlined"
-              modifiers={[buttonStyle("glassProminent"), tint("#88880088")]}
-              label="RESTORE BACKUP"
-              onPress={onRestore}
-            />
-          </VStack>
-        </Host>
-      </ThemedView>
-    </SafeAreaView>
+            onPress={() => AppStore.Backup()}
+          />
+          <Button
+            modifiers={[
+              buttonStyle("glassProminent"),
+              tint("#88880088"),
+              controlSize("large"),
+            ]}
+            systemImage="square.and.arrow.down"
+            label="RESTORE BACKUP"
+            onPress={onRestore}
+          />
+        </HStack>
+      </VStack>
+    </Host>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingInline: 16,
-    paddingBlock: 24,
-    borderWidth: 1,
-    borderCurve: "continuous",
-    borderRadius: 32,
-    gap: 16,
-    alignItems: "center",
-  },
-});

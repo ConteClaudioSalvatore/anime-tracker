@@ -6,7 +6,7 @@ import {
   Picker,
   Spacer,
   Text,
-  Toggle
+  Toggle,
 } from "@expo/ui/swift-ui";
 import {
   background,
@@ -20,7 +20,7 @@ import {
   offset,
   pickerStyle,
   tag,
-  tint
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { SFSymbol } from "expo-symbols";
 import React from "react";
@@ -56,15 +56,14 @@ export default function WatchListHeader({
 
   return (
     <HStack modifiers={modifiers}>
-      <Text>Watched</Text>
       <Spacer />
       {anyItems && (
         <Button
           modifiers={[tint("#ff000044"), buttonStyle("glassProminent")]}
+          systemImage="bin.xmark"
+          label="CLEAR"
           onPress={onClear}
-        >
-          <Text modifiers={[foregroundStyle("white")]}>CLEAR</Text>
-        </Button>
+        />
       )}
       <Overlay alignment="topTrailing">
         <Menu

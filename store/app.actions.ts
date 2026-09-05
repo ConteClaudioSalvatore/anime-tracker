@@ -11,8 +11,8 @@ export const removeAnime = createAction(
   "@app/remove-anime",
   (payload: string) => ({ payload }),
 );
-export const markAnimeFinished = createAction(
-  "@app/mark-anime-finished",
+export const toggleAnimeFinished = createAction(
+  "@app/toggle-anime-finished",
   (payload: string) => ({ payload }),
 );
 export const upsertAnime = createAction(
