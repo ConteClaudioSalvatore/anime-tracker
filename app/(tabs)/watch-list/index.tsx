@@ -12,7 +12,7 @@ import {
   ScrollView,
   Spacer,
   Text,
-  VStack
+  VStack,
 } from "@expo/ui/swift-ui";
 import {
   background,
@@ -22,7 +22,7 @@ import {
   frame,
   multilineTextAlignment,
   padding,
-  tint
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
@@ -30,8 +30,7 @@ import {
   Alert,
   AlertButton,
   DynamicColorIOS,
-  StyleSheet,
-  useWindowDimensions
+  useWindowDimensions,
 } from "react-native";
 
 export default function WatchListScreen() {
@@ -340,178 +339,6 @@ export default function WatchListScreen() {
           </Button>
         </VStack>
       </Host>
-      {/*<ThemedView style={styles.container}>
-          <Host matchContents></Host>
-
-          <View style={styles.animeList}>
-            <View style={styles.anime}>
-              <ThemedText
-                style={StyleSheet.compose(
-                  styles.animeTitle,
-                  styles.tableHeader,
-                )}
-              >
-                Anime
-              </ThemedText>
-              <ThemedText style={styles.tableHeader}>Episode</ThemedText>
-              <ThemedText
-                style={StyleSheet.compose(
-                  styles.tableHeader,
-                  styles.animeAction,
-                )}
-              >
-                Action
-              </ThemedText>
-            </View>
-            <Host style={{ flex: 1 }}>
-              <ScrollView>
-                <VStack>
-                  {anyItems ? (
-                    <>
-                      {filteredState
-                        .sort(([a], [b]) =>
-                          sortMode > 0
-                            ? a.localeCompare(b)
-                            : b.localeCompare(a),
-                        )
-                        .map(([animeName, data]) => (
-                          <HStack
-                            key={animeName}
-                            modifiers={[
-                              frame({
-                                width: Dimensions.get("window").width - 52,
-                              }),
-                            ]}
-                          >
-                            <Button
-                              onPress={() => {
-                                updateState(
-                                  data.latestVisitedUrl
-                                    ? {
-                                        url: data.latestVisitedUrl,
-                                        reload: true,
-                                      }
-                                    : {},
-                                );
-                                router.navigate("/");
-                              }}
-                              modifiers={[
-                                buttonStyle("borderless"),
-                                tint(
-                                  data.latestVisitedUrl
-                                    ? "rgb(0, 100, 255)"
-                                    : DynamicColorIOS({
-                                        dark: "white",
-                                        light: "black",
-                                      }),
-                                ),
-                                frame({
-                                  maxWidth: Infinity,
-                                  alignment: "leading",
-                                }),
-                              ]}
-                            >
-                              <Text
-                                modifiers={[multilineTextAlignment("leading")]}
-                              >
-                                {animeName}
-                              </Text>
-                            </Button>
-                            <Text
-                              modifiers={
-                                isAnimeFinished(data)
-                                  ? [foregroundStyle("green")]
-                                  : []
-                              }
-                              // style={isAnimeFinished(data) && styles.animeFinished}
-                            >
-                              {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
-                            </Text>
-                            <Button
-                              variant="outlined"
-                              modifiers={[buttonStyle("glass")]}
-                              onPress={() =>
-                                onItemActions({ ...data, animeName })
-                              }
-                            >
-                              <Text>⛓️</Text>
-                            </Button>
-                          </HStack>
-                        ))}
-                    </>
-                  ) : (
-                    <Text modifiers={[multilineTextAlignment("center")]}>
-                      nothing to see here 👁️👄👁️
-                    </Text>
-                  )}
-                </VStack>
-              </ScrollView>
-            </Host>
-          </View>
-          <Host matchContents style={{ alignSelf: "center" }}></Host>
-        </ThemedView>*/}
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingInline: 16,
-    paddingBlock: 24,
-    borderWidth: 1,
-    borderCurve: "continuous",
-    borderRadius: 32,
-    gap: 16,
-  },
-  header: {
-    flexDirection: "row",
-    gap: 24,
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  searchBox: {},
-  inProgressFilter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    paddingInline: 8,
-  },
-  animeList: {
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgb(255,255,255,.16)",
-    borderRadius: 16,
-    padding: 8,
-    borderCurve: "continuous",
-    flex: 1,
-  },
-  anime: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  tableHeader: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  animeTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    flex: 1,
-    display: "flex",
-  },
-  animeLink: {
-    color: "rgb(0, 100, 255)",
-  },
-  animeAction: {
-    width: 70,
-    gap: 8,
-  },
-  animeFinished: {
-    color: "green",
-  },
-});
