@@ -1,13 +1,12 @@
 import {
-  Host,
+  Button,
   HStack,
   Menu,
   Overlay,
-  Toggle,
-  Text,
-  Button,
   Picker,
   Spacer,
+  Text,
+  Toggle
 } from "@expo/ui/swift-ui";
 import {
   background,
@@ -19,10 +18,9 @@ import {
   labelStyle,
   ModifierConfig,
   offset,
-  padding,
   pickerStyle,
   tag,
-  tint,
+  tint
 } from "@expo/ui/swift-ui/modifiers";
 import { SFSymbol } from "expo-symbols";
 import React from "react";

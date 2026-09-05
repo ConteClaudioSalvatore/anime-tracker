@@ -1,6 +1,3 @@
-import { TextBox } from "@/components/text-box";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import WatchListHeader, {
   WatchListHeaderContext,
 } from "@/components/watch-list/header";
@@ -10,47 +7,32 @@ import { AppStore, Storage, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import { Button, Host } from "@expo/ui";
 import {
+  Divider,
   HStack,
-  Menu,
-  Overlay,
-  Picker,
   ScrollView,
   Spacer,
-  Toggle,
-  VStack,
   Text,
-  Divider,
+  VStack
 } from "@expo/ui/swift-ui";
 import {
   background,
-  border,
   buttonStyle,
-  clipShape,
   cornerRadius,
-  font,
   foregroundStyle,
   frame,
-  labelStyle,
   multilineTextAlignment,
-  offset,
   padding,
-  pickerStyle,
-  tag,
-  tint,
+  tint
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
-import { SFSymbol } from "expo-symbols";
 import React from "react";
 import {
   Alert,
   AlertButton,
-  Dimensions,
   DynamicColorIOS,
   StyleSheet,
-  useWindowDimensions,
-  View,
+  useWindowDimensions
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function WatchListScreen() {
   const { state: storeState, stateChanged } = React.useContext(StoreContext);

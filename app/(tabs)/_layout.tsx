@@ -35,13 +35,13 @@ export default function TabLayout() {
         }}
       >
         <NativeTabs.Trigger.Label>
-          {isHome ? "AW" : "Anime World"}
+          {isHome ? "Anime World" : "AW"}
         </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house.fill"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="watch-list" role="search">
         <NativeTabs.Trigger.Label>Watch List</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="table.fill"></NativeTabs.Trigger.Icon>
+        <NativeTabs.Trigger.Icon sf="eyeglasses"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
