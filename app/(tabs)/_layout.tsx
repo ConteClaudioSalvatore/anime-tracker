@@ -39,7 +39,7 @@ export default function TabLayout() {
         </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house.fill"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="watch-list">
+      <NativeTabs.Trigger name="watch-list" role="search">
         <NativeTabs.Trigger.Label>Watch List</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="table.fill"></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
