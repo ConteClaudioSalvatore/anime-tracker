@@ -18,6 +18,7 @@ import {
   buttonStyle,
   controlSize,
   disabled,
+  foregroundStyle,
   labelStyle,
   padding,
   tint,
@@ -218,20 +219,22 @@ export default function HomeScreen() {
         <Host matchContents>
           <HStack modifiers={[padding({ horizontal: 8 })]}>
             <Group>
-              <Button
-                modifiers={[
-                  disabled(!canGoBack),
-                  buttonStyle("glass"),
-                  labelStyle("iconOnly"),
-                  tint("#000000aa"),
-                  controlSize("large"),
-                  buttonBorderShape("circle"),
-                ]}
-                // variant={canGoBack ? "filled" : "outlined"}
-                label="back"
-                onPress={() => ref.current?.goBack()}
-                systemImage="lessthan"
-              />
+              {canGoBack && (
+                <Button
+                  modifiers={[
+                    disabled(!canGoBack),
+                    buttonStyle("glass"),
+                    labelStyle("iconOnly"),
+                    tint("#000000aa"),
+                    controlSize("large"),
+                    buttonBorderShape("circle"),
+                    foregroundStyle("white"),
+                  ]}
+                  label="back"
+                  onPress={() => ref.current?.goBack()}
+                  systemImage="lessthan"
+                />
+              )}
               {canGoForward && (
                 <Button
                   modifiers={[
@@ -241,8 +244,8 @@ export default function HomeScreen() {
                     tint("#000000aa"),
                     controlSize("large"),
                     buttonBorderShape("circle"),
+                    foregroundStyle("white"),
                   ]}
-                  // variant={canGoForward ? "filled" : "outlined"}
                   systemImage="greaterthan"
                   label="forward"
                   onPress={() => ref.current?.goForward()}
