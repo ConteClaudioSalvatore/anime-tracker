@@ -29,7 +29,7 @@ const WATCH_MODE_JS = (
 ) => `
 // variables are declared without let/const/var to ensure they can be overridden without causing errors
 episodes = ${JSON.stringify(episodes)};
-debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
+debouncedNAE = window.debounceFunction(window.notifyAnimeEpisode, 200);
 possibleResume = ${JSON.stringify(possibleResume)};
 player = null;
 retrievePlayer = () => setInterval(() => {
@@ -52,7 +52,7 @@ retrievePlayer = () => setInterval(() => {
   player.addEventListener('timeupdate', () => debouncedNAE({ progress: player.currentTime, total: player.duration }, null, location.href));
 }, 500);
 interval = retrievePlayer();
-notifyAnimeEpisode(null);
+window.notifyAnimeEpisode(null);
 function clickActionHandler(event) {
   player = null;
   window.ReactNativeWebView.postMessage(
@@ -62,7 +62,7 @@ function clickActionHandler(event) {
 }
 document.querySelectorAll('.episodes > .episode > a').forEach((e) => {
   e.addEventListener('click', (event) => {
-    notifyAnimeEpisode(null, event.target.textContent);
+    window.notifyAnimeEpisode(null, event.target.textContent);
     clickActionHandler(event);
   });
   const episodeIndex = episodes.findIndex(x => x.episode === +e.textContent);
@@ -84,7 +84,11 @@ const JS_TO_INJECT = (
   possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
   episodes: Parameters<typeof WATCH_MODE_JS>[1] = [],
 ) =>
-  `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}`;
+  `${debounceFunction};
+  ${notifyAnimeEpisode};
+  ${loadRoundedTheme};
+  ${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}
+  true;`;
 
 /**
  * A regex matching the url only when in play mode
@@ -173,7 +177,6 @@ export default function HomeScreen() {
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
-        injectedJavaScriptBeforeContentLoaded={`${debounceFunction}${notifyAnimeEpisode}`}
         injectedJavaScript={JS_TO_INJECT(watchMode, resume, playedEpisodes)}
         onMessage={onMessage}
         onLoadEnd={() => {
