@@ -1,41 +1,38 @@
 import WatchListHeader, {
-    WatchListHeaderContext,
+  WatchListHeaderContext,
 } from "@/components/watch-list/header";
 import {
-    isAnimeFinished,
-    onAnimeAction,
-    onClearHistory,
-    StoreContext
+  isAnimeFinished,
+  onAnimeAction,
+  onClearHistory,
+  StoreContext,
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 
 import {
-    Button,
-    Divider,
-    Host,
-    HStack,
-    LazyVStack,
-    ScrollView,
-    Spacer,
-    Text,
-    VStack,
+  Button,
+  Divider,
+  Host,
+  HStack,
+  LazyVStack,
+  ScrollView,
+  Spacer,
+  Text,
+  VStack,
 } from "@expo/ui/swift-ui";
 import {
-    background,
-    buttonStyle,
-    cornerRadius,
-    foregroundStyle,
-    frame,
-    multilineTextAlignment,
-    padding,
-    tint,
+  background,
+  buttonStyle,
+  cornerRadius,
+  foregroundStyle,
+  frame,
+  multilineTextAlignment,
+  padding,
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import {
-    DynamicColorIOS,
-    useWindowDimensions
-} from "react-native";
+import { DynamicColorIOS, useWindowDimensions } from "react-native";
 
 export default function WatchListScreen() {
   const { state: storeState, stateChanged } = React.useContext(StoreContext);
@@ -175,14 +172,17 @@ export default function WatchListScreen() {
                                   ? [foregroundStyle("orange")]
                                   : []
                             }
-                            // style={isAnimeFinished(data) && styles.animeFinished}
                           >
                             {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                           </Text>
                           <Button
                             modifiers={[buttonStyle("glass")]}
                             onPress={() =>
-                              onAnimeAction(data, router, stateChanged)
+                              onAnimeAction(
+                                { ...data, name: data.name ?? animeName },
+                                router,
+                                stateChanged,
+                              )
                             }
                             label="⛓️"
                           />
