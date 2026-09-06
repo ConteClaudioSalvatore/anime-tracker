@@ -5,10 +5,9 @@ import "react-native-reanimated";
 import { WEBSITE_URI } from "@/constants/website";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppState, AppStoreState } from "@/model";
-import { AppStore, StoreContext } from "@/utils";
+import { AccessoryContext, AppStore, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import React from "react";
-import { AccessoryContext } from "@/utils/accessory.util";
 import WebView from "react-native-webview";
 
 export const unstable_settings = {

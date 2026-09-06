@@ -1,16 +1,5 @@
-import { AccessoryContext } from "@/utils/accessory.util";
-import { AppStateContext } from "@/utils/app-state.util";
-import { Button, Group, Host, HStack, Spacer } from "@expo/ui/swift-ui";
-import {
-  buttonBorderShape,
-  buttonStyle,
-  controlSize,
-  disabled,
-  foregroundStyle,
-  labelStyle,
-  padding,
-  tint,
-} from "@expo/ui/swift-ui/modifiers";
+import { AccessoryContext, AppStateContext } from "@/utils";
+import { Button, Host, Icon, Row, Spacer, Text } from "@expo/ui";
 import React from "react";
 
 export default function NavigationAccessory() {
@@ -28,58 +17,55 @@ export default function NavigationAccessory() {
         inset: 0,
       }}
     >
-      <HStack spacing={8} modifiers={[padding({ all: 8 })]}>
-        <Group>
-          {canGoBack && (
-            <Button
-              modifiers={[
-                disabled(!canGoBack),
-                buttonStyle("bordered"),
-                labelStyle("iconOnly"),
-                tint("#000000aa"),
-                buttonBorderShape("capsule"),
-                controlSize("regular"),
-                buttonBorderShape("circle"),
-                foregroundStyle("white"),
-              ]}
-              label="back"
-              onPress={() => webViewRef?.current?.goBack()}
-              systemImage="lessthan"
-            />
-          )}
-          {canGoForward && (
-            <Button
-              modifiers={[
-                disabled(!canGoForward),
-                buttonStyle("bordered"),
-                labelStyle("iconOnly"),
-                buttonBorderShape("capsule"),
-                tint("#000000aa"),
-                controlSize("regular"),
-                buttonBorderShape("circle"),
-                foregroundStyle("white"),
-              ]}
-              systemImage="greaterthan"
-              label="forward"
-              onPress={() => webViewRef?.current?.goForward()}
-            />
-          )}
-        </Group>
-        <Spacer />
+      <Row alignment="center" spacing={8} style={{ padding: 8 }}>
+        {(canGoBack || canGoForward) && (
+          <Row style={{ backgroundColor: "#2288dd", borderRadius: 32 }}>
+            {canGoBack && (
+              <Button
+                variant="text"
+                onPress={() => webViewRef?.current?.goBack()}
+              >
+                <Text hidden>back</Text>
+                <Icon
+                  name={Icon.select({
+                    ios: "lessthan",
+                    android:
+                      import("@expo/material-symbols/chevron_backward.xml"),
+                  })}
+                ></Icon>
+              </Button>
+            )}
+            {canGoForward && (
+              <Button
+                variant="text"
+                onPress={() => webViewRef?.current?.goForward()}
+              >
+                <Text hidden>forward</Text>
+                <Icon
+                  name={Icon.select({
+                    ios: "greaterthan",
+                    android:
+                      import("@expo/material-symbols/chevron_forward.xml"),
+                  })}
+                ></Icon>
+              </Button>
+            )}
+          </Row>
+        )}
+        <Spacer flexible />
         <Button
-          modifiers={[
-            buttonStyle("bordered"),
-            labelStyle("titleAndIcon"),
-            tint("#000000aa"),
-            controlSize("regular"),
-            buttonBorderShape("capsule"),
-            foregroundStyle("white"),
-          ]}
-          systemImage="arrow.2.circlepath"
-          label="Reload"
+          variant="filled"
           onPress={() => webViewRef?.current?.reload()}
-        />
-      </HStack>
+        >
+          <Text hidden>Reload</Text>
+          <Icon
+            name={Icon.select({
+              ios: "arrow.2.circlepath",
+              android: import("@expo/material-symbols/refresh.xml"),
+            })}
+          ></Icon>
+        </Button>
+      </Row>
     </Host>
   );
 }

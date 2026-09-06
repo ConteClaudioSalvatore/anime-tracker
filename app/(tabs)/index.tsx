@@ -1,7 +1,12 @@
 import { Platform, StyleSheet, View } from "react-native";
 
 import { WEBSITE_URI } from "@/constants/website";
-import { AppStore, StoreContext } from "@/utils";
+import {
+  AccessoryContext,
+  AppStateContext,
+  AppStore,
+  StoreContext,
+} from "@/utils";
 import React, { useContext } from "react";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
@@ -11,9 +16,8 @@ import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
-import { AccessoryContext } from "@/utils/accessory.util";
-import { AppStateContext } from "@/utils/app-state.util";
 import { SafeAreaView } from "react-native-safe-area-context";
+import NavigationAccessory from "@/components/navigation-accessory";
 
 const WATCH_MODE_JS = (
   possibleResume:
@@ -190,22 +194,18 @@ export default function HomeScreen() {
               allowsInlineMediaPlayback: true,
             }
           : {})}
-      ></WebView>
-      <SafeAreaView
-        style={{
-          position: "absolute",
-          bottom: 8,
-          backgroundColor: "transparent",
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          alignSelf: "center",
-        }}
-        edges={{
-          top: "off",
-          bottom: "additive",
-        }}
-      ></SafeAreaView>
+      />
+      {Platform.OS !== "ios" && (
+        <SafeAreaView
+          style={{
+            position: "absolute",
+            bottom: 0,
+            insetInline: 0,
+          }}
+        >
+          <NavigationAccessory />
+        </SafeAreaView>
+      )}
     </View>
   );
 }

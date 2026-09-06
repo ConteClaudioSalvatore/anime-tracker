@@ -1,12 +1,49 @@
-import { useThemeColor } from "@/hooks/use-theme-color";
-import { isAnimeFinished, StoreContext } from "@/utils";
+import WatchListHeader, {
+  WatchListHeaderContext,
+} from "@/components/watch-list/header";
+import { Anime, AppStoreState } from "@/model";
+import { removeAnime, toggleAnimeFinished } from "@/store/app.actions";
+import {
+  AppStore,
+  computeTimeStamp,
+  isAnimeFinished,
+  onAnimeAction,
+  onAnimeRemove,
+  onClearHistory,
+  Storage,
+  StoreContext,
+} from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
-import { Column, Host, Row, Text, Spacer } from "@expo/ui";
 
+import {
+  Button,
+  Divider,
+  Host,
+  HStack,
+  LazyVStack,
+  ScrollView,
+  Spacer,
+  Text,
+  VStack,
+} from "@expo/ui/swift-ui";
+import {
+  background,
+  buttonStyle,
+  cornerRadius,
+  foregroundStyle,
+  frame,
+  multilineTextAlignment,
+  padding,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { useWindowDimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Alert,
+  AlertButton,
+  DynamicColorIOS,
+  useWindowDimensions,
+} from "react-native";
 
 export default function WatchListScreen() {
   const { state: storeState, stateChanged } = React.useContext(StoreContext);
@@ -51,21 +88,6 @@ export default function WatchListScreen() {
         hideNavigationBar
         onChangeText={(e) => setSearchValue(e.nativeEvent.text)}
       />
-      <SafeAreaView style={{ flex: 1 }}>
-        <Host style={{ flex: 1, top: 50, backgroundColor: "red" }}>
-          <Column>
-            <Column>
-              <Row spacing={8}>
-                <Text textStyle={{ color: "white" }}>Anime</Text>
-                <Spacer flexible />
-                <Text textStyle={{ color: "white" }}>Episode</Text>
-                <Text textStyle={{ color: "white" }}>Action</Text>
-              </Row>
-            </Column>
-          </Column>
-        </Host>
-      </SafeAreaView>
-      {/*
       <Host
         style={{
           flex: 1,
@@ -110,7 +132,7 @@ export default function WatchListScreen() {
             </HStack>
             <Divider />
             <ScrollView>
-              <VStack spacing={8}>
+              <LazyVStack spacing={8}>
                 {anyItems ? (
                   <>
                     {filteredState
@@ -180,7 +202,7 @@ export default function WatchListScreen() {
                     nothing to see here 👁️👄👁️
                   </Text>
                 )}
-              </VStack>
+              </LazyVStack>
             </ScrollView>
           </VStack>
           <Button
@@ -195,7 +217,7 @@ export default function WatchListScreen() {
             systemImage="plus"
           />
         </VStack>
-      </Host>*/}
+      </Host>
     </>
   );
 }
