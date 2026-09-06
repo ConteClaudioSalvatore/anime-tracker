@@ -1,29 +1,22 @@
 import {
+  BottomSheet,
   Button,
-  HStack,
-  Menu,
-  Overlay,
+  Column,
+  Icon,
   Picker,
+  Row,
   Spacer,
+  Switch,
   Text,
-  Toggle,
-} from "@expo/ui/swift-ui";
+} from "@expo/ui";
 import {
-  background,
-  buttonStyle,
-  clipShape,
-  font,
-  foregroundStyle,
-  frame,
-  labelStyle,
-  ModifierConfig,
-  offset,
-  pickerStyle,
-  tag,
-  tint,
-} from "@expo/ui/swift-ui/modifiers";
-import { SFSymbol } from "expo-symbols";
+  Button as AndroidButton,
+  Badge,
+  BadgedBox,
+} from "@expo/ui/jetpack-compose";
+
 import React from "react";
+import { Platform } from "react-native";
 
 export const WatchListHeaderContext = React.createContext<{
   isLandscape: boolean;
@@ -34,14 +27,12 @@ export const WatchListHeaderContext = React.createContext<{
   setOnlyInProgress: (value: boolean) => void;
   sortMode: 1 | -1;
   setSortMode: (value: 1 | -1) => void;
+  setMenuOpen?: (value: boolean) => void;
 } | null>(null);
 
-export default function WatchListHeader({
-  modifiers,
-}: {
-  modifiers?: ModifierConfig[];
-}) {
+export default function WatchListHeader() {
   const contextValue = React.useContext(WatchListHeaderContext);
+  const [menuOpen, setMenuOpen] = React.useState(false);
 
   if (!contextValue) return null;
 
@@ -55,57 +46,77 @@ export default function WatchListHeader({
   } = contextValue;
 
   return (
-    <HStack modifiers={modifiers}>
-      <Spacer />
+    <Row>
+      <Spacer flexible />
       {anyItems && (
-        <Button
-          modifiers={[tint("#ff000044"), buttonStyle("glassProminent")]}
-          systemImage="bin.xmark"
-          label="CLEAR"
-          onPress={onClear}
-        />
-      )}
-      <Overlay alignment="topTrailing">
-        <Menu
-          label={"Settings"}
-          modifiers={[labelStyle("titleAndIcon")]}
-          systemImage={"slider.horizontal.3" satisfies SFSymbol}
+        <AndroidButton
+          colors={{
+            containerColor: "#dd3333",
+            contentColor: "#ffffff",
+          }}
+          onClick={onClear}
         >
-          <Picker
-            selection={sortMode}
-            onSelectionChange={(e) => setSortMode(e)}
-            modifiers={[pickerStyle("menu")]}
-            label="Sort By"
-          >
-            {[1, -1].map((sort) => (
-              <Text key={`${sort > 0 ? "A-Z" : "Z-A"}`} modifiers={[tag(sort)]}>
-                {sort > 0 ? "A-Z" : "Z-A"}
-              </Text>
-            ))}
-          </Picker>
-          <Toggle
-            isOn={onlyInProgress}
-            onIsOnChange={(e) => setOnlyInProgress(e)}
-            label="Only show in progress"
+          <Icon
+            name={Icon.select({
+              ios: "bin.xmark",
+              android: import("@expo/material-symbols/delete.xml"),
+            })}
+          ></Icon>
+          <Text>CLEAR</Text>
+        </AndroidButton>
+      )}
+      {Platform.OS === "android" ? (
+        <BadgedBox>
+          <BadgedBox.Badge>
+            {onlyInProgress && (
+              <Badge containerColor="#00aaff" contentColor="#ffffff">
+                <Text>1</Text>
+              </Badge>
+            )}
+          </BadgedBox.Badge>
+
+          <Button variant="text" onPress={() => setMenuOpen(true)}>
+            <Text>Settings</Text>
+            <Icon
+              name={Icon.select({
+                ios: "slider.horizontal.3",
+                android: import("@expo/material-symbols/filter_list.xml"),
+              })}
+            />
+          </Button>
+        </BadgedBox>
+      ) : (
+        <Button variant="text" onPress={() => setMenuOpen(true)}>
+          <Text>Settings</Text>
+          <Icon
+            name={Icon.select({
+              ios: "slider.horizontal.3",
+              android: import("@expo/material-symbols/filter_list.xml"),
+            })}
           />
-        </Menu>
-        <Overlay.Content>
-          {onlyInProgress && (
-            <Text
-              modifiers={[
-                font({ size: 11, weight: "bold" }),
-                foregroundStyle("#FFFFFF"),
-                frame({ width: 18, height: 18 }),
-                background("#00aaff"),
-                clipShape("circle"),
-                offset({ x: 8, y: -8 }),
-              ]}
+        </Button>
+      )}
+      <BottomSheet isPresented={menuOpen} onDismiss={() => setMenuOpen(false)}>
+        <Column spacing={8}>
+          <Row alignment="center">
+            <Text>Sort By</Text>
+            <Spacer flexible />
+            <Picker
+              appearance="menu"
+              selectedValue={sortMode}
+              onValueChange={(e) => setSortMode(e)}
             >
-              1
-            </Text>
-          )}
-        </Overlay.Content>
-      </Overlay>
-    </HStack>
+              <Picker.Item value={1} label="A-Z" />
+              <Picker.Item value={-1} label="Z-A" />
+            </Picker>
+          </Row>
+          <Switch
+            label="Only show in progress"
+            value={onlyInProgress}
+            onValueChange={(e) => setOnlyInProgress(e)}
+          />
+        </Column>
+      </BottomSheet>
+    </Row>
   );
 }

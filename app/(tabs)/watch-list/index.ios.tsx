@@ -1,48 +1,40 @@
 import WatchListHeader, {
-  WatchListHeaderContext,
+    WatchListHeaderContext,
 } from "@/components/watch-list/header";
-import { Anime, AppStoreState } from "@/model";
-import { removeAnime, toggleAnimeFinished } from "@/store/app.actions";
 import {
-  AppStore,
-  computeTimeStamp,
-  isAnimeFinished,
-  onAnimeAction,
-  onAnimeRemove,
-  onClearHistory,
-  Storage,
-  StoreContext,
+    isAnimeFinished,
+    onAnimeAction,
+    onClearHistory,
+    StoreContext
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 
 import {
-  Button,
-  Divider,
-  Host,
-  HStack,
-  LazyVStack,
-  ScrollView,
-  Spacer,
-  Text,
-  VStack,
+    Button,
+    Divider,
+    Host,
+    HStack,
+    LazyVStack,
+    ScrollView,
+    Spacer,
+    Text,
+    VStack,
 } from "@expo/ui/swift-ui";
 import {
-  background,
-  buttonStyle,
-  cornerRadius,
-  foregroundStyle,
-  frame,
-  multilineTextAlignment,
-  padding,
-  tint,
+    background,
+    buttonStyle,
+    cornerRadius,
+    foregroundStyle,
+    frame,
+    multilineTextAlignment,
+    padding,
+    tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
 import {
-  Alert,
-  AlertButton,
-  DynamicColorIOS,
-  useWindowDimensions,
+    DynamicColorIOS,
+    useWindowDimensions
 } from "react-native";
 
 export default function WatchListScreen() {

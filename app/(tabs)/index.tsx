@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StatusBar, StyleSheet, View } from "react-native";
 
 import { WEBSITE_URI } from "@/constants/website";
 import {
@@ -159,7 +159,14 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={StyleSheet.compose(
+        styles.container,
+        Platform.OS === "android" && {
+          paddingBlockStart: StatusBar.currentHeight,
+        },
+      )}
+    >
       <WebView
         ref={webViewRef}
         style={{ backgroundColor: "transparent" }}

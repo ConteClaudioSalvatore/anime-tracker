@@ -1,12 +1,31 @@
+import WatchListHeader, {
+  WatchListHeaderContext,
+} from "@/components/watch-list/header";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { isAnimeFinished, StoreContext } from "@/utils";
+import {
+  isAnimeFinished,
+  onAnimeAction,
+  onClearHistory,
+  StoreContext,
+} from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
-import { Column, Host, Row, Text, Spacer } from "@expo/ui";
+import {
+  Button,
+  Column,
+  Host,
+  Icon,
+  Row,
+  ScrollView,
+  Spacer,
+  Text,
+} from "@expo/ui";
+import { HorizontalDivider } from "@expo/ui/jetpack-compose";
+import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
 
 import { Stack, useRouter } from "expo-router";
+import { useHeaderHeight } from "expo-router/build/react-navigation";
 import React from "react";
-import { useWindowDimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Platform, useWindowDimensions } from "react-native";
 
 export default function WatchListScreen() {
   const { state: storeState, stateChanged } = React.useContext(StoreContext);
@@ -16,6 +35,15 @@ export default function WatchListScreen() {
   const [sortMode, setSortMode] = React.useState<1 | -1>(1);
   const router = useRouter();
   const { width, height } = useWindowDimensions();
+  const headerHeight = useHeaderHeight();
+  const listBackgroundColor = useThemeColor(
+    { dark: "#1a1a1a", light: "#ffffff" },
+    "background",
+  );
+  const listTextColor = useThemeColor(
+    { dark: "#ffffff", light: "#1a1a1a" },
+    "text",
+  );
 
   const isLandscape = width > height;
 
@@ -51,31 +79,15 @@ export default function WatchListScreen() {
         hideNavigationBar
         onChangeText={(e) => setSearchValue(e.nativeEvent.text)}
       />
-      <SafeAreaView style={{ flex: 1 }}>
-        <Host style={{ flex: 1, top: 50, backgroundColor: "red" }}>
-          <Column>
-            <Column>
-              <Row spacing={8}>
-                <Text textStyle={{ color: "white" }}>Anime</Text>
-                <Spacer flexible />
-                <Text textStyle={{ color: "white" }}>Episode</Text>
-                <Text textStyle={{ color: "white" }}>Action</Text>
-              </Row>
-            </Column>
-          </Column>
-        </Host>
-      </SafeAreaView>
-      {/*
       <Host
         style={{
-          flex: 1,
+          position: "absolute",
+          top: headerHeight,
+          bottom: 0,
+          insetInline: 0,
         }}
       >
-        <VStack
-          spacing={8}
-          alignment="center"
-          modifiers={[padding({ horizontal: 8 })]}
-        >
+        <Column alignment="center" spacing={8} style={{ padding: 8 }}>
           <WatchListHeaderContext.Provider
             value={{
               isLandscape,
@@ -90,27 +102,25 @@ export default function WatchListScreen() {
           >
             <WatchListHeader />
           </WatchListHeaderContext.Provider>
-          <VStack
-            modifiers={[
-              padding({ top: 16, bottom: 8, horizontal: 8 }),
-              background(
-                DynamicColorIOS({
-                  dark: "#1a1a1a",
-                  light: "#ffffff",
-                }),
-              ),
-              cornerRadius(16),
-            ]}
+          <Column
+            alignment="center"
+            spacing={8}
+            style={{
+              padding: 8,
+              backgroundColor: listBackgroundColor,
+              borderRadius: 16,
+            }}
+            modifiers={[weight(1)]}
           >
-            <HStack>
-              <Text>Anime</Text>
-              <Spacer />
-              <Text>Episode</Text>
-              <Text>Action</Text>
-            </HStack>
-            <Divider />
+            <Row spacing={8}>
+              <Text textStyle={{ color: "white" }}>Anime</Text>
+              <Spacer flexible />
+              <Text textStyle={{ color: "white" }}>Episode</Text>
+              <Text textStyle={{ color: "white" }}>Action</Text>
+            </Row>
+            {Platform.OS === "android" && <HorizontalDivider />}
             <ScrollView>
-              <VStack spacing={8}>
+              <Column spacing={0}>
                 {anyItems ? (
                   <>
                     {filteredState
@@ -118,73 +128,72 @@ export default function WatchListScreen() {
                         sortMode > 0 ? a.localeCompare(b) : b.localeCompare(a),
                       )
                       .map(([animeName, data]) => (
-                        <HStack key={animeName}>
-                          <Button
-                            onPress={() => {
-                              updateState(
-                                data.latestVisitedUrl
-                                  ? {
-                                      url: data.latestVisitedUrl,
-                                      reload: true,
-                                    }
-                                  : {},
-                              );
-                              router.navigate("/");
-                            }}
-                            modifiers={[
-                              buttonStyle("borderless"),
-                              tint(
-                                data.latestVisitedUrl
-                                  ? "rgb(0, 100, 255)"
-                                  : DynamicColorIOS({
-                                      dark: "white",
-                                      light: "black",
-                                    }),
-                              ),
-                              frame({
-                                maxWidth: Infinity,
-                                alignment: "leading",
-                              }),
-                            ]}
-                          >
+                        <Row
+                          alignment="center"
+                          spacing={8}
+                          style={{ padding: 0 }}
+                          key={animeName}
+                        >
+                          {data.latestVisitedUrl ? (
+                            <Button
+                              variant="text"
+                              modifiers={[weight(1)]}
+                              onPress={() => {
+                                updateState(
+                                  data.latestVisitedUrl
+                                    ? {
+                                        url: data.latestVisitedUrl,
+                                        reload: true,
+                                      }
+                                    : {},
+                                );
+                                router.navigate("/");
+                              }}
+                            >
+                              <Text
+                                modifiers={[fillMaxWidth()]}
+                                textStyle={{ textAlign: "left" }}
+                              >
+                                {animeName}
+                              </Text>
+                            </Button>
+                          ) : (
                             <Text
-                              modifiers={[multilineTextAlignment("leading")]}
+                              style={{ padding: 8 }}
+                              modifiers={[weight(1)]}
+                              textStyle={{ color: listTextColor }}
                             >
                               {animeName}
                             </Text>
-                          </Button>
+                          )}
                           <Text
-                            modifiers={
-                              isAnimeFinished(data)
-                                ? [foregroundStyle("green")]
+                            textStyle={{
+                              color: isAnimeFinished(data)
+                                ? "green"
                                 : data.finished
-                                  ? [foregroundStyle("orange")]
-                                  : []
-                            }
-                            // style={isAnimeFinished(data) && styles.animeFinished}
+                                  ? "orange"
+                                  : "white",
+                            }}
                           >
                             {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
                           </Text>
                           <Button
-                            modifiers={[buttonStyle("glass")]}
+                            variant="text"
                             onPress={() =>
                               onAnimeAction(data, router, stateChanged)
                             }
                             label="⛓️"
                           />
-                        </HStack>
+                        </Row>
                       ))}
                   </>
                 ) : (
-                  <Text modifiers={[multilineTextAlignment("center")]}>
-                    nothing to see here 👁️👄👁️
-                  </Text>
+                  <Text>nothing to see here 👁️👄👁️</Text>
                 )}
-              </VStack>
+              </Column>
             </ScrollView>
-          </VStack>
+          </Column>
           <Button
-            modifiers={[buttonStyle("glassProminent"), tint("#0088ff88")]}
             onPress={() =>
               router.navigate({
                 pathname: "/anime-modal",
@@ -192,10 +201,17 @@ export default function WatchListScreen() {
               })
             }
             label="Add manually"
-            systemImage="plus"
-          />
-        </VStack>
-      </Host>*/}
+          >
+            <Icon
+              name={Icon.select({
+                ios: "plus",
+                android: import("@expo/material-symbols/add.xml"),
+              })}
+            />
+            <Text>Add manually</Text>
+          </Button>
+        </Column>
+      </Host>
     </>
   );
 }
