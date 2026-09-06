@@ -212,6 +212,7 @@ export default function HomeScreen() {
             bottom: 0,
             insetInline: 0,
           }}
+          pointerEvents="box-none"
         >
           <NavigationAccessory />
         </SafeAreaView>
