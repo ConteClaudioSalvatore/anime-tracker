@@ -1,51 +1,53 @@
-import { Tabs } from "expo-router";
 import React from "react";
 
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
+import NavigationAccessory from "@/components/navigation-accessory";
 import { WEBSITE_URI } from "@/constants/website";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { AppStateContext } from "@/utils/app-state.util";
+import { usePathname } from "expo-router";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const pathName = usePathname();
+
+  const { updateState } = React.useContext(AppStateContext);
+
+  const isHome = pathName === "/";
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}
+    <NativeTabs
+      blurEffect="dark"
+      minimizeBehavior={isHome ? "onScrollDown" : "never"}
     >
-      <Tabs.Screen
+      {Platform.OS === "ios" && isHome && (
+        <NativeTabs.BottomAccessory>
+          <NavigationAccessory />
+        </NativeTabs.BottomAccessory>
+      )}
+      <NativeTabs.Trigger
         name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
-          ),
+        listeners={{
+          tabPress: () => {
+            if (!isHome) return;
+            updateState({
+              url: WEBSITE_URI,
+            });
+          },
         }}
-        initialParams={{ url: WEBSITE_URI }}
-      />
-      <Tabs.Screen
-        name="watch-list"
-        options={{
-          title: "Watch List",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="table.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="gear.circle.fill" color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      >
+        <NativeTabs.Trigger.Label>
+          {isHome ? "Anime World" : "AW"}
+        </NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="house.fill" md="home"></NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="watch-list" role="search">
+        <NativeTabs.Trigger.Label>Watch List</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="eyeglasses" md="history"></NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="gear.circle.fill" md="settings"></NativeTabs.Trigger.Icon>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }

@@ -1,12 +1,13 @@
-import { Dimensions, Platform, StyleSheet } from "react-native";
+import { Platform, StatusBar, StyleSheet, View } from "react-native";
 
-import { ThemedView } from "@/components/themed-view";
 import { WEBSITE_URI } from "@/constants/website";
-import { AppStore, StoreContext } from "@/utils";
-import { Button } from "@react-navigation/elements";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  AccessoryContext,
+  AppStateContext,
+  AppStore,
+  StoreContext,
+} from "@/utils";
+import React, { useContext } from "react";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
 
@@ -15,6 +16,8 @@ import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
 import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
 import { AnimePayload, EpisodeProgress } from "@/model";
 import { animeUpdated } from "@/store/app.actions";
+import { SafeAreaView } from "react-native-safe-area-context";
+import NavigationAccessory from "@/components/navigation-accessory";
 
 const WATCH_MODE_JS = (
   possibleResume:
@@ -26,7 +29,7 @@ const WATCH_MODE_JS = (
 ) => `
 // variables are declared without let/const/var to ensure they can be overridden without causing errors
 episodes = ${JSON.stringify(episodes)};
-debouncedNAE = debounceFunction(notifyAnimeEpisode, 200);
+debouncedNAE = window.debounceFunction(window.notifyAnimeEpisode, 200);
 possibleResume = ${JSON.stringify(possibleResume)};
 player = null;
 retrievePlayer = () => setInterval(() => {
@@ -49,7 +52,7 @@ retrievePlayer = () => setInterval(() => {
   player.addEventListener('timeupdate', () => debouncedNAE({ progress: player.currentTime, total: player.duration }, null, location.href));
 }, 500);
 interval = retrievePlayer();
-notifyAnimeEpisode(null);
+window.notifyAnimeEpisode(null);
 function clickActionHandler(event) {
   player = null;
   window.ReactNativeWebView.postMessage(
@@ -59,7 +62,7 @@ function clickActionHandler(event) {
 }
 document.querySelectorAll('.episodes > .episode > a').forEach((e) => {
   e.addEventListener('click', (event) => {
-    notifyAnimeEpisode(null, event.target.textContent);
+    window.notifyAnimeEpisode(null, event.target.textContent);
     clickActionHandler(event);
   });
   const episodeIndex = episodes.findIndex(x => x.episode === +e.textContent);
@@ -81,7 +84,11 @@ const JS_TO_INJECT = (
   possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
   episodes: Parameters<typeof WATCH_MODE_JS>[1] = [],
 ) =>
-  `${loadRoundedTheme}${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}`;
+  `${debounceFunction};
+  ${notifyAnimeEpisode};
+  ${loadRoundedTheme};
+  ${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}
+  true;`;
 
 /**
  * A regex matching the url only when in play mode
@@ -91,15 +98,14 @@ const WATCH_MODE_MATCHER = new RegExp(
 );
 
 export default function HomeScreen() {
-  const ref = React.useRef<WebView>(null);
-  const { url, ...params } = useLocalSearchParams();
-  const canGoForward = Boolean(Number(params.canGoForward));
-  const canGoBack = Boolean(Number(params.canGoBack));
+  const { webViewRef } = React.useContext(AccessoryContext);
+  const { state, updateState } = useContext(AppStateContext);
+  const { url, canGoForward = false, canGoBack = false, ...params } = state;
   const [currentAnime, setCurrentAnime] = React.useState<{
     episode: number;
     animeName: string;
   } | null>(null);
-  const { state, stateChanged } = React.useContext(StoreContext);
+  const { state: storeState, stateChanged } = React.useContext(StoreContext);
   const resume = React.useMemo<
     Parameters<typeof WATCH_MODE_JS>[0] | null
   >(() => {
@@ -107,31 +113,31 @@ export default function HomeScreen() {
     return {
       episode: currentAnime.episode,
       progress:
-        state[currentAnime.animeName]?.episodeProgress?.[currentAnime.episode]
-          ?.progress,
+        storeState[currentAnime.animeName]?.episodeProgress?.[
+          currentAnime.episode
+        ]?.progress,
     };
-  }, [currentAnime, state]);
+  }, [currentAnime, storeState]);
   const playedEpisodes = React.useMemo<
     ({ episode: number } & EpisodeProgress)[]
   >(() => {
     if (!currentAnime) return [];
     return Object.entries(
-      state[currentAnime.animeName]?.episodeProgress ?? {},
+      storeState[currentAnime.animeName]?.episodeProgress ?? {},
     ).map(([ep, progressInfo]) => ({
       episode: +ep,
       ...progressInfo,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAnime]);
-  const router = useRouter();
   const watchMode = !!WATCH_MODE_MATCHER.exec(url as string);
 
   const onNavigation = (e: WebViewNavigationEvent) => {
     if (url === e.url) return;
-    router.setParams({
+    updateState({
       url: e.url,
-      canGoBack: Number(e.canGoBack),
-      canGoForward: Number(e.canGoForward),
+      canGoBack: e.canGoBack,
+      canGoForward: e.canGoForward,
     });
   };
 
@@ -139,7 +145,7 @@ export default function HomeScreen() {
     if (!e.nativeEvent.data) return;
     const message = JSON.parse(e.nativeEvent.data);
     if (message.type === "anime-reload") {
-      ref.current?.reload();
+      webViewRef?.current?.reload();
     }
     if (message.type !== "anime-found") return;
     const payload: AnimePayload = message.payload;
@@ -157,29 +163,34 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View
+      style={StyleSheet.compose(
+        styles.container,
+        Platform.OS === "android" && {
+          paddingBlockStart: StatusBar.currentHeight,
+        },
+      )}
+    >
       <WebView
-        ref={ref}
+        ref={webViewRef}
+        style={{ backgroundColor: "transparent" }}
         source={{ uri: url as string }}
         onNavigationStateChange={onNavigation}
         onShouldStartLoadWithRequest={onShouldStart}
-        injectedJavaScriptBeforeContentLoaded={`${debounceFunction}${notifyAnimeEpisode}`}
         injectedJavaScript={JS_TO_INJECT(watchMode, resume, playedEpisodes)}
         onMessage={onMessage}
         onLoadEnd={() => {
           if (!params.reload) return;
-          router.replace({
-            pathname: "/",
-            params: {
-              url,
-              canGoBack: Number(canGoBack),
-              canGoForward: Number(canGoBack),
-            },
+          updateState({
+            url,
+            canGoBack,
+            canGoForward,
           });
           if (Platform.OS === "ios") {
-            ref.current?.reload();
+            webViewRef?.current?.reload();
           }
         }}
+        contentInsetAdjustmentBehavior="always"
         javaScriptEnabled
         domStorageEnabled
         scrollEnabled
@@ -193,35 +204,20 @@ export default function HomeScreen() {
               allowsInlineMediaPlayback: true,
             }
           : {})}
-      ></WebView>
-      <ThemedView style={styles.buttons}>
-        <Button
-          disabled={!canGoBack}
-          variant={canGoBack ? "tinted" : "plain"}
-          onPress={() => ref.current?.goBack()}
-        >
-          &lt;
-        </Button>
-        <Button onPress={() => ref.current?.reload()}>&#10226;</Button>
-        <Button
-          variant="plain"
-          onPress={() => {
-            router.setParams({
-              url: WEBSITE_URI,
-            });
+      />
+      {Platform.OS !== "ios" && (
+        <SafeAreaView
+          style={{
+            position: "absolute",
+            bottom: 0,
+            insetInline: 0,
           }}
+          pointerEvents="box-none"
         >
-          AW Home
-        </Button>
-        <Button
-          disabled={!canGoForward}
-          variant={canGoForward ? "tinted" : "plain"}
-          onPress={() => ref.current?.goForward()}
-        >
-          &gt;
-        </Button>
-      </ThemedView>
-    </SafeAreaView>
+          <NavigationAccessory />
+        </SafeAreaView>
+      )}
+    </View>
   );
 }
 
@@ -234,12 +230,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
-    ...Platform.select({
-      ios: {
-        marginBottom: -35,
-      },
-    }),
+    flexDirection: "column",
   },
 });

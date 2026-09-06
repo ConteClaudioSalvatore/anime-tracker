@@ -1,14 +1,14 @@
-import { AppState } from "@/model";
+import { AppStoreState } from "@/model";
 import { createReducer } from "@/utils/create-reducer.util";
 import { on } from "@/utils/on.util";
 import {
-  animeUpdated,
-  markAnimeFinished,
-  removeAnime,
-  upsertAnime,
+    animeUpdated,
+    toggleAnimeFinished,
+    removeAnime,
+    upsertAnime,
 } from "./app.actions";
 
-export const reducer = createReducer<AppState>(
+export const reducer = createReducer<AppStoreState>(
   on(animeUpdated, (state, { payload: { defaultUrl, payload } }) => ({
     ...state,
     [payload.animeTitle]: {
@@ -39,9 +39,9 @@ export const reducer = createReducer<AppState>(
   on(removeAnime, (state, { payload: animeName }) =>
     Object.fromEntries(Object.entries(state).filter(([k]) => k !== animeName)),
   ),
-  on(markAnimeFinished, (state, { payload: animeName }) => ({
+  on(toggleAnimeFinished, (state, { payload: animeName }) => ({
     ...state,
-    [animeName]: { ...state[animeName], finished: true },
+    [animeName]: { ...state[animeName], finished: !state[animeName]?.finished },
   })),
   on(upsertAnime, (state, { payload: { animeName, episode } }) => ({
     ...state,

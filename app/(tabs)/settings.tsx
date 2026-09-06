@@ -1,64 +1,45 @@
-import { ThemedButton } from "@/components/themed-button";
-import { ThemedView } from "@/components/themed-view";
-import { AppStore, StoreContext } from "@/utils";
-import { Button } from "@react-navigation/elements";
+import { StoreContext } from "@/utils";
+import { restoreBackup, saveBackup } from "@/utils/backup.util";
+import { Button, Column, Host, Icon, Row, Spacer, Text,  } from "@expo/ui";
 import React from "react";
-import { Alert, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
   const { stateChanged } = React.useContext(StoreContext);
 
-  const onRestore = () => {
-    Alert.alert(
-      "Restore BACKUP",
-      "Are you sure to restore the previous backup? This will override your current data.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Proceed",
-          style: "destructive",
-          onPress: () => {
-            AppStore.RestoreBackup().then(stateChanged);
-          },
-        },
-      ],
-    );
-  };
-
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <ThemedView style={styles.container}>
-        <Button
-          variant="filled"
-          color="green"
-          onPress={() => AppStore.Backup()}
-        >
-          BACKUP
-        </Button>
-        <ThemedButton
-          darkColor="yellow"
-          lightColor="orange"
-          onPress={onRestore}
-        >
-          RESTORE BACKUP
-        </ThemedButton>
-      </ThemedView>
-    </SafeAreaView>
+    <Host style={{ flex: 1 }}>
+      <Column alignment="center">
+        <Spacer flexible />
+        <Row alignment="center" style={{ padding: 8 }} spacing={8}>
+          <Button
+            variant="filled"
+            style={{ borderColor: "#00ff5588" }}
+            onPress={saveBackup}
+          >
+            <Icon
+              name={Icon.select({
+                ios: "square.and.arrow.up",
+                android: import("@expo/material-symbols/upload.xml"),
+              })}
+            />
+
+            <Text>BACKUP</Text>
+          </Button>
+          <Button
+            variant="outlined"
+            style={{ borderColor: "#88880088" }}
+            onPress={() => restoreBackup(stateChanged)}
+          >
+            <Icon
+              name={Icon.select({
+                ios: "square.and.arrow.down",
+                android: import("@expo/material-symbols/download.xml"),
+              })}
+            />
+            <Text>RESTORE BACKUP</Text>
+          </Button>
+        </Row>
+      </Column>
+    </Host>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingInline: 16,
-    paddingBlock: 24,
-    borderWidth: 1,
-    borderCurve: "continuous",
-    borderRadius: 32,
-    gap: 16,
-  },
-});

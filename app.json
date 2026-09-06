@@ -2,12 +2,11 @@
   "expo": {
     "name": "Anime Tracker",
     "slug": "anime-tracker",
-    "version": "1.0.5",
-    "orientation": "portrait",
+    "version": "2.0.0",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "animeworld",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.claudiosalvatoreconte.animetracker",
@@ -23,7 +22,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.claudiosalvatoreconte.animetracker"
     },
@@ -44,7 +42,18 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

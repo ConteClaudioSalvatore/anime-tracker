@@ -1,4 +1,4 @@
-import { Action, AppState } from "@/model";
+import { Action, AppStoreState } from "@/model";
 import { reducer } from "@/store/app.state";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
@@ -7,7 +7,7 @@ import React from "react";
 import { Storage } from "./storage.util";
 
 export const StoreContext = React.createContext<{
-  state: AppState;
+  state: AppStoreState;
   stateChanged: () => void;
 }>({ state: {}, stateChanged: () => {} });
 
@@ -20,14 +20,14 @@ export class AppStore {
   private static updateQueue = Promise.resolve();
   private static readonly reducer = reducer;
 
-  public static async Get(): Promise<AppState> {
-    return await Storage.getItem<AppState>(this.STATE_KEY).then(
+  public static async Get(): Promise<AppStoreState> {
+    return await Storage.getItem<AppStoreState>(this.STATE_KEY).then(
       (res) => res ?? {},
     );
   }
 
   public static async Update(
-    updater: (prev: AppState) => AppState,
+    updater: (prev: AppStoreState) => AppStoreState,
   ): Promise<void> {
     this.updateQueue = this.updateQueue.then(async () => {
       const prev = await this.Get();

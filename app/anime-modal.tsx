@@ -3,7 +3,8 @@ import { ThemedView } from "@/components/themed-view";
 import { AnimeModalPayload } from "@/model";
 import { upsertAnime } from "@/store/app.actions";
 import { AppStore, StoreContext } from "@/utils";
-import { Button } from "@react-navigation/elements";
+import { Button, Host, Text } from "@expo/ui";
+import { buttonStyle } from "@expo/ui/swift-ui/modifiers";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet } from "react-native";
@@ -46,13 +47,16 @@ function AddAnimeModal() {
         keyboardType="numeric"
         onChangeText={onEpisodeChange}
       ></TextBox>
-      <Button
-        variant={state.animeName.length === 0 ? "tinted" : "filled"}
-        disabled={state.animeName.length === 0}
-        onPress={onUpdateState}
-      >
-        {params.animeName ? "EDIT" : "ADD"}
-      </Button>
+      <Host matchContents style={{ alignSelf: "center" }}>
+        <Button
+          variant={state.animeName.length === 0 ? "filled" : "text"}
+          disabled={state.animeName.length === 0}
+          modifiers={[buttonStyle("glassProminent")]}
+          onPress={onUpdateState}
+        >
+          <Text>{params.animeName ? "EDIT" : "ADD"}</Text>
+        </Button>
+      </Host>
     </ThemedView>
   );
 }

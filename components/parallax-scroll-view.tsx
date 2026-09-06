@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactElement } from "react";
-import { StyleSheet } from "react-native";
+import { ColorSchemeName, StyleSheet } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedRef,
@@ -15,7 +15,8 @@ const HEADER_HEIGHT = 250;
 
 type Props = PropsWithChildren<{
   headerImage?: ReactElement;
-  headerBackgroundColor: { dark: string; light: string };
+  headerBackgroundColor: Record<ColorSchemeName, string> &
+    Partial<Pick<Record<ColorSchemeName, string>, "unspecified">>;
 }>;
 
 export default function ParallaxScrollView({
@@ -58,7 +59,9 @@ export default function ParallaxScrollView({
         <Animated.View
           style={[
             styles.header,
-            { backgroundColor: headerBackgroundColor[colorScheme] },
+            {
+              backgroundColor: headerBackgroundColor[colorScheme],
+            },
             headerAnimatedStyle,
           ]}
         >
