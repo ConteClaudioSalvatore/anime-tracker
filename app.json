@@ -2,7 +2,7 @@
   "expo": {
     "name": "Anime Tracker",
     "slug": "anime-tracker",
-    "version": "1.0.5",
+    "version": "2.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "animeworld",
