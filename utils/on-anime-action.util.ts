@@ -6,11 +6,10 @@ import { onAnimeRemove } from "./on-anime-remove.util";
 import { AppStore } from "./app-store.util";
 import { toggleAnimeFinished } from "@/store/app.actions";
 
-export function onAnimeAction(
-  anime: Anime,
-  router: ImperativeRouter,
-  callback: () => void,
-): void {
+export function getAnimeActionContext(anime: Anime): {
+  finishedText: string;
+  timeText: string;
+} {
   let timeText = "";
   if (anime.episodeProgress?.[anime.latestWatchedEpisode]) {
     timeText = `\nTime: ${computeTimeStamp(anime.episodeProgress?.[anime.latestWatchedEpisode]?.progress ?? 0)}`;
@@ -23,6 +22,16 @@ export function onAnimeAction(
   if (anime.latestWatchedEpisode === anime.total)
     finishedText = "Mark as finished";
   if (anime.finished) finishedText = "Resume Anime";
+
+  return { finishedText, timeText };
+}
+
+export function onAnimeAction(
+  anime: Anime,
+  router: ImperativeRouter,
+  callback: () => void,
+): void {
+  const { finishedText, timeText } = getAnimeActionContext(anime);
   Alert.alert(
     "Actions",
     `Latest watched episode: ${anime.latestWatchedEpisode}`.concat(timeText),

@@ -1,7 +1,9 @@
+import AnimeActions from "@/components/watch-list/anime-actions";
 import WatchListHeader, {
   WatchListHeaderContext,
 } from "@/components/watch-list/header";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { Anime } from "@/model";
 import {
   isAnimeFinished,
   onAnimeAction,
@@ -10,6 +12,7 @@ import {
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import {
+  BottomSheet,
   Button,
   Column,
   Host,
@@ -32,6 +35,9 @@ export default function WatchListScreen() {
   const { updateState } = React.useContext(AppStateContext);
   const [searchValue, setSearchValue] = React.useState("");
   const [onlyInProgress, setOnlyInProgress] = React.useState(true);
+  const [animeActionOpen, setAnimeActionOpen] = React.useState<Anime | null>(
+    null,
+  );
   const [sortMode, setSortMode] = React.useState<1 | -1>(1);
   const router = useRouter();
   const { width, height } = useWindowDimensions();
@@ -113,10 +119,10 @@ export default function WatchListScreen() {
             modifiers={[weight(1)]}
           >
             <Row spacing={8}>
-              <Text textStyle={{ color: "white" }}>Anime</Text>
+              <Text textStyle={{ color: listTextColor }}>Anime</Text>
               <Spacer flexible />
-              <Text textStyle={{ color: "white" }}>Episode</Text>
-              <Text textStyle={{ color: "white" }}>Action</Text>
+              <Text textStyle={{ color: listTextColor }}>Episode</Text>
+              <Text textStyle={{ color: listTextColor }}>Action</Text>
             </Row>
             {Platform.OS === "android" && <HorizontalDivider />}
             <ScrollView>
@@ -172,7 +178,7 @@ export default function WatchListScreen() {
                                 ? "green"
                                 : data.finished
                                   ? "orange"
-                                  : "white",
+                                  : listTextColor,
                             }}
                           >
                             {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
@@ -180,7 +186,10 @@ export default function WatchListScreen() {
                           <Button
                             variant="text"
                             onPress={() =>
-                              onAnimeAction(data, router, stateChanged)
+                              setAnimeActionOpen({
+                                ...data,
+                                name: data.name ?? animeName,
+                              })
                             }
                             label="⛓️"
                           />
@@ -212,6 +221,13 @@ export default function WatchListScreen() {
           </Button>
         </Column>
       </Host>
+      {animeActionOpen && (
+        <AnimeActions
+          anime={animeActionOpen}
+          textColor={listTextColor}
+          onClose={() => setAnimeActionOpen(null)}
+        />
+      )}
     </>
   );
 }
