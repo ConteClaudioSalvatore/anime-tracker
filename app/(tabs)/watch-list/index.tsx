@@ -6,13 +6,11 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { Anime } from "@/model";
 import {
   isAnimeFinished,
-  onAnimeAction,
   onClearHistory,
-  StoreContext,
+  StoreContext
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import {
-  BottomSheet,
   Button,
   Column,
   Host,
@@ -20,7 +18,7 @@ import {
   Row,
   ScrollView,
   Spacer,
-  Text,
+  Text
 } from "@expo/ui";
 import { HorizontalDivider } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
