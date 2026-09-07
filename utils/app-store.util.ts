@@ -9,7 +9,13 @@ import { Storage } from "./storage.util";
 export const StoreContext = React.createContext<{
   state: AppStoreState;
   stateChanged: () => void;
-}>({ state: {}, stateChanged: () => {} });
+}>({
+  state: {
+    anime: {},
+    providers: [],
+  },
+  stateChanged: () => {},
+});
 
 export class AppStore {
   private static readonly STATE_KEY = "state";
@@ -21,9 +27,16 @@ export class AppStore {
   private static readonly reducer = reducer;
 
   public static async Get(): Promise<AppStoreState> {
-    return await Storage.getItem<AppStoreState>(this.STATE_KEY).then(
-      (res) => res ?? {},
-    );
+    return await Storage.getItem<AppStoreState>(this.STATE_KEY).then((res) => {
+      if (!res) return { anime: {}, providers: [] };
+      //retrocompatibility
+      if (!res.anime)
+        return {
+          anime: res as unknown as AppStoreState["anime"],
+          providers: [],
+        };
+      return res;
+    });
   }
 
   public static async Update(

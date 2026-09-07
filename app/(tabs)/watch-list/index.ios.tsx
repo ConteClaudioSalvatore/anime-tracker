@@ -47,7 +47,7 @@ export default function WatchListScreen() {
 
   const filteredState = React.useMemo(
     () =>
-      Object.entries(storeState).filter(
+      Object.entries(storeState.anime).filter(
         ([k, v]) =>
           k.toLowerCase().includes(searchValue.toLowerCase()) &&
           (onlyInProgress ? !(isAnimeFinished(v) || v.finished) : true),

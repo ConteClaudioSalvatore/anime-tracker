@@ -17,7 +17,10 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  const [storeState, setStoreState] = React.useState<AppStoreState>({});
+  const [storeState, setStoreState] = React.useState<AppStoreState>({
+    anime: {},
+    providers: [],
+  });
   const [appState, setAppState] = React.useState<AppState>({
     url: WEBSITE_URI,
   });

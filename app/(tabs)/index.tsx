@@ -77,34 +77,6 @@ document.querySelectorAll('#controls > .control.prevnext').forEach(
     setTimeout(() => clickActionHandler(e), 0);
   })
 );
-window.prevTarget = null;
-window.prevTargetBorder = null;
-/**
- * Selects the target element and posts a message to the WebView.
- * @param target {HTMLElement | null} The target element to select.
- */
-window.selectTarget = (target) => {
-  if(window.prevTarget === target) {
-    return;
-  }
-  window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'targetChange', target: target?.outerHTML }));
-  if(window.prevTarget) window.prevTarget.style.border = window.prevTargetBorder;
-  window.prevTarget = target;
-  window.prevTargetBorder = target?.style.border ?? null;
-  if(target) target.style.border = '1px dashed red';
-};
-document.addEventListener('click', (e) => {
-  window.selectTarget(e.target);
-});
-window.addEventListener('message', (e) => {
-  const data = JSON.parse(e.data);
-  if(data.type === 'untarget') {
-    window.selectTarget(null);
-    return;
-  }
-  if(data.type !== 'selectParent' || !window.prevTarget.parentNode) return;
-  window.selectTarget(window.prevTarget.parentNode);
-});
 `;
 
 const JS_TO_INJECT = (
@@ -141,7 +113,7 @@ export default function HomeScreen() {
     return {
       episode: currentAnime.episode,
       progress:
-        storeState[currentAnime.animeName]?.episodeProgress?.[
+        storeState.anime[currentAnime.animeName]?.episodeProgress?.[
           currentAnime.episode
         ]?.progress,
     };
@@ -151,7 +123,7 @@ export default function HomeScreen() {
   >(() => {
     if (!currentAnime) return [];
     return Object.entries(
-      storeState[currentAnime.animeName]?.episodeProgress ?? {},
+      storeState.anime[currentAnime.animeName]?.episodeProgress ?? {},
     ).map(([ep, progressInfo]) => ({
       episode: +ep,
       ...progressInfo,
@@ -233,7 +205,6 @@ export default function HomeScreen() {
         {...(Platform.OS === "android"
           ? {
               allowsFullscreenVideo: true,
-              allowsInlineMediaPlayback: true,
             }
           : {})}
       />
