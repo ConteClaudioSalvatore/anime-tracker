@@ -35,11 +35,26 @@
 
 ## 📱 Screenshots
 
+### IOS 🍎
+
 <div style="display: flex;">  
-  <img alt="home" src="assets/images/home.jpg" height="400" />
-  <img alt="list" src="assets/images/list.jpg" height="400" />
-  <img alt="backup" src="assets/images/backup.jpg" height="400" />
+  <img alt="home" src="assets/images/screenshots/ios/home.png" height="400" />
+  <img alt="anime-progress" src="assets/images/screenshots/ios/anime-progress.png" height="400" />
+  <img alt="history" src="assets/images/screenshots/ios/history.png" height="400" />
+  <img alt="search-history" src="assets/images/screenshots/ios/search-history.png" height="400" />
+  <img alt="backup" src="assets/images/screenshots/ios/backup.png" height="400" />
 </div>
+
+### Android 🤖
+
+<div style="display: flex;">  
+  <img alt="home" src="assets/images/screenshots/android/home.png" height="400" />
+  <img alt="anime-progress" src="assets/images/screenshots/android/anime-progress.png" height="400" />
+  <img alt="history" src="assets/images/screenshots/android/history.png" height="400" />
+  <img alt="search-history" src="assets/images/screenshots/android/search-history.png" height="400" />
+  <img alt="backup" src="assets/images/screenshots/android/backup.png" height="400" />
+</div>
+
 
 ---
 
