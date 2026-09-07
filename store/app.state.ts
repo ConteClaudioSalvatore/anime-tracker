@@ -7,6 +7,7 @@ import {
   removeAnime,
   upsertAnime,
   upsertProvider,
+  removeProvider,
 } from "./app.actions";
 
 export const reducer = createReducer<AppStoreState>(
@@ -80,4 +81,8 @@ export const reducer = createReducer<AppStoreState>(
       ),
     };
   }),
+  on(removeProvider, (state, { payload: providerId }) => ({
+    ...state,
+    providers: state.providers.filter((p) => p.id !== providerId),
+  })),
 );
