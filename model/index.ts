@@ -5,4 +5,4 @@ export * from "./anime.model";
 export * from "./app-state.model";
 export * from "./app-store-state.model";
 export * from "./episode-progress.model";
-
+export * from "./provider.model";

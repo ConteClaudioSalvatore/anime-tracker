@@ -64,6 +64,10 @@ export default function RootLayout() {
                   title: "Add/Edit Anime",
                 }}
               />
+              <Stack.Screen
+                name="provider-creator"
+                options={{ presentation: "modal" }}
+              />
             </Stack>
             <StatusBar style="auto" />
           </AccessoryContext>
