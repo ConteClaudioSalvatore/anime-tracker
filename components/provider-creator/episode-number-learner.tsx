@@ -1,8 +1,8 @@
 import { Host, Text } from "@expo/ui";
 
-export default function ProviderCreator_AnimePageLearner_Screen() {
+export default function EpisodeNumberLearner() {
   return (
-    <Host style={{ flex: 1, backgroundColor: "red" }}>
+    <Host style={{ flex: 1 }}>
       <Text textStyle={{ color: "white" }}>Info</Text>
     </Host>
   );

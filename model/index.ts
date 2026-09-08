@@ -7,3 +7,4 @@ export * from "./app-store-state.model";
 export * from "./episode-progress.model";
 export * from "./provider.model";
 export * from "./provider-creator-context.model";
+export * from "./provider-creator-step.model";

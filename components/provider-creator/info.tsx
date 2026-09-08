@@ -1,4 +1,5 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { useProviderCreator } from "@/utils/provider-creator.utils";
 import {
   BottomSheet,
   Button,
@@ -6,21 +7,35 @@ import {
   Host,
   Icon,
   Row,
+  Spacer,
   Text,
   TextInput,
 } from "@expo/ui";
 import { TooltipBox } from "@expo/ui/jetpack-compose";
 import { weight } from "@expo/ui/jetpack-compose/modifiers";
+import { router } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
 
-export default function ProviderCreator_Info_Screen() {
+export default function Info() {
   const textColor = useThemeColor(
     { dark: "#ffffff", light: "#1a1a1a" },
     "text",
   );
   const inputBg = useThemeColor({ dark: "#2a2a2a", light: "#ffffff" }, "text");
   const [showURLInfo, setShowURLInfo] = React.useState(false);
+  const ctx = useProviderCreator();
+  if (!ctx) return null;
+
+  const { providerDraft, updateProviderDraft, updateStep } = ctx;
+
+  const isStepValid = (name: string | null, origin: string | null) => {
+    if (!(name && origin)) return false;
+    return (
+      name.trim().length > 0 &&
+      /^http(?:s?):\/\/.+\..{2,}$/.exec(origin) !== null
+    );
+  };
 
   return (
     <Host style={{ flex: 1 }}>
@@ -41,6 +56,9 @@ export default function ProviderCreator_Info_Screen() {
             style={{ backgroundColor: inputBg, padding: 16, borderRadius: 16 }}
             textStyle={{ color: textColor }}
             placeholderTextColor={`${textColor}aa`}
+            onChangeText={(e) =>
+              updateProviderDraft((prev) => ({ ...prev, name: e }))
+            }
           ></TextInput>
         </Row>
         <Row alignment="center" spacing={8}>
@@ -52,11 +70,11 @@ export default function ProviderCreator_Info_Screen() {
             placeholderTextColor={`${textColor}aa`}
             keyboardType="url"
             modifiers={[weight(1)]}
+            onChangeText={(e) =>
+              updateProviderDraft((prev) => ({ ...prev, origin: e }))
+            }
           ></TextInput>
-          <Button
-            variant="text"
-            onPress={() => setShowURLInfo(true)}
-          >
+          <Button variant="text" onPress={() => setShowURLInfo(true)}>
             <Icon
               name={Icon.select({
                 ios: "info.circle",
@@ -80,6 +98,18 @@ export default function ProviderCreator_Info_Screen() {
             </Column>
           </BottomSheet>
         </Row>
+        <Button
+          disabled={!isStepValid(providerDraft.name, providerDraft.origin)}
+          onPress={() => updateStep((prev) => prev + 1)}
+        >
+          <Icon
+            name={Icon.select({
+              ios: "arrow.right",
+              android: import("@expo/material-symbols/arrow_right.xml"),
+            })}
+          />
+          <Text>Next</Text>
+        </Button>
       </Column>
     </Host>
   );

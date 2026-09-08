@@ -1,11 +1,12 @@
-import { Provider } from "@/model";
+import { ProviderCreatorRegistry } from "@/components/provider-creator";
+import { Provider, ProviderCreatorStep } from "@/model";
 import { upsertProvider } from "@/store/app.actions";
 import { AppStore, StoreContext } from "@/utils";
 import { ProviderCreatorContext } from "@/utils/provider-creator.utils";
 import { Button, Host, Row, Text } from "@expo/ui";
 import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
 import { Stack, useRouter } from "expo-router";
-import { useLocalSearchParams } from "expo-router/build/hooks";
+import { useLocalSearchParams, usePathname } from "expo-router/build/hooks";
 import React from "react";
 import {
   Alert,
@@ -48,7 +49,7 @@ const BASE_JS_TO_INJECT = `
   });
 `;
 
-export default function ProviderCreator() {
+export default function ProviderCreator_Screen() {
   const [providerDraft, setProviderDraft] = React.useState<Provider<false>>({
     id: 0,
     isDefault: false,
@@ -63,8 +64,13 @@ export default function ProviderCreator() {
     playerSelector: null,
   });
   const webViewRef = React.useRef<WebView>(null);
+  const [currentUri, setCurrentUri] = React.useState<string | null>(null);
   const { width } = useWindowDimensions();
   const router = useRouter();
+  const pathname = usePathname();
+  const [step, setStep] = React.useState<ProviderCreatorStep>(
+    ProviderCreatorStep.Info,
+  );
   const {
     state: { providers },
   } = React.useContext(StoreContext);
@@ -97,6 +103,8 @@ export default function ProviderCreator() {
     setProviderDraft(provider);
   }, [id, providers]);
 
+  console.log(pathname, providerDraft.origin);
+
   return (
     <ProviderCreatorContext.Provider
       value={{
@@ -104,33 +112,39 @@ export default function ProviderCreator() {
         updateProviderDraft: setProviderDraft,
         saveProvider: onSaveProvider,
         cancelProviderCreation: onCancelProviderCreation,
+        updateStep: setStep,
+        webView: webViewRef,
+        currentUri,
       }}
     >
-      {providerDraft.origin && (
+      {step !== ProviderCreatorStep.Info && providerDraft.origin && (
         <View
           style={{
             width,
+            flex: 1,
           }}
         >
           <WebView
             ref={webViewRef}
             style={{ backgroundColor: "transparent" }}
             source={{ uri: providerDraft.origin }}
-            // onNavigationStateChange={onNavigation}
+            onNavigationStateChange={(e) => {
+              setCurrentUri(e.url);
+            }}
             // onShouldStartLoadWithRequest={onShouldStart}
             // injectedJavaScript={JS_TO_INJECT(watchMode, resume, playedEpisodes)}
             // onMessage={onMessage}
-            // onLoadEnd={() => {
-            //   if (!params.reload) return;
-            //   updateState({
-            //     url,
-            //     canGoBack,
-            //     canGoForward,
-            //   });
-            //   if (Platform.OS === "ios") {
-            //     webViewRef?.current?.reload();
-            //   }
-            // }}
+            onLoadEnd={(e) => {
+              // if (!params.reload) return;
+              // updateState({
+              //   url,
+              //   canGoBack,
+              //   canGoForward,
+              // });
+              // if (Platform.OS === "ios") {
+              //   webViewRef?.current?.reload();
+              // }
+            }}
             contentInsetAdjustmentBehavior="always"
             javaScriptEnabled
             domStorageEnabled
@@ -147,20 +161,7 @@ export default function ProviderCreator() {
           />
         </View>
       )}
-      <Stack
-        screenOptions={{
-          presentation: "pageSheet",
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="anime-page-learner" />
-        <Stack.Screen name="episode-name-learner" />
-        <Stack.Screen name="episode-number-learner" />
-        <Stack.Screen name="total-episodes-learner" />
-        <Stack.Screen name="player-learner" />
-        <Stack.Screen name="done" />
-      </Stack>
+      {React.createElement(ProviderCreatorRegistry[step])}
     </ProviderCreatorContext.Provider>
   );
 }

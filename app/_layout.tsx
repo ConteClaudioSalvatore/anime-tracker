@@ -69,7 +69,7 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="provider-creator"
-                options={{ presentation: "modal" }}
+                options={{ presentation: "modal", title: 'Provider Creator' }}
               />
             </Stack>
             <StatusBar style="auto" />
