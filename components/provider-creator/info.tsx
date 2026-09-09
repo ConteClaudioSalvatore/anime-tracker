@@ -1,21 +1,17 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useProviderCreator } from "@/utils/provider-creator.utils";
 import {
-  BottomSheet,
-  Button,
-  Column,
-  Host,
-  Icon,
-  Row,
-  Spacer,
-  Text,
-  TextInput,
+    BottomSheet,
+    Button,
+    Column,
+    Host,
+    Icon,
+    Row,
+    Text,
+    TextInput
 } from "@expo/ui";
-import { TooltipBox } from "@expo/ui/jetpack-compose";
 import { weight } from "@expo/ui/jetpack-compose/modifiers";
-import { router } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
 
 export default function Info() {
   const textColor = useThemeColor(

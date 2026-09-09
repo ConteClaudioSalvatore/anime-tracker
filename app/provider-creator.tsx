@@ -30,12 +30,13 @@ const BASE_JS_TO_INJECT = `
     }
     if(target) {
       const targetClasses = [...target.classList.values()];
+      const index = target.parentElement ? [...target.parentElement.children].indexOf(target) + 1 : 1;
       window.currentTree = [
-        \`\${target.nodeName}\${
+        \`\${target.nodeName}:nht-child(\${index})\${
           targetClasses.length > 0 ?
             ['', ...targetClasses].join('.') :
             ''
-        }\`,
+        }\$\`,
         ...window.currentTree
       ];
     }
@@ -49,7 +50,7 @@ const BASE_JS_TO_INJECT = `
   document.addEventListener('click', (e) => {
     window.selectTarget(e.target, true);
   });
-  window.addEventListener('message', (e) => {
+  document.addEventListener('message', (e) => {
     const data = JSON.parse(e.data);
     if(data.type === 'untarget') {
       window.selectTarget(null, true);
@@ -169,7 +170,7 @@ export default function ProviderCreator_Screen() {
                 setCurrentUri(e.url);
               }}
               // onShouldStartLoadWithRequest={onShouldStart}
-              injectedJavaScript={
+              injectedJavaScriptBeforeContentLoaded={
                 [
                   ProviderCreatorStep.SeriesNameLearner,
                   ProviderCreatorStep.EpisodeNumberLearner,
@@ -181,7 +182,6 @@ export default function ProviderCreator_Screen() {
               }
               onMessage={(e) => {
                 const data = e.nativeEvent.data;
-                console.log(data);
                 if (!data) return;
                 const parsed = JSON.parse(data);
                 webViewEvents.current.emit("targetChange", parsed);

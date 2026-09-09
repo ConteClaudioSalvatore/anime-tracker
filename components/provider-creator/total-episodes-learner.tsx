@@ -1,5 +1,5 @@
 import { useProviderCreator } from "@/utils/provider-creator.utils";
-import { Text } from "@expo/ui";
+import { Button, Column, Text } from "@expo/ui";
 import React from "react";
 import BottomUtility from "./bottom-utility";
 
@@ -21,7 +21,7 @@ export default function TotalEpisodesLearner() {
   }, [ctx?.webViewEvents]);
 
   if (!ctx) return null;
-  const { providerDraft, updateProviderDraft } = ctx;
+  const { providerDraft, updateProviderDraft, webView } = ctx;
 
   return (
     <BottomUtility
@@ -39,7 +39,20 @@ export default function TotalEpisodesLearner() {
         }));
       }}
     >
-      <Text>{`Current Target: ${target?.textContent ?? "No target selected"}`}</Text>
+      <Column alignment="center" spacing={8}>
+        <Text>{`Current Target: ${target?.textContent ?? "No target selected"}`}</Text>
+        {target && (
+          <Button
+            onPress={() => {
+              webView.current?.postMessage(
+                JSON.stringify({ type: "targetParent" }),
+              );
+            }}
+          >
+            <Text>Get surroundings</Text>
+          </Button>
+        )}
+      </Column>
     </BottomUtility>
   );
 }
