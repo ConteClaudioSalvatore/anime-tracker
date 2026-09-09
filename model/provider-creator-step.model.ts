@@ -1,9 +1,9 @@
 export enum ProviderCreatorStep {
   Info,
   AnimePageLearner,
-  EpisodeNumberLearner,
-  EpisodeNameLearner,
+  SeriesNameLearner,
   TotalEpisodesLearner,
+  EpisodeNumberLearner,
   PlayerLearner,
   Done,
 }
