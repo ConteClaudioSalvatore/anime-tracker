@@ -8,7 +8,7 @@ export default function EpisodeNameLearner() {
   const ctx = useProviderCreator();
   const [target, setTarget] = React.useState<{
     textContent?: string;
-    className: string;
+    selector: string;
   } | null>(null);
 
   React.useEffect(() => {
@@ -16,7 +16,7 @@ export default function EpisodeNameLearner() {
     return ctx.webViewEvents.current.on("targetChange", (data) => {
       setTarget({
         textContent: data.targetContent,
-        className: data.targetClass ?? "",
+        selector: data.targetTree ?? "",
       });
     });
   }, [ctx?.webViewEvents]);
@@ -45,7 +45,7 @@ export default function EpisodeNameLearner() {
       onGoNext={() => {
         updateProviderDraft((prev) => ({
           ...prev,
-          seriesNameSelector: target?.className ?? prev.seriesNameSelector,
+          seriesNameSelector: target?.selector ?? prev.seriesNameSelector,
         }));
         ctx.webView.current?.postMessage(ProviderCreatorMessages.untarget());
       }}

@@ -15,25 +15,23 @@ export default function TotalEpisodesLearner() {
 
   React.useEffect(() => {
     if (!ctx?.webViewEvents?.current) return;
-    const returns: (() => void)[] = [];
-    returns.push(
+    const listeners: (() => void)[] = [];
+    listeners.push(
       ctx.webViewEvents.current.on("targetChange", (data) => {
         setTarget({
           textContent: data.targetContent,
-          selector: data.targetTree?.replaceAll(/:nth-child\(\d+\)/g, '') ?? "",
+          selector: data.targetTree ?? "",
         });
         ctx.webView.current?.postMessage(
           ProviderCreatorMessages.testTargetSelector(data.targetTree),
         );
       }),
-    );
-    returns.push(
       ctx.webViewEvents.current.on("targetSelectorResultCount", (data) => {
         setTargetSelectedCount(data.count);
       }),
     );
     return () => {
-      returns.forEach((fn) => fn());
+      listeners.forEach((fn) => fn());
     };
   }, [ctx?.webView, ctx?.webViewEvents]);
 

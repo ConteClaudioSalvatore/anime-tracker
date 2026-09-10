@@ -32,11 +32,11 @@ export default function AnimePageLearner() {
           Navigate the website and open at least 2 pages with different series
         </Text>
       }
-      canGoNext={pages.length >= 2 || !!providerDraft.animePageOrigin}
+      canGoNext={pages.length >= 2 || !!providerDraft.seriesPageOrigin}
       onGoBack={() => {
         updateProviderDraft((prev) => ({
           ...prev,
-          animePageOrigin: commonPrefix(pages) ?? prev.animePageOrigin,
+          seriesPageOrigin: commonPrefix(pages) ?? prev.seriesPageOrigin,
         }));
       }}
     >

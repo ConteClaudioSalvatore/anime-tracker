@@ -1,8 +1,8 @@
-import { Button, Column, Host, Text } from "@expo/ui";
-import BottomUtility from "./bottom-utility";
 import { ProviderCreatorMessages } from "@/model";
-import React from "react";
 import { useProviderCreator } from "@/utils/provider-creator.utils";
+import { Button, Column, Text } from "@expo/ui";
+import React from "react";
+import BottomUtility from "./bottom-utility";
 
 export default function EpisodeNumberLearner() {
   const ctx = useProviderCreator();
@@ -13,14 +13,13 @@ export default function EpisodeNumberLearner() {
 
   const [targetSelectedCount, setTargetSelectedCount] = React.useState(0);
 
-  console.log(target?.selector)
-
   React.useEffect(() => {
     if (!ctx?.webViewEvents?.current) return;
-    const returns: (() => void)[] = [];
-    returns.push(
+    const listeners: (() => void)[] = [];
+    listeners.push(
       ctx.webViewEvents.current.on("targetChange", (data) => {
-        const selector = data.targetTree?.replaceAll(/:nth-child\(\d+\)/g, '') ?? "";
+        const selector =
+          data.targetTree?.replaceAll(/:nth-child\(\d+\)/g, "") ?? "";
         setTarget({
           textContent: data.targetContent,
           selector,
@@ -29,14 +28,12 @@ export default function EpisodeNumberLearner() {
           ProviderCreatorMessages.testTargetSelector(selector),
         );
       }),
-    );
-    returns.push(
       ctx.webViewEvents.current.on("targetSelectorResultCount", (data) => {
         setTargetSelectedCount(data.count);
       }),
     );
     return () => {
-      returns.forEach((fn) => fn());
+      listeners.forEach((fn) => fn());
     };
   }, [ctx?.webView, ctx?.webViewEvents]);
 
@@ -52,9 +49,7 @@ export default function EpisodeNumberLearner() {
           available episodes.
         </Text>
       }
-      canGoNext={
-        !!providerDraft.episodeNumberSelector || targetSelectedCount === 1
-      }
+      canGoNext={!!providerDraft.episodeNumberSelector || targetSelectedCount > 0}
       onGoNext={() => {
         updateProviderDraft((prev) => ({
           ...prev,

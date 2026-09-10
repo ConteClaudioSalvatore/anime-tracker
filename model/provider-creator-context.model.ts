@@ -15,6 +15,12 @@ export type ProviderCreatorEvents = {
     type: "targetSelectorResultCount";
     count: number;
   };
+  playerDiscoverySuccess: {
+    type: "playerDiscoverySuccess";
+  };
+  playerDiscoveryFailure: {
+    type: "playerDiscoveryFailure";
+  };
 };
 
 export const ProviderCreatorMessages = {

@@ -42,6 +42,28 @@ window.selectTarget = (target, resetTree = true) => {
 window.addEventListener(
   "click",
   (e) => {
+    // checks if the page has a video element in an iframe of the same origin
+    const iframe = document.querySelector("iframe");
+    if (
+      [location.origin, "/"].some(
+        (x) =>
+          iframe.getAttribute("src").startsWith(x) &&
+          iframe.contentDocument.querySelector("video"),
+      )
+    ) {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({
+          type: "playerDiscoverySuccess",
+        }),
+      );
+      return;
+    }
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({
+        type: "playerDiscoveryFailure",
+      }),
+    );
+    // end of video discovery
     if (!window.isSelectMode) return;
     e.preventDefault();
     e.stopPropagation();
@@ -63,13 +85,14 @@ document.addEventListener("message", (e) => {
     window.ReactNativeWebView.postMessage(
       JSON.stringify({
         type: "targetSelectorResultCount",
-        count: document.querySelectorAll(data.selector).length,
+        count: data.selector
+          ? document.querySelectorAll(data.selector).length
+          : 0,
       }),
     );
     return;
   }
   if (data.type === "switchMode") {
-    console.log("switching mode", data.isSelect, ">", window.isSelectMode);
     if (!data.isSelect) {
       window.selectTarget(null, true);
     }

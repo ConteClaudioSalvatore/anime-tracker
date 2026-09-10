@@ -10,12 +10,11 @@ export type Provider<TInitialized extends boolean = true> = {
   {
     name: string;
     origin: string;
-    animePageOrigin: string;
-    animeNameSelector: string;
+    seriesPageOrigin: string;
     seriesNameSelector: string;
     episodeNumberSelector: string;
     totalEpisodesSelector: string;
-    playerSelector: string;
+    isPlayerSupported: boolean;
   },
   TInitialized
 >;
