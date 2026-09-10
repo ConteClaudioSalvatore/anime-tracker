@@ -31,6 +31,11 @@ export const ProviderCreatorMessages = {
     JSON.stringify({
       type: "targetParent",
     }),
+  switchMode: (isSelect: boolean) =>
+    JSON.stringify({
+      type: "switchMode",
+      isSelect,
+    }),
 } satisfies Record<string, (...arg: any[]) => string>;
 
 export type ProviderCreatorContextType = {

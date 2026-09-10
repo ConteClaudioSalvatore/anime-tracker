@@ -1,4 +1,4 @@
-import { ProviderCreatorStep } from "@/model";
+import { ProviderCreatorMessages, ProviderCreatorStep } from "@/model";
 import { useProviderCreator } from "@/utils/provider-creator.utils";
 import { BottomSheet, Button, Column, Host, Icon, Row, Text } from "@expo/ui";
 import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
@@ -16,7 +16,17 @@ export default function BottomUtility(props: {
 }) {
   const { canGoBack = true, canGoNext = true } = props;
   const [isInfoOpen, setIsInfoOpen] = React.useState(false);
+  const [canTarget, setCanTarget] = React.useState(false);
+
   const ctx = useProviderCreator();
+
+  React.useEffect(() => {
+    if (!ctx?.webView?.current) return;
+    ctx.webView.current.postMessage(
+      ProviderCreatorMessages.switchMode(canTarget),
+    );
+  }, [ctx?.webView, canTarget]);
+
   if (!ctx) return null;
   const { updateStep, step } = ctx;
 
@@ -57,6 +67,7 @@ export default function BottomUtility(props: {
             {props.stepInfo}
           </BottomSheet>
           {props.children}
+
           <Row spacing={8}>
             {step > ProviderCreatorStep.Info && (
               <Button
@@ -75,6 +86,12 @@ export default function BottomUtility(props: {
                 <Text>Back</Text>
               </Button>
             )}
+            {step < ProviderCreatorStep.Done &&
+              step > ProviderCreatorStep.Info && (
+                <Button onPress={() => setCanTarget((prev) => !prev)}>
+                  <Text>{canTarget ? "Navigate mode" : "Select mode"}</Text>
+                </Button>
+              )}
             {step < ProviderCreatorStep.Done && (
               <Button
                 disabled={!canGoNext}

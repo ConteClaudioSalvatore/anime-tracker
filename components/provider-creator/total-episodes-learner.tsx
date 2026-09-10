@@ -20,7 +20,7 @@ export default function TotalEpisodesLearner() {
       ctx.webViewEvents.current.on("targetChange", (data) => {
         setTarget({
           textContent: data.targetContent,
-          selector: data.targetTree ?? "",
+          selector: data.targetTree?.replaceAll(/:nth-child\(\d+\)/g, '') ?? "",
         });
         ctx.webView.current?.postMessage(
           ProviderCreatorMessages.testTargetSelector(data.targetTree),
