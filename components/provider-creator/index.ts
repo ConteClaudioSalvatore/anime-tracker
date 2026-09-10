@@ -10,9 +10,9 @@ import { ProviderCreatorStep } from "../../model";
 export const ProviderCreatorRegistry: { [key in ProviderCreatorStep]: React.FC } = {
   [ProviderCreatorStep.Info]: Info,
   [ProviderCreatorStep.AnimePageLearner]: AnimePageLearner,
-  [ProviderCreatorStep.EpisodeNumberLearner]: EpisodeNumberLearner,
   [ProviderCreatorStep.SeriesNameLearner]: SeriesNameLearner,
   [ProviderCreatorStep.TotalEpisodesLearner]: TotalEpisodesLearner,
+  [ProviderCreatorStep.EpisodeNumberLearner]: EpisodeNumberLearner,
   [ProviderCreatorStep.PlayerLearner]: PlayerLearner,
   [ProviderCreatorStep.Done]: Done,
 }

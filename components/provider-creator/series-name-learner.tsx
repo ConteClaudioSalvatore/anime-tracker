@@ -2,6 +2,7 @@ import { useProviderCreator } from "@/utils/provider-creator.utils";
 import { Column, Text } from "@expo/ui";
 import React from "react";
 import BottomUtility from "./bottom-utility";
+import { ProviderCreatorMessages } from "@/model";
 
 export default function EpisodeNameLearner() {
   const ctx = useProviderCreator();
@@ -46,6 +47,7 @@ export default function EpisodeNameLearner() {
           ...prev,
           seriesNameSelector: target?.className ?? prev.seriesNameSelector,
         }));
+        ctx.webView.current?.postMessage(ProviderCreatorMessages.untarget());
       }}
     >
       <Text>{`Current Target: ${target?.textContent}`}</Text>

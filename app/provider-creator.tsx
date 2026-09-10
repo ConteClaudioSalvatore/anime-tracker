@@ -1,5 +1,5 @@
 import { ProviderCreatorRegistry } from "@/components/provider-creator";
-import { Provider, ProviderCreatorStep } from "@/model";
+import { Provider, ProviderCreatorEvents, ProviderCreatorStep } from "@/model";
 import { upsertProvider } from "@/store/app.actions";
 import { AppStore, EventEmitter, StoreContext } from "@/utils";
 import { ProviderCreatorContext } from "@/utils/provider-creator.utils";
@@ -8,58 +8,7 @@ import { useLocalSearchParams } from "expo-router/build/hooks";
 import React from "react";
 import { Alert, Platform, useWindowDimensions, View } from "react-native";
 import WebView from "react-native-webview";
-
-const BASE_JS_TO_INJECT = `
-  window.prevTarget = null;
-  window.prevTargetBorder = null;
-  window.currentTree = [];
-  /**
-   * Selects the target element and posts a message to the WebView.
-   * @param target {HTMLElement | null} The target element to select.
-   */
-  window.selectTarget = (target, resetTree = true) => {
-    if(window.prevTarget === target) {
-      return;
-    }
-    if(window.prevTarget) window.prevTarget.style.border = window.prevTargetBorder;
-    window.prevTarget = target;
-    window.prevTargetBorder = target?.style.border ?? '';
-    if(target) target.style.border = '1px dashed red';
-    if(resetTree) {
-      window.currentTree = [];
-    }
-    if(target) {
-      const targetClasses = [...target.classList.values()];
-      const index = target.parentElement ? [...target.parentElement.children].indexOf(target) + 1 : 1;
-      window.currentTree = [
-        \`\${target.nodeName}:nht-child(\${index})\${
-          targetClasses.length > 0 ?
-            ['', ...targetClasses].join('.') :
-            ''
-        }\$\`,
-        ...window.currentTree
-      ];
-    }
-    window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: 'targetChange',
-      targetClass: target?.className,
-      targetContent: target?.innerText,
-      targetTree: window.currentTree.join(' > ')
-    }));
-  };
-  document.addEventListener('click', (e) => {
-    window.selectTarget(e.target, true);
-  });
-  document.addEventListener('message', (e) => {
-    const data = JSON.parse(e.data);
-    if(data.type === 'untarget') {
-      window.selectTarget(null, true);
-      return;
-    }
-    if(data.type !== 'targetParent' || !window.prevTarget.parentNode) return;
-    window.selectTarget(window.prevTarget.parentNode, false);
-  });
-`;
+import BASE_JS_TO_INJECT from "@/assets/js/provider-creator-web-view_t.cjs";
 
 export default function ProviderCreator_Screen() {
   const [providerDraft, setProviderDraft] = React.useState<Provider<false>>({
@@ -84,16 +33,7 @@ export default function ProviderCreator_Screen() {
     playerSelector: null,
   });
   const webViewRef = React.useRef<WebView>(null);
-  const webViewEvents = React.useRef(
-    new EventEmitter<{
-      targetChange: {
-        type: "targetChange";
-        targetClass?: string;
-        targetContent?: string;
-        targetTree: string;
-      };
-    }>(),
-  );
+  const webViewEvents = React.useRef(new EventEmitter<ProviderCreatorEvents>());
   const [currentUri, setCurrentUri] = React.useState<string | null>(null);
   const { width } = useWindowDimensions();
   const router = useRouter();
@@ -184,7 +124,7 @@ export default function ProviderCreator_Screen() {
                 const data = e.nativeEvent.data;
                 if (!data) return;
                 const parsed = JSON.parse(data);
-                webViewEvents.current.emit("targetChange", parsed);
+                webViewEvents.current.emit(parsed.type, parsed);
               }}
               onLoadEnd={(e) => {
                 // if (!params.reload) return;
