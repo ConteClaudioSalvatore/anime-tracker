@@ -33,7 +33,7 @@ export default function AnimePageLearner() {
         </Text>
       }
       canGoNext={pages.length >= 2 || !!providerDraft.seriesPageOrigin}
-      onGoBack={() => {
+      onGoNext={() => {
         updateProviderDraft((prev) => ({
           ...prev,
           seriesPageOrigin: commonPrefix(pages) ?? prev.seriesPageOrigin,

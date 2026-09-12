@@ -1,14 +1,14 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useProviderCreator } from "@/utils/provider-creator.utils";
 import {
-    BottomSheet,
-    Button,
-    Column,
-    Host,
-    Icon,
-    Row,
-    Text,
-    TextInput
+  BottomSheet,
+  Button,
+  Column,
+  Host,
+  Icon,
+  Row,
+  Text,
+  TextInput
 } from "@expo/ui";
 import { weight } from "@expo/ui/jetpack-compose/modifiers";
 import React from "react";
@@ -21,7 +21,6 @@ export default function Info() {
   const inputBg = useThemeColor({ dark: "#2a2a2a", light: "#ffffff" }, "text");
   const [showURLInfo, setShowURLInfo] = React.useState(false);
   const ctx = useProviderCreator();
-  if (!ctx) return null;
 
   const { providerDraft, updateProviderDraft, updateStep } = ctx;
 
@@ -29,7 +28,7 @@ export default function Info() {
     if (!(name && origin)) return false;
     return (
       name.trim().length > 0 &&
-      /^http(?:s?):\/\/.+\..{2,}$/.exec(origin) !== null
+      /^http(?:s?):\/\/.+\..{2,}$/i.exec(origin) !== null
     );
   };
 
@@ -42,16 +41,14 @@ export default function Info() {
       >
         <Text textStyle={{ color: textColor, fontSize: 20 }}>Info</Text>
         <Row alignment="center" spacing={8}>
-          <Text modifiers={[]} textStyle={{ color: textColor }}>
-            Name:
-          </Text>
+          <Text textStyle={{ color: textColor }}>Name:</Text>
           <TextInput
             autoCapitalize="words"
             placeholder="Enter provider name"
-            autoFocus
             style={{ backgroundColor: inputBg, padding: 16, borderRadius: 16 }}
             textStyle={{ color: textColor }}
             placeholderTextColor={`${textColor}aa`}
+            defaultValue={providerDraft.name ?? ""}
             onChangeText={(e) =>
               updateProviderDraft((prev) => ({ ...prev, name: e }))
             }
@@ -65,6 +62,8 @@ export default function Info() {
             textStyle={{ color: textColor }}
             placeholderTextColor={`${textColor}aa`}
             keyboardType="url"
+            autoCapitalize="none"
+            defaultValue={providerDraft.origin ?? ""}
             modifiers={[weight(1)]}
             onChangeText={(e) =>
               updateProviderDraft((prev) => ({ ...prev, origin: e }))
@@ -78,21 +77,6 @@ export default function Info() {
               })}
             />
           </Button>
-          <BottomSheet
-            isPresented={showURLInfo}
-            onDismiss={() => setShowURLInfo(false)}
-          >
-            <Column spacing={8}>
-              <Text>
-                This is the website URL, you can find it in the browser&apos;s
-                address bar.
-              </Text>
-              <Text>Make sure you are on the website&apos;s homepage.</Text>
-              <Text>
-                Make sure the URL starts with `https://` or `http://`.
-              </Text>
-            </Column>
-          </BottomSheet>
         </Row>
         <Button
           disabled={!isStepValid(providerDraft.name, providerDraft.origin)}
@@ -107,6 +91,19 @@ export default function Info() {
           <Text>Next</Text>
         </Button>
       </Column>
+      <BottomSheet
+        isPresented={showURLInfo}
+        onDismiss={() => setShowURLInfo(false)}
+      >
+        <Column spacing={8}>
+          <Text>
+            This is the website URL, you can find it in the browser&apos;s
+            address bar.
+          </Text>
+          <Text>Make sure you are on the website&apos;s homepage.</Text>
+          <Text>Make sure the URL starts with `https://` or `http://`.</Text>
+        </Column>
+      </BottomSheet>
     </Host>
   );
 }

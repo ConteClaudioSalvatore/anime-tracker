@@ -8,6 +8,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function BottomUtility(props: {
   stepTitle: string;
   stepInfo: React.ReactNode;
+  beforeBack?: React.ReactNode;
+  afterBack?: React.ReactNode;
+  beforeNext?: React.ReactNode;
+  afterNext?: React.ReactNode;
   children: React.ReactNode;
   canGoBack?: boolean;
   canGoNext?: boolean;
@@ -69,6 +73,7 @@ export default function BottomUtility(props: {
           {props.children}
 
           <Row spacing={8}>
+            {props.beforeBack}
             {step > ProviderCreatorStep.Info && (
               <Button
                 disabled={!canGoBack}
@@ -86,12 +91,14 @@ export default function BottomUtility(props: {
                 <Text>Back</Text>
               </Button>
             )}
-            {step < ProviderCreatorStep.Done &&
-              step > ProviderCreatorStep.Info && (
+            {props.afterBack}
+            {step < ProviderCreatorStep.PlayerLearner &&
+              step > ProviderCreatorStep.SeriesPageLearner && (
                 <Button onPress={() => setCanTarget((prev) => !prev)}>
                   <Text>{canTarget ? "Navigate mode" : "Select mode"}</Text>
                 </Button>
               )}
+            {props.beforeNext}
             {step < ProviderCreatorStep.Done && (
               <Button
                 disabled={!canGoNext}
@@ -109,6 +116,7 @@ export default function BottomUtility(props: {
                 <Text>Next</Text>
               </Button>
             )}
+            {props.afterNext}
           </Row>
         </Column>
       </Host>

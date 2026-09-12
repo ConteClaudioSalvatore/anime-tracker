@@ -71,8 +71,9 @@ export const reducer = createReducer<AppStoreState>(
     },
   })),
   on(upsertProvider, (state, { payload }) => {
+    console.log(payload);
     if (payload.id === 0) {
-      return { ...state, providers: [payload, ...state.providers] };
+      return { ...state, providers: [{ ...payload, id: state.providers.length + 1 }, ...state.providers] };
     }
     return {
       ...state,

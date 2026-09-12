@@ -47,7 +47,7 @@ export const ProviderCreatorMessages = {
 export type ProviderCreatorContextType = {
   providerDraft: Provider<false>;
   updateProviderDraft: Dispatch<React.SetStateAction<Provider<false>>>;
-  saveProvider: () => void;
+  saveProvider: () => Promise<void>;
   cancelProviderCreation: () => void;
   updateStep: Dispatch<React.SetStateAction<ProviderCreatorStep>>;
   step: ProviderCreatorStep;

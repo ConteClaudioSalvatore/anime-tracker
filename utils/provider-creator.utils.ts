@@ -6,6 +6,6 @@ export const ProviderCreatorContext =
 
 export const useProviderCreator = () => {
   const context = React.useContext(ProviderCreatorContext);
-  if (!context) return null;
+  if (!context) throw new Error("ProviderCreatorContext is not available");
   return context;
 };

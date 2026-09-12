@@ -1,3 +1,4 @@
+import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
 import { restoreBackup, saveBackup } from "@/utils/backup.util";
 import { Button, Host, HStack, Spacer, VStack } from "@expo/ui/swift-ui";
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
           }),
         ]}
       >
+        <SettingsProviders />
         <Spacer />
         <HStack>
           <Button

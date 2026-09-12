@@ -29,7 +29,7 @@ export default function ProviderCreator_Screen() {
   const { width } = useWindowDimensions();
   const router = useRouter();
   const [step, setStep] = React.useState<ProviderCreatorStep>(
-    ProviderCreatorStep.SeriesNameLearner,
+    ProviderCreatorStep.Info,
   );
   const {
     state: { providers },
@@ -100,33 +100,12 @@ export default function ProviderCreator_Screen() {
               onNavigationStateChange={(e) => {
                 setCurrentUri(e.url);
               }}
-              // onShouldStartLoadWithRequest={onShouldStart}
-              injectedJavaScriptBeforeContentLoaded={
-                [
-                  ProviderCreatorStep.SeriesNameLearner,
-                  ProviderCreatorStep.EpisodeNumberLearner,
-                  ProviderCreatorStep.TotalEpisodesLearner,
-                  ProviderCreatorStep.PlayerLearner,
-                ].includes(step)
-                  ? `${BASE_JS_TO_INJECT}true;`
-                  : undefined
-              }
+              injectedJavaScriptBeforeContentLoaded={`${BASE_JS_TO_INJECT}true;`}
               onMessage={(e) => {
                 const data = e.nativeEvent.data;
                 if (!data) return;
                 const parsed = JSON.parse(data);
                 webViewEvents.current.emit(parsed.type, parsed);
-              }}
-              onLoadEnd={(e) => {
-                // if (!params.reload) return;
-                // updateState({
-                //   url,
-                //   canGoBack,
-                //   canGoForward,
-                // });
-                // if (Platform.OS === "ios") {
-                //   webViewRef?.current?.reload();
-                // }
               }}
               contentInsetAdjustmentBehavior="always"
               javaScriptEnabled

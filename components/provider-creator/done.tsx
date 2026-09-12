@@ -1,13 +1,14 @@
 import { useProviderCreator } from "@/utils/provider-creator.utils";
-import { Column, Row, Text } from "@expo/ui";
-import { weight } from "@expo/ui/jetpack-compose/modifiers";
+import { Button, Column, Icon, Row, Text } from "@expo/ui";
+import { weight, width } from "@expo/ui/jetpack-compose/modifiers";
 import BottomUtility from "./bottom-utility";
+import { useRouter } from "expo-router";
 
 export default function Done() {
   const ctx = useProviderCreator();
-  if (!ctx) return null;
+  const router = useRouter();
 
-  const { providerDraft } = ctx;
+  const { providerDraft, saveProvider } = ctx;
 
   const infos = [
     { label: "Website base url", value: providerDraft.origin },
@@ -35,12 +36,31 @@ export default function Done() {
           Now we need to learn how to identify the episode video player.
         </Text>
       }
+      afterNext={
+        <Button
+          onPress={async () => {
+            await saveProvider();
+            router.canGoBack() && router.back();
+          }}
+        >
+          <Icon
+            name={Icon.select({
+              ios: "checkmark",
+              android: import("@expo/material-symbols/save.xml"),
+            })}
+          />
+          <Text>Save</Text>
+        </Button>
+      }
     >
       <Column alignment="start" spacing={8}>
         {infos.map((info, index) => (
-          <Row key={index}>
+          <Row key={index} alignment="center">
             <Text modifiers={[weight(1)]}>{`${info.label}:`}</Text>
-            <Text textStyle={{ fontWeight: "bold" }}>{`${info.value}`}</Text>
+            <Text
+              modifiers={[width(220)]}
+              textStyle={{ fontWeight: "bold" }}
+            >{`${info.value}`}</Text>
           </Row>
         ))}
       </Column>
