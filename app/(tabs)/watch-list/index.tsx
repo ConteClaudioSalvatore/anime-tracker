@@ -147,6 +147,7 @@ export default function WatchListScreen() {
                                   data.latestVisitedUrl
                                     ? {
                                         url: data.latestVisitedUrl,
+                                        providerId: data.providerId,
                                         reload: true,
                                       }
                                     : {},

@@ -2,7 +2,6 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { WEBSITE_URI } from "@/constants/website";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppState, AppStoreState } from "@/model";
 import { AccessoryContext, AppStore, StoreContext } from "@/utils";
@@ -21,9 +20,7 @@ export default function RootLayout() {
     anime: {},
     providers: [],
   });
-  const [appState, setAppState] = React.useState<AppState>({
-    url: WEBSITE_URI,
-  });
+  const [appState, setAppState] = React.useState<AppState>({});
   const webViewRef = React.useRef<WebView>(null);
 
   const stateChanged = () => {
@@ -41,7 +38,11 @@ export default function RootLayout() {
   );
 
   React.useEffect(() => {
-    stateChanged();
+    AppStore.Get().then(state => {
+      setStoreState(state);
+      const provider = state.providers.find(item => item.isDefault);
+      if (provider) setAppState(previous => previous.url ? previous : { url: provider.origin, providerId: provider.id });
+    });
   }, []);
 
   const appStateContextValue = React.useMemo(
@@ -69,7 +70,7 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="provider-creator"
-                options={{ presentation: "modal", title: 'Provider Creator' }}
+                options={{ presentation: "modal", title: 'Add provider' }}
               />
             </Stack>
             <StatusBar style="auto" />

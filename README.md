@@ -1,12 +1,12 @@
-# Anime Tracker (Unofficial AnimeWorld client) 💫
+# Anime Tracker 💫
 
-> Lightweight, privacy-minded mobile app that embeds AnimeWorld and keeps a local watch history.
+> A mobile app for user-configured anime websites, with local watch history and video progress.
 
 ---
 
 ## 📌 TL;DR
 
-- Wraps https://www.animeworld.ac inside a WebView and automatically detects when you open an anime episode.
+- Start with no built-in providers. Add a website through the guided provider creator, then browse and track it.
 - Stores watch progress locally (AsyncStorage) and exposes a simple **Watch List** UI to view / edit items.
 - Export and import your data as a JSON backup from the **Settings** screen.
 - Built with Expo — runs on iOS add Android (behavior may vary by platform, web is not supported by the webview library).
@@ -26,10 +26,11 @@
 
 ## How it works (quick)
 
-1. The main WebView (see `app/(tabs)/index.tsx`) injects JS into AnimeWorld pages and posts messages to React Native when it detects an anime/episode.
-2. Messages are parsed and persisted in the AppStore (`utils/app-store.util.ts`) which uses `AsyncStorage` under the hood (`utils/storage.util.ts`).
-3. The Watch List screen (`app/(tabs)/watch-list.tsx`) reads the stored state and shows the current progress for each anime.
-4. Backup and restore flows are implemented via `expo-file-system`, `expo-sharing` and `expo-document-picker`.
+1. Add a website from Websites or Settings. Select titles and episode information, verify two example pages, and test the site's primary video player.
+2. The creator and main browser share `assets/js/provider-runtime_t.cjs` for extraction, accessible frame discovery, video progress, and resume.
+3. Typed messages are validated and persisted in the AppStore (`utils/app-store.util.ts`), using `AsyncStorage`.
+4. Watch History stores the provider used for each playback location. Provider setup warns when progress or seeking cannot be verified.
+5. Backup and restore use `expo-file-system`, `expo-sharing` and `expo-document-picker`.
 
 ---
 
@@ -92,12 +93,13 @@ Notes:
 - Add/Edit modal: `app/anime-modal.tsx`
 - Backup / Restore: `utils/app-store.util.ts` (creates `anime-tracker/backup.json` and uses system sharing/document picker)
 - Type definitions: `model/*.ts`
+- Validation: `npm test`, `npm run typecheck`, and `npm run lint`. See [device acceptance checks](docs/provider-testing.md).
 
 ---
 
 ## Legal / Disclaimer ⚠️
 
-This is an **unofficial** client and is not affiliated with AnimeWorld. It only embeds the AnimeWorld site and stores local navigation history. Please respect the website's terms of use and copyright.
+The app embeds websites configured by the user and stores watch history locally. It is not affiliated with those websites.
 
 ---
 

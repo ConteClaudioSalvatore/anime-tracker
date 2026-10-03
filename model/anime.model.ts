@@ -4,6 +4,7 @@ export type Anime = {
   name: string;
   latestWatchedEpisode: number;
   latestVisitedUrl: string;
+  providerId?: number;
   /**
    * The number of the highest episode watched of a series
    */

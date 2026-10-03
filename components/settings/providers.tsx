@@ -1,6 +1,6 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { removeProvider } from "@/store/app.actions";
-import { AppStore, StoreContext } from "@/utils";
+import { AppStateContext, AppStore, StoreContext } from "@/utils";
 import { Button, Column, Icon, Row, Spacer, Text } from "@expo/ui";
 import {
   Button as AndroidButton,
@@ -8,14 +8,22 @@ import {
 } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
 import { Divider, Button as IOSButton } from "@expo/ui/swift-ui";
-import { buttonStyle, tint } from "@expo/ui/swift-ui/modifiers";
+import { accessibilityLabel, buttonStyle, controlSize, disabled as disabledModifier, labelStyle, tint } from "@expo/ui/swift-ui/modifiers";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Alert, Platform } from "react-native";
 
+function ProviderAction({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  if (Platform.OS === "ios") {
+    return <IOSButton label={label} onPress={onPress} modifiers={[buttonStyle("glass"), controlSize("small"), disabledModifier(disabled)]} />;
+  }
+  return <Button variant="text" disabled={disabled} onPress={onPress}><Text>{label}</Text></Button>;
+}
+
 export default function SettingsProviders() {
   const { state, stateChanged } = React.useContext(StoreContext);
   const providers = state.providers;
+  const { updateState } = React.useContext(AppStateContext);
 
   const router = useRouter();
   const textColor = useThemeColor(
@@ -60,17 +68,16 @@ export default function SettingsProviders() {
       modifiers={[weight(1), fillMaxWidth()]}
     >
       <Text textStyle={{ color: textColor, fontWeight: "bold", fontSize: 18 }}>
-        Select Default Provider
+        Your Websites
       </Text>
       {Platform.OS === "android" && <HorizontalDivider />}
       {Platform.OS === "ios" && <Divider />}
       <Column alignment="center">
         {providers.length > 0 ? (
-          providers.map((provider, i) => (
-            <Row key={provider.id + i}>
-              <Button variant="text" key={provider.id + i}>
-                <Text textStyle={{ textAlign: "left" }}>{provider.name}</Text>
-              </Button>
+          providers.map((provider) => (
+            <Column key={provider.id} spacing={8}>
+            <Row>
+              <ProviderAction label={'Open ' + provider.name} onPress={() => { updateState({ url: provider.origin, providerId: provider.id }); router.navigate('/'); }} />
               <Spacer flexible />
               {Platform.OS === "android" && (
                 <AndroidButton
@@ -83,7 +90,7 @@ export default function SettingsProviders() {
                 >
                   <Icon
                     name={Icon.select({
-                      ios: "bin.xmark",
+                      ios: "trash",
                       android: import("@expo/material-symbols/delete.xml"),
                     })}
                   />
@@ -91,12 +98,25 @@ export default function SettingsProviders() {
               )}
               {Platform.OS === "ios" && (
                 <IOSButton
-                  modifiers={[tint("#ff0000aa"), buttonStyle("glass")]}
-                  systemImage="bin.xmark"
+                  modifiers={[tint("#ff0000aa"), buttonStyle("glass"), controlSize("small"), labelStyle("iconOnly"), accessibilityLabel('Delete ' + provider.name)]}
+                  label="Delete provider"
+                  systemImage="trash"
+                  role="destructive"
                   onPress={() => onProviderDelete(provider.id)}
                 />
               )}
             </Row>
+            <Text textStyle={{ color: textColor }}>{provider.verification?.progress && provider.verification.resume ? 'Video progress and resume verified' : 'Video features not fully verified'}</Text>
+            <Row spacing={8}>
+              <ProviderAction label="Edit setup" onPress={() => router.navigate({ pathname: '/provider-creator', params: { id: String(provider.id) } })} />
+              <ProviderAction disabled={providers.length === 1} label={providers.length === 1 ? 'Opens on startup' : provider.isDefault ? 'Clear startup website' : 'Use on startup'} onPress={async () => {
+                try {
+                  await AppStore.Update(previous => ({ ...previous, providers: previous.providers.map(item => ({ ...item, isDefault: !provider.isDefault && item.id === provider.id })) }));
+                  stateChanged();
+                } catch { Alert.alert('Could not save preference', 'Try again.'); }
+              }} />
+            </Row>
+            </Column>
           ))
         ) : (
           <Text textStyle={{ color: textColor }}>No Providers found</Text>
@@ -104,7 +124,7 @@ export default function SettingsProviders() {
         <Spacer flexible />
         {Platform.OS === "ios" && (
           <IOSButton
-            modifiers={[buttonStyle("glassProminent"), tint("#0044aa")]}
+            modifiers={[buttonStyle("glassProminent"), controlSize("small"), tint("#0044aa")]}
             onPress={() => {
               router.navigate("/provider-creator");
             }}

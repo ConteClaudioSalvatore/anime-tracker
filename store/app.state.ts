@@ -10,6 +10,8 @@ import {
   removeProvider,
 } from "./app.actions";
 
+import { upsertProviderList } from '@/utils/provider-runtime';
+
 export const reducer = createReducer<AppStoreState>(
   on(animeUpdated, (state, { payload: { defaultUrl, payload } }) => ({
     ...state,
@@ -17,6 +19,7 @@ export const reducer = createReducer<AppStoreState>(
       ...state.anime,
       [payload.animeTitle]: {
         ...state.anime[payload.animeTitle],
+        name: payload.animeTitle,
         highestWatchedEpisode:
           (state.anime[payload.animeTitle]?.highestWatchedEpisode ?? 0) >
           payload.episode
@@ -24,7 +27,8 @@ export const reducer = createReducer<AppStoreState>(
             : payload.episode,
         latestWatchedEpisode: payload.episode,
         latestVisitedUrl: payload.url ?? defaultUrl,
-        total: +payload.info["Episodi"],
+        providerId: payload.providerId ?? state.anime[payload.animeTitle]?.providerId,
+        total: payload.episodeCount ?? (payload.info?.["Episodi"] ? +payload.info["Episodi"] : state.anime[payload.animeTitle]?.total),
         episodeProgress: {
           ...state.anime[payload.animeTitle]?.episodeProgress,
           [payload.episode]: {
@@ -32,12 +36,12 @@ export const reducer = createReducer<AppStoreState>(
               payload.progress ??
               state.anime[payload.animeTitle]?.episodeProgress?.[
                 payload.episode
-              ]?.progress,
+              ]?.progress ?? 0,
             total:
               payload.total ??
               state.anime[payload.animeTitle]?.episodeProgress?.[
                 payload.episode
-              ]?.total,
+              ]?.total ?? 0,
           },
         },
       },
@@ -71,15 +75,9 @@ export const reducer = createReducer<AppStoreState>(
     },
   })),
   on(upsertProvider, (state, { payload }) => {
-    console.log(payload);
-    if (payload.id === 0) {
-      return { ...state, providers: [{ ...payload, id: state.providers.length + 1 }, ...state.providers] };
-    }
     return {
       ...state,
-      providers: state.providers.map((p) =>
-        p.id === payload.id ? payload : p,
-      ),
+      providers: upsertProviderList(state.providers, payload),
     };
   }),
   on(removeProvider, (state, { payload: providerId }) => ({

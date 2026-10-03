@@ -1,10 +1,12 @@
-import { Action, AppStoreState } from "@/model";
+import { Action, AppStoreState, Provider } from "@/model";
 import { reducer } from "@/store/app.state";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import React from "react";
 import { Storage } from "./storage.util";
+import { WriteQueue } from './write-queue';
+import { normalizeProviders, upsertProviderList } from './provider-runtime';
 
 export const StoreContext = React.createContext<{
   state: AppStoreState;
@@ -23,7 +25,7 @@ export class AppStore {
     Paths.document,
     "anime-tracker/backup.json",
   );
-  private static updateQueue = Promise.resolve();
+  private static updateQueue = new WriteQueue();
   private static readonly reducer = reducer;
 
   public static async Get(): Promise<AppStoreState> {
@@ -35,24 +37,39 @@ export class AppStore {
           anime: res as unknown as AppStoreState["anime"],
           providers: [],
         };
-      return res;
+      return { ...res, providers: normalizeProviders(res.providers) };
     });
   }
 
   public static async Update(
     updater: (prev: AppStoreState) => AppStoreState,
   ): Promise<void> {
-    this.updateQueue = this.updateQueue.then(async () => {
+    return this.updateQueue.run(async () => {
       const prev = await this.Get();
-      return await Storage.setItem(this.STATE_KEY, updater(prev));
+      const next = updater(prev);
+      // Keep startup consistent on every write, including deletion and backup restoration.
+      // Older backups contain only history; retain their existing migration path.
+      await Storage.setItem(this.STATE_KEY, Array.isArray(next.providers)
+        ? { ...next, providers: normalizeProviders(next.providers) }
+        : next);
     });
-    return await this.updateQueue;
   }
 
   public static async Dispatch<TAction extends string, TPayload = never>(
     action: Action<TAction, TPayload>,
   ): Promise<void> {
     await this.Update((prev) => this.reducer(prev, action));
+  }
+
+  public static async SaveProvider(provider: Provider): Promise<Provider> {
+    let stored: Provider | undefined;
+    await this.Update(previous => {
+      const providers = upsertProviderList(previous.providers, provider);
+      stored = provider.id ? providers.find(item => item.id === provider.id) : providers[0];
+      return { ...previous, providers };
+    });
+    if (!stored) throw new Error('Could not save this provider.');
+    return stored;
   }
 
   public static async Backup(): Promise<void> {
