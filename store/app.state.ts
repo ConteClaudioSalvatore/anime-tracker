@@ -28,6 +28,9 @@ export const reducer = createReducer<AppStoreState>(
         latestWatchedEpisode: payload.episode,
         latestVisitedUrl: payload.url ?? defaultUrl,
         providerId: payload.providerId ?? state.anime[payload.animeTitle]?.providerId,
+        lastPlayedAt: payload.lastPlayedAt === undefined
+          ? state.anime[payload.animeTitle]?.lastPlayedAt
+          : Math.max(payload.lastPlayedAt, state.anime[payload.animeTitle]?.lastPlayedAt ?? 0),
         total: payload.episodeCount ?? (payload.info?.["Episodi"] ? +payload.info["Episodi"] : state.anime[payload.animeTitle]?.total),
         episodeProgress: {
           ...state.anime[payload.animeTitle]?.episodeProgress,

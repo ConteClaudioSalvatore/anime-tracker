@@ -1,20 +1,28 @@
 import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
-import { restoreBackup, saveBackup } from "@/utils/backup.util";
-import { Button, Form, Host, HStack, VStack } from "@expo/ui/swift-ui";
+import { exportWatchList, restoreBackup, saveBackup } from "@/utils/backup.util";
+import { Button, Form, Host, HStack, Section, Text, VStack } from "@expo/ui/swift-ui";
 import {
   buttonStyle,
   controlSize,
+  disabled,
   frame,
   padding,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import React from "react";
+import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useWindowDimensions } from "react-native";
 
 export default function SettingsScreen() {
   const { stateChanged } = React.useContext(StoreContext);
   const { width } = useWindowDimensions();
+  const [exporting, setExporting] = React.useState(false);
+
+  async function exportSummary() {
+    setExporting(true);
+    try { await exportWatchList(); } finally { setExporting(false); }
+  }
 
   return (
     <Host
@@ -34,6 +42,17 @@ export default function SettingsScreen() {
       >
         <Form>
           <SettingsProviders />
+          <Section
+            title="Watch list export"
+            footer={<Text>Series names, episode progress, and completion status only.</Text>}
+          >
+            <Button
+              label={exporting ? 'Exporting…' : 'Export watch list'}
+              systemImage="square.and.arrow.up"
+              modifiers={[buttonStyle(isLiquidGlassAvailable() ? 'glass' : 'bordered'), controlSize('small'), disabled(exporting)]}
+              onPress={exportSummary}
+            />
+          </Section>
         </Form>
         <HStack>
           <Button

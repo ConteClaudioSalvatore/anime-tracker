@@ -7,6 +7,7 @@ import React from "react";
 import { Storage } from "./storage.util";
 import { WriteQueue } from './write-queue';
 import { normalizeProviders, upsertProviderList } from './provider-runtime';
+import { watchListSummary } from './watch-list';
 
 export const StoreContext = React.createContext<{
   state: AppStoreState;
@@ -87,6 +88,20 @@ export class AppStore {
     await Sharing.shareAsync(this.BACKUP.uri, {
       mimeType: "application/json",
       dialogTitle: "Export Anime Tracker Backup",
+    });
+  }
+
+  public static async ExportWatchList(): Promise<void> {
+    if (!(await Sharing.isAvailableAsync())) {
+      throw new Error('System sharing not available');
+    }
+    const state = await this.Get();
+    const file = new File(Paths.cache, 'anime-tracker/watch-list.json');
+    file.create({ overwrite: true, intermediates: true });
+    file.write(JSON.stringify(watchListSummary(state.anime), null, 2));
+    await Sharing.shareAsync(file.uri, {
+      mimeType: 'application/json',
+      dialogTitle: 'Export Watch List',
     });
   }
 

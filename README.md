@@ -18,7 +18,9 @@
 - Embedded WebView with injected JavaScript that detects anime title and episode and posts messages to the app ✅
 - Auto-tracking of the last watched episode per anime (updates only when a higher episode number is detected) ✅
 - Manual add/edit via the **Add/Edit Anime** modal ✅
-- Watch List with filtering (in-progress / watched), remove items, and clear watched ✅
+- Watch List with filtering (in-progress / watched), Recently played / A–Z / Z–A sorting, remove items, and clear watched ✅
+- Playback dates update when the selected video advances; Watch List opens the saved episode URL with its recorded provider ✅
+- Export watch list from Settings as a small `watch-list.json` with names, highest episode reached, total episodes, and completion status ✅
 - Backup (export) and Restore (import) via device sharing / document picker (exports `anime-tracker/backup.json`) ✅
 - All data stored locally — no servers, no accounts 🔒
 
@@ -31,6 +33,8 @@
 3. Typed messages are validated and persisted in the AppStore (`utils/app-store.util.ts`), using `AsyncStorage`.
 4. Watch History stores the provider used for each playback location. Provider setup warns when progress or seeking cannot be verified.
 5. Backup and restore use `expo-file-system`, `expo-sharing` and `expo-document-picker`.
+
+The separate **Export watch list** action shares a JSON array of `{ name, highestWatchedEpisode, totalEpisodes, finished }`. Unknown totals use `null`. The episode number is the highest episode reached, matching Watch List; it is not a count of distinct episodes watched. The export includes all history and omits providers, URLs, dates, and per-episode details. Use the full **Backup** action for restoring the app's data.
 
 ---
 

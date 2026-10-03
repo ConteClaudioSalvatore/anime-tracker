@@ -12,6 +12,7 @@
   const highlightedEpisodes = new Map();
   let selectMode = false, field = 'seriesNameSelector', requestId = '', selected = null;
   let lastEpisode = 0, lastPosted = 0, activePlayer = null, pendingResume = null;
+  let lastPlayback = null;
   const history = [], documents = new WeakSet(), playerStates = new WeakMap();
   const css = value => window.CSS?.escape ? window.CSS.escape(value) : Array.from(String(value)).map(char => /[\w-]/.test(char) ? char : `\\${char.codePointAt(0).toString(16)} `).join('');
   const post = data => window.ReactNativeWebView?.postMessage(JSON.stringify({ channel: 'provider-runtime', sessionId, documentId, url: location.href, ...data }));
@@ -151,9 +152,13 @@
   function tick() {
     highlightEpisodeProgress();
     const found = gatherPlayers();
+    const advancingPlayers = new Set();
     const players = found.players.map(({ video, locator }) => {
       const state = stateFor(video);
-      if (!video.paused && !video.seeking && !state.seekTest && video.currentTime > state.previous + 0.1) state.progress = true;
+      if (!video.paused && !video.ended && !video.seeking && !state.seekTest && video.currentTime > state.previous + 0.1) {
+        state.progress = true;
+        advancingPlayers.add(video);
+      }
       state.previous = video.currentTime;
       return { locator, time: Number.isFinite(video.currentTime) ? video.currentTime : 0, duration: Number.isFinite(video.duration) ? video.duration : 0, progress: state.progress && Number.isFinite(video.duration) && video.duration > 0, resume: state.resume, playing: !video.paused && !video.ended };
     });
@@ -165,6 +170,7 @@
     activePlayer = video;
     const preview = extract();
     if (!preview.valid || !(preview.episode > 0)) return;
+    if (advancingPlayers.has(video)) lastPlayback = { video, title: preview.title, episode: preview.episode, at: Date.now() };
     if (pendingResume && pendingResume.title === preview.title && pendingResume.episode === preview.episode && video.duration > 0 && video.seekable.length > 0) {
       const resume = pendingResume; pendingResume = null;
       try { video.currentTime = Math.min(Math.max(0, resume.progress), Math.max(0, video.duration - 1)); } catch { /* Playback can still be tracked when seeking is unavailable. */ }
@@ -172,6 +178,7 @@
     if (Date.now() - lastPosted < 1000 || !Number.isFinite(video.duration) || video.duration <= 0) return;
     lastPosted = Date.now();
     post({ type: 'anime-found', payload: { animeTitle: preview.title, episode: preview.episode, episodeCount: preview.episodeCount,
+      lastPlayedAt: lastPlayback?.video === video && lastPlayback.title === preview.title && lastPlayback.episode === preview.episode ? lastPlayback.at : undefined,
       progress: video.currentTime, total: video.duration, providerId: config.id, url: location.href } });
   }
   function attachDocument(doc) {

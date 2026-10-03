@@ -10,6 +10,7 @@ import {
   StoreContext
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
+import { sortWatchList, WatchListSortMode } from '@/utils/watch-list';
 import {
   Button,
   Column,
@@ -36,7 +37,7 @@ export default function WatchListScreen() {
   const [animeActionOpen, setAnimeActionOpen] = React.useState<Anime | null>(
     null,
   );
-  const [sortMode, setSortMode] = React.useState<1 | -1>(1);
+  const [sortMode, setSortMode] = React.useState<WatchListSortMode>('recent');
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const headerHeight = useHeaderHeight();
@@ -127,10 +128,7 @@ export default function WatchListScreen() {
               <Column spacing={0}>
                 {anyItems ? (
                   <>
-                    {filteredState
-                      .sort(([a], [b]) =>
-                        sortMode > 0 ? a.localeCompare(b) : b.localeCompare(a),
-                      )
+                    {sortWatchList(filteredState, sortMode)
                       .map(([animeName, data]) => (
                         <Row
                           alignment="center"

@@ -24,6 +24,7 @@ const { WriteQueue } = require('../utils/write-queue.ts');
 const { ProviderPageChecks } = require('../utils/provider-page-checks.ts');
 const { reducer } = require('../store/app.state.ts');
 const actions = require('../store/app.actions.ts');
+const { sortWatchList, watchListSummary } = require('../utils/watch-list.ts');
 const script = fs.readFileSync(path.join(root, 'assets/js/provider-runtime_t.cjs'), 'utf8');
 const fixture = fs.readFileSync(path.join(__dirname, 'fixtures/series.html'), 'utf8');
 const provider = {
@@ -60,6 +61,38 @@ test('URLs normalize safely and approved origins use exact equality', () => {
   assert.equal(helpers.allowedUrl(provider, 'https://example.com.evil.test/'), false);
   assert.equal(helpers.allowedUrl({ ...provider, whiteListedOrigins: ['https://mirror.example.com'] }, 'https://mirror.example.com/series'), true);
   assert.equal(helpers.providerForUrl([], 'https://example.com/'), undefined);
+});
+test('saved series select their recorded website even when another provider shares its alias', () => {
+  const other = { ...provider, id: 9, origin: 'https://other.example/', whiteListedOrigins: [provider.origin] };
+  const state = reducer({ anime: {}, providers: [other, provider] }, actions.animeUpdated(provider.origin, {
+    animeTitle: 'Series', episode: 3, providerId: provider.id, url: 'https://example.com/series/three', lastPlayedAt: 1700000000000,
+  }));
+  const entry = state.anime.Series;
+  assert.equal(entry.latestVisitedUrl, 'https://example.com/series/three');
+  assert.equal(helpers.providerForUrl(state.providers, entry.latestVisitedUrl, entry.providerId).id, provider.id);
+  assert.equal(helpers.providerForUrl([provider], entry.latestVisitedUrl).id, provider.id);
+  assert.equal(helpers.providerForUrl([{ ...other, whiteListedOrigins: [] }], entry.latestVisitedUrl, entry.providerId), undefined);
+});
+test('recent sorting handles legacy dates and ties, retains name sorting, and leaves history untouched', () => {
+  const entries = [['Zulu', { lastPlayedAt: 2000 }], ['Beta', {}], ['Alpha', { lastPlayedAt: 2000 }], ['Recent', { lastPlayedAt: 3000 }], ['Invalid', { lastPlayedAt: NaN }]];
+  const original = entries.map(([name]) => name);
+  assert.deepEqual(sortWatchList(entries, 'recent').map(([name]) => name), ['Recent', 'Alpha', 'Zulu', 'Beta', 'Invalid']);
+  assert.deepEqual(sortWatchList(entries, 'name-asc').map(([name]) => name), ['Alpha', 'Beta', 'Invalid', 'Recent', 'Zulu']);
+  assert.deepEqual(sortWatchList(entries, 'name-desc').map(([name]) => name), ['Zulu', 'Recent', 'Invalid', 'Beta', 'Alpha']);
+  assert.deepEqual(entries.map(([name]) => name), original);
+});
+test('watch list summaries include only names and overall progress, including manual and legacy entries', () => {
+  const history = {
+    Ongoing: { name: 'Ongoing', highestWatchedEpisode: 3, total: 12, providerId: 4, latestVisitedUrl: 'https://example.com/private', lastPlayedAt: 1700000000000, episodeProgress: { 3: { progress: 30, total: 120 } } },
+    Manual: { highestWatchedEpisode: 2, finished: true },
+    Completed: { highestWatchedEpisode: 12, total: 12, episodeProgress: { 12: { progress: 115, total: 120 } } },
+  };
+  assert.deepEqual(watchListSummary(history), [
+    { name: 'Completed', highestWatchedEpisode: 12, totalEpisodes: 12, finished: true },
+    { name: 'Manual', highestWatchedEpisode: 2, totalEpisodes: null, finished: true },
+    { name: 'Ongoing', highestWatchedEpisode: 3, totalEpisodes: 12, finished: false },
+  ]);
+  assert.deepEqual(watchListSummary({}), []);
 });
 test('page matching keeps complete path segments and supports query-based series', () => {
   const rule = helpers.learnPageRule(['https://example.com/series/abc', 'https://example.com/series/abd'], provider.origin);
@@ -181,9 +214,16 @@ test('saving a provider rejects failed writes and returns its stored ID after re
   const load = Module._load;
   let stored = { anime: { Old: { name: 'Old', latestWatchedEpisode: 1, highestWatchedEpisode: 1, latestVisitedUrl: 'https://example.com/' } }, providers: [] };
   let fail = true;
+  const files = new Map(), shared = [];
+  let sharingAvailable = true, fileFailure = false;
   Module._load = function(request, parent, ...args) {
-    if (request === 'expo-file-system') return { File: class {}, Paths: { document: 'test' } };
-    if (request === 'expo-document-picker' || request === 'expo-sharing') return {};
+    if (request === 'expo-file-system') return { File: class {
+      constructor(base, name) { this.uri = base + '/' + name; }
+      create() { if (fileFailure) throw new Error('disk full'); }
+      write(content) { files.set(this.uri, content); }
+    }, Paths: { document: 'test', cache: 'cache' } };
+    if (request === 'expo-document-picker') return {};
+    if (request === 'expo-sharing') return { isAvailableAsync: async () => sharingAvailable, shareAsync: async (uri, options) => { shared.push({ uri, options }); } };
     if (request === './storage.util' && parent.filename.endsWith('app-store.util.ts')) return { Storage: {
       getItem: async () => stored,
       setItem: async (_key, next) => { if (fail) throw new Error('write failed'); stored = next; },
@@ -211,6 +251,24 @@ test('saving a provider rejects failed writes and returns its stored ID after re
   const added = await AppStore.SaveProvider({ ...provider, id: 0 });
   assert.equal(added.isDefault, false);
   assert.equal(stored.providers.find(item => item.id === saved.id).isDefault, true);
+  await AppStore.Dispatch(actions.animeUpdated(provider.origin, { animeTitle: 'Series', episode: 3, episodeCount: 12, providerId: saved.id, lastPlayedAt: 1700000000000, url: 'https://example.com/series/three' }));
+  const tracked = (await AppStore.Get()).anime.Series;
+  assert.equal(tracked.lastPlayedAt, 1700000000000);
+  assert.equal(tracked.providerId, saved.id);
+  assert.equal(tracked.latestVisitedUrl, 'https://example.com/series/three');
+  await AppStore.Backup();
+  const backup = JSON.parse(files.get('test/anime-tracker/backup.json'));
+  assert.equal(backup.anime.Series.lastPlayedAt, tracked.lastPlayedAt);
+  await AppStore.ExportWatchList();
+  assert.deepEqual(JSON.parse(files.get('cache/anime-tracker/watch-list.json')), watchListSummary(stored.anime));
+  assert.equal(shared.at(-1).options.mimeType, 'application/json');
+  assert.equal(shared.at(-1).uri, 'cache/anime-tracker/watch-list.json');
+  assert.equal(files.get('test/anime-tracker/backup.json'), JSON.stringify(backup));
+  sharingAvailable = false;
+  await assert.rejects(AppStore.ExportWatchList(), /System sharing not available/);
+  sharingAvailable = true; fileFailure = true;
+  await assert.rejects(AppStore.ExportWatchList(), /disk full/);
+  fileFailure = false;
   // With multiple websites, disabling startup remains a valid choice.
   await AppStore.Update(previous => ({ ...previous, providers: previous.providers.map(item => ({ ...item, isDefault: false })) }));
   assert.equal((await AppStore.Get()).providers.some(item => item.isDefault), false);
@@ -236,6 +294,61 @@ test('normalized tracking payloads store provider and preserve legacy history', 
   assert.equal(legacy.anime.Old.total, 24);
   const saved = reducer(state, actions.upsertProvider({ ...provider, id: 0 }));
   assert.equal(saved.providers.length, 1);
+});
+test('only playback timestamps update recent order; manual edits and metadata retain the saved date', () => {
+  let state = { anime: {}, providers: [] };
+  const payload = { animeTitle: 'Series', episode: 1, providerId: 4 };
+  state = reducer(state, actions.animeUpdated(provider.origin, payload));
+  assert.equal(state.anime.Series.lastPlayedAt, undefined);
+  state = reducer(state, actions.animeUpdated(provider.origin, { ...payload, lastPlayedAt: 2000 }));
+  state = reducer(state, actions.animeUpdated(provider.origin, { ...payload, lastPlayedAt: 1000 }));
+  state = reducer(state, actions.animeUpdated(provider.origin, payload));
+  state = reducer(state, actions.upsertAnime('Series', 3));
+  state = reducer(state, actions.toggleAnimeFinished('Series'));
+  assert.equal(state.anime.Series.lastPlayedAt, 2000);
+  state = reducer(state, actions.animeUpdated(provider.origin, { ...payload, lastPlayedAt: 3000 }));
+  assert.equal(state.anime.Series.lastPlayedAt, 3000);
+});
+test('playback dates ignore paused pages, seeking, and episode selection', t => {
+  const { dom, win, runtime, messages } = setup(fixture, 'watch'); t.after(() => dom.window.close());
+  let clock = 1700000000000;
+  win.Date.now = () => clock;
+  const state = videoState(win); state.paused = true;
+  const latest = () => messages.filter(message => message.type === 'anime-found').at(-1).payload;
+  const tick = () => { clock += 1500; runtime.tick(); };
+  tick();
+  assert.equal(latest().lastPlayedAt, undefined);
+  win.document.querySelector('video').currentTime = 50;
+  tick();
+  assert.equal(latest().lastPlayedAt, undefined);
+  state.paused = false; state.time = 51; tick();
+  const playedAt = clock;
+  assert.equal(latest().lastPlayedAt, playedAt);
+  assert.equal(bridge.parseRuntimeMessage(JSON.stringify(messages.filter(message => message.type === 'anime-found').at(-1)), 'session').payload.lastPlayedAt, playedAt);
+  state.paused = true; tick(); tick();
+  assert.equal(latest().lastPlayedAt, playedAt);
+  state.paused = false; win.document.querySelector('video').currentTime = 60; tick();
+  assert.equal(latest().lastPlayedAt, playedAt);
+  win.document.querySelector('h1').textContent = 'Another Series'; state.paused = true; tick();
+  assert.equal(latest().lastPlayedAt, undefined);
+  const link = win.document.querySelectorAll('#episode-list a')[1];
+  link.addEventListener('click', event => event.preventDefault());
+  link.click();
+  assert.equal(latest().episode, 2);
+  assert.equal(latest().lastPlayedAt, undefined);
+  state.paused = false; state.time = 61; tick();
+  assert.equal(latest().lastPlayedAt, clock);
+});
+test('only the selected player contributes playback dates', t => {
+  const { dom, win, runtime, messages } = setup(fixture.replace('</main>', '<video id="ad"></video></main>'), 'watch', { ...provider, player: { selector: '#primary-player', framePath: [] } });
+  t.after(() => dom.window.close());
+  let clock = 1700000000000; win.Date.now = () => clock;
+  const primary = videoState(win), ad = videoState(win, win.document.querySelector('#ad'));
+  primary.paused = true; runtime.tick();
+  clock += 1500; ad.time = 1; runtime.tick();
+  assert.equal(messages.filter(message => message.type === 'anime-found').at(-1).payload.lastPlayedAt, undefined);
+  primary.paused = false; primary.time = 1; clock += 1500; runtime.tick();
+  assert.equal(messages.filter(message => message.type === 'anime-found').at(-1).payload.lastPlayedAt, clock);
 });
 test('episode highlighting uses the selected provider history and retains legacy progress', () => {
   const progress = { 1: { progress: 30, total: 120 } };
@@ -334,6 +447,9 @@ test('malformed messages and old sessions are ignored', () => {
   assert.equal(bridge.parseRuntimeMessage('{', 'session'), null);
   assert.equal(bridge.parseRuntimeMessage(JSON.stringify({ channel: 'provider-runtime', sessionId: 'old', type: 'ready', documentId: 'd', url: provider.origin }), 'session'), null);
   assert.equal(bridge.parseRuntimeMessage(JSON.stringify({ channel: 'provider-runtime', sessionId: 'session', type: 'players', documentId: 'd', url: provider.origin, players: [{}] }), 'session'), null);
+  for (const lastPlayedAt of [-1, null, 'today']) {
+    assert.equal(bridge.parseRuntimeMessage(JSON.stringify({ channel: 'provider-runtime', sessionId: 'session', type: 'anime-found', documentId: 'd', url: provider.origin, payload: { animeTitle: 'Series', episode: 1, lastPlayedAt } }), 'session'), null);
+  }
 });
 test('retired documents cannot validate selections after navigation or reload', () => {
   const session = new bridge.RuntimeSession();

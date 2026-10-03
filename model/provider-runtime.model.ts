@@ -14,7 +14,7 @@ export type RuntimeMessage = {
   | { type: 'selection'; requestId: string; field: SelectorField; preview: FieldPreview }
   | { type: 'extraction'; requestId: string; preview: ExtractionPreview }
   | { type: 'players'; players: PlayerSample[]; inaccessibleFrames: number }
-  | { type: 'anime-found'; payload: { animeTitle: string; episode: number; episodeCount: number; progress?: number; total?: number; providerId: number; url: string } }
+  | { type: 'anime-found'; payload: { animeTitle: string; episode: number; episodeCount: number; progress?: number; total?: number; providerId: number; url: string; lastPlayedAt?: number } }
 );
 
 export function parseRuntimeMessage(raw: string, sessionId: string): RuntimeMessage | null {
@@ -28,6 +28,7 @@ export function parseRuntimeMessage(raw: string, sessionId: string): RuntimeMess
     if (value.type === 'extraction' && (!value.preview || typeof value.requestId !== 'string' || typeof value.preview.valid !== 'boolean' || !Array.isArray(value.preview.errors))) return null;
     if (value.type === 'players' && (!Array.isArray(value.players) || value.players.some((item: PlayerSample) => !item?.locator || typeof item.locator.selector !== 'string' || !Array.isArray(item.locator.framePath) || typeof item.progress !== 'boolean' || typeof item.resume !== 'boolean' || typeof item.playing !== 'boolean' || !Number.isFinite(item.time) || !Number.isFinite(item.duration)))) return null;
     if (value.type === 'anime-found' && (!value.payload || typeof value.payload.animeTitle !== 'string' || !value.payload.animeTitle.trim() || !Number.isFinite(value.payload.episode) || value.payload.episode <= 0)) return null;
+    if (value.type === 'anime-found' && value.payload.lastPlayedAt !== undefined && (!Number.isFinite(value.payload.lastPlayedAt) || value.payload.lastPlayedAt <= 0)) return null;
     if (value.type === 'selection' && (!strings(value.preview.texts) || !Number.isInteger(value.preview.count) || value.preview.count < 0 || value.preview.values.some((item: unknown) => item !== null && (typeof item !== 'number' || !Number.isFinite(item))))) return null;
     if (value.type === 'extraction' && (!strings(value.preview.errors) || typeof value.preview.title !== 'string' || !Number.isFinite(value.preview.episodeCount) || !Number.isFinite(value.preview.episode))) return null;
     if (value.type === 'extraction' && value.preview.listedEpisodes !== undefined && (!Number.isInteger(value.preview.listedEpisodes) || value.preview.listedEpisodes < 0)) return null;

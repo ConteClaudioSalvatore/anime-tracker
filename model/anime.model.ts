@@ -5,6 +5,8 @@ export type Anime = {
   latestWatchedEpisode: number;
   latestVisitedUrl: string;
   providerId?: number;
+  /** Last observed playback time, in Unix milliseconds. Absent in older history. */
+  lastPlayedAt?: number;
   /**
    * The number of the highest episode watched of a series
    */

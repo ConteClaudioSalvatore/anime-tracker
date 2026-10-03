@@ -24,6 +24,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { SFSymbol } from "expo-symbols";
 import React from "react";
+import { WatchListSortMode, watchListSortOptions } from '@/utils/watch-list';
 
 export const WatchListHeaderContext = React.createContext<{
   isLandscape: boolean;
@@ -32,8 +33,8 @@ export const WatchListHeaderContext = React.createContext<{
   onClear: () => void;
   onlyInProgress: boolean;
   setOnlyInProgress: (value: boolean) => void;
-  sortMode: 1 | -1;
-  setSortMode: (value: 1 | -1) => void;
+  sortMode: WatchListSortMode;
+  setSortMode: (value: WatchListSortMode) => void;
 } | null>(null);
 
 export default function WatchListHeader({
@@ -77,9 +78,9 @@ export default function WatchListHeader({
             modifiers={[pickerStyle("menu")]}
             label="Sort By"
           >
-            {[1, -1].map((sort) => (
-              <Text key={`${sort > 0 ? "A-Z" : "Z-A"}`} modifiers={[tag(sort)]}>
-                {sort > 0 ? "A-Z" : "Z-A"}
+            {watchListSortOptions.map(option => (
+              <Text key={option.value} modifiers={[tag(option.value)]}>
+                {option.label}
               </Text>
             ))}
           </Picker>

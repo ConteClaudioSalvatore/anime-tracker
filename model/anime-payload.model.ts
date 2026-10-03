@@ -4,6 +4,7 @@ export type AnimePayload = {
   info?: Record<string, string>;
   episodeCount?: number;
   providerId?: number;
+  lastPlayedAt?: number;
   progress?: number;
   total?: number;
   url?: string;
