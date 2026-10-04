@@ -101,6 +101,289 @@ function videoState(win, video = win.document.querySelector("video")) {
   return state;
 }
 
+// Deliver window messages with their real frame source, while keeping DOM access blocked.
+function frameHarness(main, t) {
+  const queue = [], frames = [];
+  let sender = null;
+  let clock = 1700000000000;
+  function run(win, callback) {
+    const previous = sender;
+    sender = win;
+    try { return callback(); }
+    finally { sender = previous; }
+  }
+  function endpoint(win) {
+    win.Date.now = () => clock;
+    win.postMessage = (data) => queue.push({ target: win, source: sender, data });
+  }
+  endpoint(main.win);
+  function flush() {
+    let count = 0;
+    while (queue.length) {
+      assert.ok(++count < 500, "frame messages must not loop");
+      const { target, source, data } = queue.shift();
+      run(target, () => target.dispatchEvent(new target.MessageEvent("message", { source, data })));
+    }
+  }
+  function add(parent, selector, html = '<video id="primary-player"></video>') {
+    const element = parent.document.querySelector(selector);
+    const win = element.contentWindow;
+    win.document.body.innerHTML = html;
+    win.__providerSession = "session";
+    win.__providerConfig = provider;
+    win.__runtimeMode = "watch";
+    win.setInterval = () => 1;
+    win.clearInterval = () => {};
+    win.ReactNativeWebView = { postMessage: () => assert.fail("a child frame must never send native series messages") };
+    endpoint(win);
+    run(win, () => {
+      win.eval(script);
+      win.document.dispatchEvent(new win.Event("DOMContentLoaded"));
+    });
+    // Simulate the same-origin policy without depending on a live website.
+    Object.defineProperty(element, "contentDocument", { configurable: true, get() { throw new Error("cross origin"); } });
+    frames.push(win);
+    return { win, element, runtime: win.ProviderRuntime };
+  }
+  function pump() {
+    clock += 500;
+    for (const win of [...frames].reverse()) run(win, () => win.ProviderRuntime.tick());
+    flush();
+    run(main.win, () => main.runtime.tick());
+  }
+  function send(command) {
+    const documentId = main.messages.filter((message) => message.type === "ready").at(-1).documentId;
+    run(main.win, () => main.win.eval(bridge.runtimeCommand({ ...command, documentId })));
+  }
+  t.after(() => {
+    for (const win of [...frames].reverse()) win.close();
+    main.dom.window.close();
+  });
+  return { add, pump, flush, run, send, queue, advance: (time) => { clock += time; } };
+}
+
+test("cross-origin placeholder players relay progress and resume without reading their DOM", (t) => {
+  const locator = { selector: "#primary-player", framePath: ["#player-frame"] };
+  const main = setup(fixture.replace('<video id="primary-player" controls></video>',
+    '<iframe id="player-frame"></iframe><video id="ad"></video>'), "watch", { ...provider, player: locator });
+  const bus = frameHarness(main, t);
+  const child = bus.add(main.win, "#player-frame", '<button id="placeholder">Play</button>');
+  const ad = videoState(main.win, main.win.document.querySelector("#ad"));
+  ad.time = 10;
+  bus.pump(); bus.pump();
+  assert.equal(main.messages.some((message) => message.type === "anime-found"), false);
+  child.win.document.querySelector("#placeholder").addEventListener("click", () => {
+    child.win.document.body.insertAdjacentHTML("beforeend", '<video id="primary-player"></video>');
+  });
+  child.win.document.querySelector("#placeholder").click();
+  const state = videoState(child.win);
+  state.paused = true;
+  bus.pump();
+  let report = main.messages.filter((message) => message.type === "players").at(-1);
+  const primary = () => report.players.find((item) => item.locator.selector === "#primary-player");
+  assert.equal(report.inaccessibleFrames, 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(primary().locator)), locator);
+  assert.equal(primary().progress, false);
+  assert.equal(primary().playing, false);
+  state.paused = false;
+  state.time = 2;
+  bus.pump(); bus.pump();
+  const played = main.messages.filter((message) => message.type === "anime-found").at(-1);
+  assert.equal(played.payload.animeTitle, "Example Series");
+  assert.equal(played.payload.episode, 1);
+  assert.equal(played.payload.providerId, provider.id);
+  assert.equal(played.payload.url, main.win.location.href);
+  assert.ok(played.payload.lastPlayedAt > 0);
+  bus.send({ type: "testSeek", locator });
+  bus.flush(); bus.pump();
+  report = main.messages.filter((message) => message.type === "players").at(-1);
+  assert.equal(primary().resume, true);
+  assert.equal(state.time, 2);
+  bus.send({ type: "resume", resume: { title: "Example Series", episode: 1, progress: 42 } });
+  bus.pump();
+  const beforeSeek = main.messages.filter((message) => message.type === "anime-found").length;
+  bus.advance(1500);
+  main.runtime.tick();
+  assert.equal(main.messages.filter((message) => message.type === "anime-found").length, beforeSeek);
+  bus.flush(); bus.pump();
+  assert.equal(state.time, 42);
+  assert.equal(ad.time, 10);
+  state.paused = true;
+  bus.pump(); bus.pump();
+  assert.equal(main.messages.filter((message) => message.type === "anime-found").at(-1).payload.lastPlayedAt, played.payload.lastPlayedAt);
+});
+
+test("nested cross-origin frames preserve selector paths and route only player commands", (t) => {
+  const main = setup('<iframe id="outer"></iframe>');
+  const bus = frameHarness(main, t);
+  const outer = bus.add(main.win, "#outer", '<iframe id="inner"></iframe><video id="ad"></video>');
+  const inner = bus.add(outer.win, "#inner");
+  inner.runtime.command({ type: "reportReady" });
+  const state = videoState(inner.win);
+  videoState(outer.win, outer.win.document.querySelector("#ad"));
+  bus.pump(); bus.pump(); bus.pump();
+  state.time = 4;
+  bus.pump(); bus.pump();
+  const report = main.messages.filter((message) => message.type === "players").at(-1);
+  assert.equal(report.players.length, 2);
+  const selected = report.players.find((item) => item.locator.selector === "#primary-player");
+  assert.deepEqual(Array.from(selected.locator.framePath), ["#outer", "#inner"]);
+  assert.equal(selected.progress, true);
+  bus.send({ type: "choosePlayer", locator: selected.locator });
+  bus.flush();
+  assert.match(inner.win.document.querySelector("video").style.outline, /3px/);
+  assert.equal(outer.win.document.querySelector("video").style.outline, "");
+  bus.send({ type: "testSeek", locator: selected.locator });
+  bus.flush(); bus.pump(); bus.pump();
+  assert.equal(state.time, 4);
+  assert.equal(main.messages.at(-1).players.find((item) => item.locator.selector === "#primary-player").resume, true);
+  bus.send({ type: "resetPlayerTest" });
+  bus.flush(); bus.pump(); bus.pump();
+  assert.equal(main.messages.at(-1).players.every((item) => !item.progress && !item.resume), true);
+});
+
+test("frame samples reject wrong sessions, unknown windows, malformed data and retired bindings", (t) => {
+  const main = setup('<iframe id="player-frame"></iframe>');
+  const bus = frameHarness(main, t);
+  const child = bus.add(main.win, "#player-frame");
+  videoState(child.win);
+  bus.pump(); bus.pump();
+  bus.run(child.win, () => child.runtime.tick());
+  const sample = bus.queue.find((item) => item.data.type === "sample").data;
+  bus.flush();
+  const send = (data, source = child.win) => main.win.dispatchEvent(new main.win.MessageEvent("message", { data, source }));
+  const count = () => main.runtime.gatherPlayers().players.length;
+  assert.equal(count(), 1);
+  child.element.dispatchEvent(new main.win.Event("load"));
+  assert.equal(count(), 0);
+  send(sample);
+  assert.equal(count(), 0);
+  bus.pump(); bus.pump();
+  const empty = { ...sample, players: [] };
+  send(empty); // The old token must not clear a newly registered player.
+  send({ ...empty, sessionId: "another-session" });
+  send(empty, main.win);
+  send({ ...sample, players: [{ locator: null }] });
+  assert.equal(count(), 1);
+  bus.advance(2500);
+  assert.equal(count(), 0);
+  bus.pump();
+  assert.equal(count(), 1);
+  child.element.remove();
+  main.runtime.tick();
+  assert.equal(count(), 0);
+});
+
+test("same-origin frame injection does not duplicate discovery and reinjection keeps one relay", (t) => {
+  const main = setup('<iframe id="player-frame"></iframe>');
+  const bus = frameHarness(main, t);
+  const child = bus.add(main.win, "#player-frame");
+  delete child.element.contentDocument;
+  const state = videoState(child.win);
+  bus.pump(); bus.pump();
+  bus.run(child.win, () => child.win.eval(script));
+  state.time = 3;
+  bus.pump();
+  assert.equal(main.messages.at(-1).players.length, 1);
+  assert.equal(main.messages.at(-1).players[0].progress, true);
+  assert.equal(main.messages.at(-1).inaccessibleFrames, 0);
+});
+
+test("cross-origin resume waits for placeholder activation, metadata and a seekable player", (t) => {
+  const main = setup(fixture.replace('<video id="primary-player" controls></video>', '<iframe id="player-frame"></iframe>'),
+    "watch", { ...provider, player: { selector: "#primary-player", framePath: ["#player-frame"] } });
+  const bus = frameHarness(main, t);
+  main.runtime.command({ type: "resume", resume: { title: "Example Series", episode: 1, progress: 42 } });
+  const child = bus.add(main.win, "#player-frame", '<button>Play</button>');
+  bus.pump(); bus.pump();
+  child.win.document.body.insertAdjacentHTML("beforeend", '<video id="primary-player"></video>');
+  const state = videoState(child.win);
+  state.duration = 0;
+  state.seekable = false;
+  state.paused = true;
+  bus.pump(); bus.flush();
+  assert.equal(state.time, 0);
+  state.duration = 120;
+  bus.pump(); bus.flush();
+  assert.equal(state.time, 0);
+  state.seekable = true;
+  bus.pump(); bus.flush();
+  assert.equal(state.time, 42);
+});
+
+test("episode changes discard queued iframe samples and do not inherit a paused playback date", (t) => {
+  const main = setup(fixture.replace('<video id="primary-player" controls></video>', '<iframe id="player-frame"></iframe>'),
+    "watch", { ...provider, player: { selector: "#primary-player", framePath: ["#player-frame"] } });
+  const bus = frameHarness(main, t);
+  const child = bus.add(main.win, "#player-frame");
+  const state = videoState(child.win);
+  bus.pump(); bus.pump();
+  state.time = 5;
+  bus.pump(); bus.pump();
+  assert.ok(main.messages.filter((item) => item.type === "anime-found").at(-1).payload.lastPlayedAt > 0);
+  state.paused = true;
+  bus.run(child.win, () => child.runtime.tick()); // Queued under the old binding.
+  const link = main.win.document.querySelectorAll("#episode-list a")[1];
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    main.win.document.querySelector("#episode-list .active").classList.remove("active");
+    link.classList.add("active");
+  });
+  bus.run(main.win, () => link.click());
+  bus.flush();
+  assert.equal(main.runtime.gatherPlayers().players.length, 0);
+  bus.pump(); bus.pump(); bus.pump();
+  let payload = main.messages.filter((item) => item.type === "anime-found").at(-1).payload;
+  assert.equal(payload.episode, 2);
+  assert.equal(payload.lastPlayedAt, undefined);
+  state.paused = false;
+  state.time = 6;
+  bus.pump(); bus.pump();
+  payload = main.messages.filter((item) => item.type === "anime-found").at(-1).payload;
+  assert.equal(payload.episode, 2);
+  assert.ok(payload.lastPlayedAt > 0);
+});
+
+test("browser-history restoration retires the old parent binding before accepting frame samples", (t) => {
+  const main = setup('<iframe id="player-frame"></iframe>');
+  const bus = frameHarness(main, t);
+  const child = bus.add(main.win, "#player-frame");
+  videoState(child.win);
+  bus.pump(); bus.pump();
+  const previous = main.messages.find((message) => message.type === "ready").documentId;
+  bus.run(child.win, () => child.runtime.tick());
+  bus.run(main.win, () => {
+    main.win.dispatchEvent(new main.win.Event("pagehide"));
+    main.win.dispatchEvent(new main.win.PageTransitionEvent("pageshow", { persisted: true }));
+  });
+  assert.notEqual(main.messages.filter((message) => message.type === "ready").at(-1).documentId, previous);
+  bus.flush();
+  assert.equal(main.runtime.gatherPlayers().players.length, 0);
+  bus.pump();
+  assert.equal(main.runtime.gatherPlayers().players.length, 1);
+});
+
+test("native capability reports are optional, typed, and do not count as playback verification", () => {
+  const message = { channel: "provider-runtime", sessionId: "session", documentId: "doc", url: provider.origin,
+    type: "players", players: [], inaccessibleFrames: 1, frameTrackingAvailable: false };
+  assert.equal(bridge.parseRuntimeMessage(JSON.stringify(message), "session").frameTrackingAvailable, false);
+  assert.equal(bridge.parseRuntimeMessage(JSON.stringify({ ...message, frameTrackingAvailable: "false" }), "session"), null);
+  assert.equal(bridge.parseRuntimeMessage(JSON.stringify({ ...message, frameTrackingAvailable: undefined }), "session").type, "players");
+});
+
+test("player reports expose optional seekability while preserving older sample compatibility", () => {
+  const player = { locator: { selector: "video", framePath: [] }, time: 2, duration: 120,
+    progress: true, resume: false, playing: true };
+  const parse = (seekable) => bridge.parseRuntimeMessage(JSON.stringify({
+    channel: "provider-runtime", sessionId: "session", documentId: "doc", url: provider.origin,
+    type: "players", inaccessibleFrames: 0, players: [{ ...player, seekable }],
+  }), "session");
+  assert.equal(parse(true).players[0].seekable, true);
+  assert.equal(parse(false).players[0].seekable, false);
+  assert.equal(parse(undefined).players[0].seekable, undefined);
+  assert.equal(parse("false"), null);
+});
+
 test("URLs normalize safely and approved origins use exact equality", () => {
   assert.equal(
     helpers.normalizeWebsite(" example.com/home "),
@@ -617,6 +900,14 @@ test("review page checks survive selection commands and canonical redirects, the
   }
   const draft = { ...provider, verification: { progress: true, resume: true } };
   assert.equal(helpers.providerSaveError(draft, pages, results, false), null);
+  assert.equal(helpers.providerSaveError(
+    { ...draft, verification: { progress: true, resume: false } },
+    pages, results, false,
+  ), null);
+  assert.match(helpers.providerSaveError(
+    { ...draft, verification: { progress: false, resume: true } },
+    pages, results, false,
+  ), /Playback tracking/);
   assert.match(
     helpers.providerSaveError(
       draft,
@@ -633,7 +924,7 @@ test("review page checks survive selection commands and canonical redirects, the
       results,
       false,
     ),
-    /Video test/,
+    /Playback tracking/,
   );
   assert.equal(
     helpers.providerSaveError(
@@ -658,7 +949,7 @@ test("review retries delayed series content and reports invalid extraction inste
   title.textContent = "Loaded series";
   runtime.command(checks.command(runtime.documentId));
   assert.equal(checks.accept(messages.at(-1)).preview.title, "Loaded series");
-  win.document.querySelector("#episode-total").textContent = "Unknown";
+  win.document.querySelector("#episode-total").textContent = "Invalid count";
   checks.start(page);
   runtime.command(checks.command(runtime.documentId));
   assert.equal(checks.accept(messages.at(-1)), null);
@@ -1389,17 +1680,109 @@ test("a selector learned from one episode stays inside its list on longer and pa
     assert.equal(result.values[49], start + 49);
   }
 });
-test("invalid selectors, duplicate titles, and nonnumeric totals produce actionable errors", (t) => {
+test("invalid selectors, duplicate titles, and invalid totals produce actionable errors", (t) => {
   const { dom, win, runtime } = setup();
   t.after(() => dom.window.close());
   assert.equal(runtime.evaluate("[", "seriesNameSelector").valid, false);
   win.document.body.insertAdjacentHTML("beforeend", "<h1>Another heading</h1>");
   assert.equal(runtime.evaluate("h1", "seriesNameSelector").valid, false);
-  win.document.querySelector("#episode-total").textContent = "Unknown";
+  win.document.querySelector("#episode-total").textContent = "Invalid count";
   assert.equal(runtime.extract().valid, false);
   assert.equal(runtime.number("Episode 12"), 12);
   assert.equal(runtime.number("12 episodes"), 12);
   assert.equal(Number.isNaN(runtime.number("Series 12")), true);
+});
+test("unknown totals pass selection, automatic Review, and saving without inferring a count", (t) => {
+  const { dom, win, runtime, messages } = setup();
+  t.after(() => dom.window.close());
+  const checks = new ProviderPageChecks(), results = {}, pages = [];
+  const total = win.document.querySelector("#episode-total");
+  for (const marker of [
+    "?", "??", "Episodes: ??", "?? episodes", "Total episodes: ??",
+    "-", "—", "…", "...", "N/A", "TBA", "TBD", "Unknown", "Ongoing",
+    "Not yet announced", "To be determined", "Totale: sconosciuto", "In corso",
+  ]) {
+    total.textContent = marker;
+    const selection = runtime.evaluate(provider.totalEpisodesSelector, "totalEpisodesSelector");
+    assert.equal(selection.valid, true, marker);
+    assert.equal(selection.values[0], null, marker);
+    const page = "https://example.com/series/" + pages.length;
+    pages.push(page);
+    checks.start(page);
+    runtime.command(checks.command(runtime.documentId));
+    const result = checks.accept(bridge.parseRuntimeMessage(JSON.stringify(messages.at(-1)), "session"));
+    assert.equal(result.preview.valid, true, marker);
+    assert.equal(result.preview.episode, 1);
+    assert.equal(result.preview.listedEpisodes, 3);
+    assert.equal(result.preview.episodeCount, 0);
+    assert.deepEqual(Array.from(result.preview.errors), []);
+    results[page] = result.preview;
+  }
+  assert.equal(helpers.providerSaveError(
+    { ...provider, verification: { progress: true, resume: false } },
+    pages.slice(0, 2), results, false,
+  ), null);
+  total.textContent = "12 episodes";
+  assert.equal(runtime.extract().episodeCount, 12);
+  total.textContent = "??";
+  assert.equal(runtime.extract().valid, true);
+  assert.equal(runtime.extract().episodeCount, 0);
+});
+test("unknown-total support still rejects missing, ambiguous, invalid totals and unknown episode numbers", (t) => {
+  const { dom, win, runtime } = setup();
+  t.after(() => dom.window.close());
+  for (const value of ["", "0", "-12", "12.5", "Invalid count", "Series 12", "TBA 12"]) {
+    win.document.querySelector("#episode-total").textContent = value;
+    assert.equal(runtime.extract().valid, false, value);
+  }
+  win.document.querySelector("#episode-total").textContent = "??";
+  assert.equal(runtime.evaluate("#missing-total", "totalEpisodesSelector").valid, false);
+  win.document.body.insertAdjacentHTML("beforeend", '<span class="another-total">TBA</span>');
+  assert.equal(runtime.evaluate("#episode-total, .another-total", "totalEpisodesSelector").valid, false);
+  win.document.querySelector("#episode-list li a").textContent = "??";
+  assert.equal(runtime.extract().valid, false);
+  assert.equal(Number.isNaN(runtime.number("??")), true);
+});
+test("unknown totals retain playback tracking and known history totals, then update when announced", (t) => {
+  const { dom, win, runtime, messages } = setup(fixture, "watch");
+  t.after(() => dom.window.close());
+  const total = win.document.querySelector("#episode-total");
+  total.textContent = "??";
+  const video = videoState(win);
+  video.time = 115;
+  let clock = 1700000000000;
+  win.Date.now = () => clock;
+  runtime.tick();
+  const latest = () => bridge.parseRuntimeMessage(JSON.stringify(
+    messages.filter(message => message.type === "anime-found").at(-1),
+  ), "session").payload;
+  const payload = latest();
+  assert.equal(Object.hasOwn(payload, "episodeCount"), false);
+  assert.equal(payload.progress, 115);
+  assert.equal(payload.total, 120);
+  assert.equal(payload.providerId, provider.id);
+  assert.equal(payload.url, win.location.href);
+  let state = reducer({ anime: {}, providers: [] }, actions.animeUpdated(provider.origin, payload));
+  assert.equal(state.anime["Example Series"].total, undefined);
+  assert.deepEqual(watchListSummary(state.anime), [{
+    name: "Example Series", highestWatchedEpisode: 1, totalEpisodes: null, finished: false,
+  }]);
+  total.textContent = "12 episodes";
+  clock += 1500;
+  runtime.tick();
+  assert.equal(latest().episodeCount, 12);
+  state = reducer(state, actions.animeUpdated(provider.origin, latest()));
+  total.textContent = "Unknown";
+  clock += 1500;
+  runtime.tick();
+  state = reducer(state, actions.animeUpdated(provider.origin, latest()));
+  assert.equal(state.anime["Example Series"].total, 12);
+  win.document.addEventListener("click", event => event.preventDefault());
+  win.document.querySelectorAll("#episode-list a")[1].click();
+  assert.equal(latest().episode, 2);
+  assert.equal(Object.hasOwn(latest(), "episodeCount"), false);
+  state = reducer(state, actions.animeUpdated(provider.origin, latest()));
+  assert.equal(state.anime["Example Series"].total, 12);
 });
 test("an invalid single episode still crosses the bridge with its validation error", (t) => {
   const { dom, win, runtime, messages } = setup();

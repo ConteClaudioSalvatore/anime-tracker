@@ -151,9 +151,9 @@ export default function SettingsProviders() {
                 )}
               </Row>
               <Text textStyle={{ color: textColor }}>
-                {provider.verification?.progress && provider.verification.resume
-                  ? "Video progress and resume verified"
-                  : "Video features not fully verified"}
+                {provider.verification?.progress
+                  ? "Playback tracking ready"
+                  : "Playback tracking not verified"}
               </Text>
               <Row spacing={8}>
                 <ProviderAction

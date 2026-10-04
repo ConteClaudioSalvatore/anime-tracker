@@ -13,6 +13,7 @@ export type FieldPreview = {
 export type ExtractionPreview = {
   title: string;
   episode: number;
+  /** Zero represents an unknown announced total in setup previews. */
   episodeCount: number;
   listedEpisodes?: number;
   valid: boolean;
@@ -25,6 +26,7 @@ export type PlayerSample = {
   progress: boolean;
   resume: boolean;
   playing: boolean;
+  seekable?: boolean;
 };
 export type RuntimeMessage = {
   channel: "provider-runtime";
@@ -40,13 +42,18 @@ export type RuntimeMessage = {
       preview: FieldPreview;
     }
   | { type: "extraction"; requestId: string; preview: ExtractionPreview }
-  | { type: "players"; players: PlayerSample[]; inaccessibleFrames: number }
+  | {
+      type: "players";
+      players: PlayerSample[];
+      inaccessibleFrames: number;
+      frameTrackingAvailable?: boolean;
+    }
   | {
       type: "anime-found";
       payload: {
         animeTitle: string;
         episode: number;
-        episodeCount: number;
+        episodeCount?: number;
         progress?: number;
         total?: number;
         providerId: number;
@@ -103,6 +110,12 @@ export function parseRuntimeMessage(
       return null;
     if (
       value.type === "players" &&
+      value.frameTrackingAvailable !== undefined &&
+      typeof value.frameTrackingAvailable !== "boolean"
+    )
+      return null;
+    if (
+      value.type === "players" &&
       (!Array.isArray(value.players) ||
         value.players.some(
           (item: PlayerSample) =>
@@ -112,6 +125,7 @@ export function parseRuntimeMessage(
             typeof item.progress !== "boolean" ||
             typeof item.resume !== "boolean" ||
             typeof item.playing !== "boolean" ||
+            (item.seekable !== undefined && typeof item.seekable !== "boolean") ||
             !Number.isFinite(item.time) ||
             !Number.isFinite(item.duration),
         ))

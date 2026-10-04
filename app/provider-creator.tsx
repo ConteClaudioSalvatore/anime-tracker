@@ -54,7 +54,7 @@ const steps = [
   "Series title",
   "Episodes",
   "Total episodes",
-  "Video test",
+  "Playback tracking",
   "Review",
 ];
 const fields: Partial<Record<number, SelectorField>> = {
@@ -67,8 +67,8 @@ const instructions = [
   "Open a series page and choose “Use this page”. Repeat with a different series.",
   "Choose Select title, then tap the series title on the website.",
   "Choose Select episodes, then tap an episode number. We will find the other episodes in its list.",
-  "Choose Select total, then tap the announced total, such as “12 episodes”. It can differ from the released episodes or the episodes listed on this page.",
-  "Open an episode and tap its player placeholder or Play button. Once the video appears, choose the primary player below. Then test seeking to verify resume.",
+  "Choose Select total, then tap the announced total, such as “12 episodes”, or an unknown marker such as “??” or “TBA”. It can differ from the episodes listed on this page.",
+  "Open an episode and press Play. We’ll detect playback, including embedded players. If several players appear, choose the episode’s player below.",
   "We’ll check both example pages automatically. Review the results before saving.",
 ];
 export default function ProviderCreatorScreen() {
@@ -105,9 +105,15 @@ export default function ProviderCreatorScreen() {
   const [players, setPlayers] = React.useState<PlayerSample[]>([]);
   const [playerKey, setPlayerKey] = React.useState("");
   const [inaccessible, setInaccessible] = React.useState(0);
+  const [frameTrackingAvailable, setFrameTrackingAvailable] =
+    React.useState<boolean>();
   const [timedOut, setTimedOut] = React.useState(false);
   const [videoHelp, setVideoHelp] = React.useState(false);
   const [testRun, setTestRun] = React.useState(0);
+  const [resumeTest, setResumeTest] = React.useState<
+    "idle" | "testing" | "failed"
+  >("idle");
+  const resumeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [saveAnyway, setSaveAnyway] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
@@ -139,6 +145,28 @@ export default function ProviderCreatorScreen() {
         }),
       );
   }, []);
+  const resetResumeTest = React.useCallback(() => {
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = null;
+    setResumeTest("idle");
+  }, []);
+  React.useEffect(
+    () => () => {
+      if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    },
+    [],
+  );
+  function checkResume() {
+    if (!ready || !selectedPlayer?.progress || selectedPlayer.seekable === false ||
+      saving || resumeTimer.current) return;
+    resetResumeTest();
+    setResumeTest("testing");
+    send({ type: "testSeek", locator: selectedPlayer.locator });
+    resumeTimer.current = setTimeout(() => {
+      resumeTimer.current = null;
+      setResumeTest("failed");
+    }, 7000);
+  }
   const edit = (next: Provider<false>) => {
     pageChecks.current.cancel();
     setReviewPage(null);
@@ -154,6 +182,7 @@ export default function ProviderCreatorScreen() {
   }, []);
   const openPage = React.useCallback(
     (value: string) => {
+      resetResumeTest();
       pageChecks.current.cancel();
       setReviewPage(null);
       setSource(value);
@@ -167,7 +196,7 @@ export default function ProviderCreatorScreen() {
           `window.location.assign(${JSON.stringify(value)}); true;`,
         );
     },
-    [source],
+    [source, resetResumeTest],
   );
   const shouldNavigate = useProviderNavigation({
     provider: draft,
@@ -303,6 +332,7 @@ export default function ProviderCreatorScreen() {
     return () => clearTimeout(timeout);
   }, [reviewPage, completeCheck]);
   function go(next: number) {
+    resetResumeTest();
     pageChecks.current.cancel();
     setReviewPage(null);
     setSelect(false);
@@ -364,16 +394,16 @@ export default function ProviderCreatorScreen() {
       edit({ ...draft, [field]: candidate.selector });
     }
     if (step === 5) {
-      if ((!selectedPlayer?.progress || !selectedPlayer.resume) && !saveAnyway)
-        return;
+      const currentPlayer = ready ? selectedPlayer : undefined;
+      if (!currentPlayer?.progress && !saveAnyway) return;
       const acknowledged = saveAnyway;
       edit({
         ...draft,
-        isPlayerSupported: !!selectedPlayer?.progress,
-        player: selectedPlayer?.locator,
+        isPlayerSupported: !!currentPlayer?.progress,
+        player: currentPlayer?.locator,
         verification: {
-          progress: !!selectedPlayer?.progress,
-          resume: !!selectedPlayer?.resume,
+          progress: !!currentPlayer?.progress,
+          resume: !!currentPlayer?.resume,
           checkedAt: new Date().toISOString(),
         },
       });
@@ -483,8 +513,7 @@ export default function ProviderCreatorScreen() {
         : field
           ? !!candidate?.valid && ready
           : step === 5
-            ? (!!selectedPlayer?.progress && !!selectedPlayer.resume) ||
-              saveAnyway
+            ? (ready && !!selectedPlayer?.progress) || saveAnyway
             : true);
   const hint =
     step === 0
@@ -494,7 +523,9 @@ export default function ProviderCreatorScreen() {
         : field
           ? (candidate?.error ??
             "Select the requested information on the website.")
-          : "Play the primary video and test seeking, or read the warning below.";
+          : step === 5
+            ? "Play the episode to verify progress. Checking automatic resume is optional."
+            : "Review the example pages before saving.";
   const saveError =
     step === 6 ? providerSaveError(draft, pages, checks, saveAnyway) : null;
   const selectionLabel =
@@ -526,12 +557,9 @@ export default function ProviderCreatorScreen() {
             }
           : step === 5 && !canContinue
             ? {
-                label: selectedPlayer?.progress
-                  ? "Test resume"
-                  : "Play the video",
-                onPress: () =>
-                  send({ type: "testSeek", locator: selectedPlayer?.locator }),
-                disabled: !ready || !selectedPlayer?.progress || saving,
+                label: "Play the episode",
+                onPress: next,
+                disabled: true,
               }
             : { label: "Continue", onPress: next, disabled: !canContinue };
   return (
@@ -640,25 +668,28 @@ export default function ProviderCreatorScreen() {
                   ref={webView}
                   source={{ uri: source }}
                   style={styles.screen}
+                  injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
+                  injectedJavaScriptForMainFrameOnly={false}
                   injectedJavaScriptBeforeContentLoaded={
                     "window.__providerSession=" +
                     JSON.stringify(session) +
-                    ";window.__providerConfig=" +
+                    ";if(window===window.top){window.__providerConfig=" +
                     JSON.stringify(draft) +
-                    ";window.__runtimeMode='setup';" +
+                    ";window.__runtimeMode='setup';}" +
                     runtime +
                     ";true;"
                   }
                   injectedJavaScript={
                     "window.__providerSession=" +
                     JSON.stringify(session) +
-                    ";window.__providerConfig=" +
+                    ";if(window===window.top){window.__providerConfig=" +
                     JSON.stringify(draft) +
-                    ";window.__runtimeMode='setup';" +
+                    ";window.__runtimeMode='setup';}" +
                     runtime +
                     ";true;"
                   }
                   onLoadStart={(event) => {
+                    resetResumeTest();
                     navigationRevision.current++;
                     pageSession.current.begin(event.nativeEvent.url);
                     setLoading(true);
@@ -667,6 +698,8 @@ export default function ProviderCreatorScreen() {
                     request.current = "";
                     setCandidate(null);
                     setPlayers([]);
+                    setInaccessible(0);
+                    setFrameTrackingAvailable(undefined);
                   }}
                   onLoadEnd={() => {
                     setLoading(false);
@@ -741,10 +774,12 @@ export default function ProviderCreatorScreen() {
                     if (message.type === "players") {
                       setPlayers(message.players);
                       setInaccessible(message.inaccessibleFrames);
+                      setFrameTrackingAvailable(message.frameTrackingAvailable);
                       const chosen = message.players.find(
                         (player) =>
                           JSON.stringify(player.locator) === playerKey,
                       );
+                      if (chosen?.resume && resumeTimer.current) resetResumeTest();
                       if (playbackPhase(chosen) !== "checking")
                         setTimedOut(false);
                       if (!playerKey && message.players.length === 1)
@@ -923,7 +958,9 @@ export default function ProviderCreatorScreen() {
                         )}
                         {candidate?.valid &&
                           copy(
-                            "Selection looks good. Continue when the preview matches the website.",
+                            field === "totalEpisodesSelector" && candidate.values[0] === null
+                              ? "Total not announced yet. Progress tracking will still work."
+                              : "Selection looks good. Continue when the preview matches the website.",
                           )}
                         {candidate?.error && copy(candidate.error)}
                         {candidate && (
@@ -1015,6 +1052,7 @@ export default function ProviderCreatorScreen() {
                               <ActionButton
                                 label={"Choose player " + (index + 1)}
                                 onPress={() => {
+                                  resetResumeTest();
                                   setPlayerKey(JSON.stringify(player.locator));
                                   send({
                                     type: "choosePlayer",
@@ -1034,12 +1072,9 @@ export default function ProviderCreatorScreen() {
                                 player.duration.toFixed(1) +
                                 " seconds · " +
                                 (player.progress
-                                  ? "Progress verified"
+                                  ? "Tracking ready"
                                   : "Waiting for playback") +
-                                " · " +
-                                (player.resume
-                                  ? "Resume verified"
-                                  : "Resume not verified"),
+                                (player.resume ? " · Automatic resume verified" : ""),
                               true,
                             )}
                           </View>
@@ -1049,15 +1084,20 @@ export default function ProviderCreatorScreen() {
                             "Tap the website’s player placeholder or Play button. We’ll detect the video when it appears. If several players appear, choose the primary one.",
                             true,
                           )}
-                        {videoPhase === "paused" &&
+                        {inaccessible > 0 && frameTrackingAvailable === false &&
                           copy(
-                            "Player detected. Press Play on the website to start the video test.",
+                            "This device cannot inspect embedded players. Update Android System WebView and retry.",
                             true,
                           )}
-                        {copy(
-                          "The seek test briefly moves one second, then restores the playback position.",
-                          true,
-                        )}
+                        {videoPhase === "paused" &&
+                          copy(
+                            "Player detected. Press Play on the website to verify progress tracking.",
+                            true,
+                          )}
+                        {videoPhase === "verified" &&
+                          copy(
+                            "Playback tracking is ready. Continue to Review. You can also check automatic resume in Video options.",
+                          )}
                         <ActionButton
                           expanded={advanced}
                           label="Video options"
@@ -1071,10 +1111,38 @@ export default function ProviderCreatorScreen() {
                               { borderColor: colors.border },
                             ]}
                           >
+                            {copy("Automatic resume (optional)")}
+                            {copy(
+                              selectedPlayer?.resume
+                                ? "Automatic resume verified."
+                                : resumeTest === "testing"
+                                  ? "Checking automatic resume…"
+                                  : resumeTest === "failed"
+                                    ? "Resume could not be verified. You can continue with progress tracking or retry."
+                                    : selectedPlayer?.seekable === false
+                                      ? "Automatic resume is not available yet. You can continue once progress is verified."
+                                      : "This check briefly seeks one second, then restores the playback position. It is not required to continue.",
+                              true,
+                            )}
+                            {!selectedPlayer?.resume && (
+                              <ActionButton
+                                variant="tertiary"
+                                label={resumeTest === "testing"
+                                  ? "Checking resume…"
+                                  : resumeTest === "failed"
+                                    ? "Retry resume check"
+                                    : "Check automatic resume"}
+                                onPress={checkResume}
+                                disabled={!ready || !selectedPlayer?.progress ||
+                                  selectedPlayer.seekable === false ||
+                                  resumeTest === "testing" || saving}
+                              />
+                            )}
                             <ActionButton
                               variant="tertiary"
-                              label={"Retry video test"}
+                              label={"Retry playback check"}
                               onPress={() => {
+                                resetResumeTest();
                                 send({ type: "resetPlayerTest" });
                                 setTimedOut(false);
                                 setVideoHelp(false);
@@ -1085,7 +1153,7 @@ export default function ProviderCreatorScreen() {
                             />
                             <ActionButton
                               variant="tertiary"
-                              label="Video test help"
+                              label="Playback help"
                               onPress={() => setVideoHelp(true)}
                               disabled={saving}
                             />
@@ -1094,28 +1162,34 @@ export default function ProviderCreatorScreen() {
                         {(timedOut || videoHelp) && (
                           <>
                             {copy(
-                              "Tap the player placeholder, choose the site’s primary player, and press Play. If you have done that and it still cannot be verified, this site may not be supported.",
+                              selectedPlayer?.progress
+                                ? "Progress tracking is verified. Automatic resume is an optional check in Video options."
+                                : "Tap the player placeholder, choose the site’s primary player, and press Play. If you have done that and it still cannot be verified, this site may not be supported.",
                             )}
-                            {inaccessible > 0 &&
-                              copy(
-                                "Some embedded players are on another website and cannot be inspected.",
-                                true,
-                              )}
-                            {copy(
-                              "If you save anyway, playback progress and automatic resume may not work. Embedded players on another website cannot always be inspected.",
-                              true,
-                            )}
-                            {saveAnyway ? (
-                              copy("Limitations acknowledged", true)
-                            ) : (
-                              <ActionButton
-                                label="Continue with limitations"
-                                onPress={() => {
-                                  setSaveAnyway(true);
-                                  setDirty(true);
-                                }}
-                                disabled={saving}
-                              />
+                            {!selectedPlayer?.progress && (
+                              <>
+                                {inaccessible > 0 && frameTrackingAvailable !== false &&
+                                  copy(
+                                    "Some embedded frames are not reporting a video yet. Activate the primary player and retry.",
+                                    true,
+                                  )}
+                                {copy(
+                                  "If you save anyway, playback progress and automatic resume may not work. Some embedded players do not expose a trackable video.",
+                                  true,
+                                )}
+                                {saveAnyway ? (
+                                  copy("Limitations acknowledged", true)
+                                ) : (
+                                  <ActionButton
+                                    label="Continue with limitations"
+                                    onPress={() => {
+                                      setSaveAnyway(true);
+                                      setDirty(true);
+                                    }}
+                                    disabled={saving}
+                                  />
+                                )}
+                              </>
                             )}
                           </>
                         )}
@@ -1132,7 +1206,7 @@ export default function ProviderCreatorScreen() {
                             " · Resume: " +
                             (draft.verification?.resume
                               ? "verified"
-                              : "not verified"),
+                              : "not verified (optional)"),
                         )}
                         {pages.length < 2 && (
                           <>
@@ -1158,8 +1232,10 @@ export default function ProviderCreatorScreen() {
                                       " · " +
                                       (checks[page].listedEpisodes ?? "?") +
                                       " listed · " +
-                                      checks[page].episodeCount +
-                                      " total episodes — passed"
+                                      (checks[page].episodeCount > 0
+                                        ? checks[page].episodeCount + " total episodes"
+                                        : "total unknown") +
+                                      " — passed"
                                   : checks[page].errors.join(" "),
                               )}
                             {checks[page]?.valid === false && (

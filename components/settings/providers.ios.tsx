@@ -137,12 +137,12 @@ export default function SettingsProviders() {
           </HStack>
           <Label
             title={
-              provider.verification?.progress && provider.verification.resume
+              provider.verification?.progress
                 ? "Playback tracking ready"
-                : "Playback tracking not fully verified"
+                : "Playback tracking not verified"
             }
             systemImage={
-              provider.verification?.progress && provider.verification.resume
+              provider.verification?.progress
                 ? "checkmark.circle"
                 : "info.circle"
             }

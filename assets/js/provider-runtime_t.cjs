@@ -12,6 +12,11 @@
     return;
   }
   const sessionId = window.__providerSession;
+  const isMainFrame = window === window.top;
+  const frameChannel = "provider-player-frame";
+  const framePeers = new Map();
+  const observedFrameLoads = new WeakSet();
+  let parentBinding = null;
   let documentId = Math.random().toString(36).slice(2);
   let config = window.__providerConfig || {};
   let mode = window.__runtimeMode || "setup";
@@ -24,8 +29,10 @@
   let lastEpisode = 0,
     lastPosted = 0,
     activePlayer = null,
-    pendingResume = null;
+    pendingResume = null,
+    awaitingResume = null;
   let lastPlayback = null;
+  let playbackFloor = 0;
   const history = [],
     documents = new WeakSet(),
     playerStates = new WeakMap();
@@ -39,7 +46,8 @@
               : `\\${char.codePointAt(0).toString(16)} `,
           )
           .join("");
-  const post = (data) =>
+  const post = (data) => {
+    if (!isMainFrame) return;
     window.ReactNativeWebView?.postMessage(
       JSON.stringify({
         channel: "provider-runtime",
@@ -49,6 +57,7 @@
         ...data,
       }),
     );
+  };
   const text = (element) =>
     (element?.textContent || "").replace(/\s+/g, " ").trim();
   const number = (value) => {
@@ -58,6 +67,17 @@
         /^(?:(?:episode|ep\.?|episodio|episodi|episodes|total|totale)\s*[:#-]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:episodes?|episodi)?$/i,
       );
     return match ? Number(match[1].replace(",", ".")) : NaN;
+  };
+  const unknownTotal = (value) => {
+    const label = String(value || "")
+      .trim()
+      .replace(
+        /^(?:total(?:e)?(?:\s+(?:episodes?|episodi))?|episodes?|episodi)\s*[:#]?\s*/i,
+        "",
+      )
+      .replace(/\s*(?:episodes?|episodi)$/i, "")
+      .trim();
+    return /^(?:[?\s]+|[-–—…]+|\.{2,}|n\/?a|tba|tbd|unknown|ongoing|not (?:yet )?(?:announced|available|known|specified)|to be (?:announced|determined)|sconosciut[oa]|in corso|da (?:annunciare|definire|determinare))$/i.test(label);
   };
   function query(selector, doc = document) {
     try {
@@ -143,8 +163,8 @@
         ? elements.length === 1 && !!texts[0]
         : kind === "totalEpisodesSelector"
           ? elements.length === 1 &&
-            Number.isInteger(values[0]) &&
-            values[0] > 0
+            ((Number.isInteger(values[0]) && values[0] > 0) ||
+              unknownTotal(texts[0]))
           : elements.length > 0 &&
             values.every((value) => Number.isFinite(value) && value > 0) &&
             new Set(values).size === values.length;
@@ -161,7 +181,7 @@
         : kind === "seriesNameSelector"
           ? "Choose one series title."
           : kind === "totalEpisodesSelector"
-            ? "Choose one total episode count containing a number."
+            ? "Choose one total episode count containing a number or an unknown marker such as ?? or TBA."
             : "Choose episode numbers from the same list. Each must contain a distinct number.",
     };
   }
@@ -286,7 +306,7 @@
     result = { players: [], inaccessibleFrames: 0 },
   ) {
     if (depth > 8) return result;
-    attachDocument(doc);
+    if (isMainFrame) attachDocument(doc);
     query("video", doc).forEach((video) =>
       result.players.push({
         video,
@@ -294,6 +314,23 @@
       }),
     );
     query("iframe", doc).forEach((frame) => {
+      const peer = framePeers.get(frame);
+      if (peer && Date.now() - peer.updatedAt < 2000) {
+        const prefix = [...framePath, selectorFor(frame, doc)];
+        peer.players.forEach((sample) =>
+          result.players.push({
+            locator: {
+              selector: sample.locator.selector,
+              framePath: [...prefix, ...sample.locator.framePath],
+            },
+            sample,
+            peer,
+            identity: peer.documentId + ":" + JSON.stringify(sample.locator),
+          }),
+        );
+        result.inaccessibleFrames += peer.inaccessibleFrames;
+        return;
+      }
       try {
         const child = frame.contentDocument;
         if (!child) {
@@ -321,6 +358,7 @@
       resume: false,
       seekTest: false,
       restore: null,
+      playbackAt: 0,
     };
     playerStates.set(video, state);
     video.addEventListener("loadedmetadata", () => {
@@ -328,6 +366,7 @@
       state.progress = false;
       state.resume = false;
       state.seekTest = false;
+      state.playbackAt = 0;
     });
     video.addEventListener("seeking", () => {
       state.previous = video.currentTime;
@@ -361,12 +400,96 @@
     state.progress = false;
     state.resume = false;
     state.seekTest = false;
+    state.playbackAt = 0;
+  }
+  // Only frame-local media data crosses this bridge. Series extraction stays in the main page.
+  function framePost(target, data) {
+    target.postMessage({ channel: frameChannel, sessionId, ...data }, "*");
+  }
+  function validFramePlayer(item) {
+    return (
+      item?.locator &&
+      typeof item.locator.selector === "string" &&
+      Array.isArray(item.locator.framePath) &&
+      item.locator.framePath.length <= 8 &&
+      item.locator.framePath.every((part) => typeof part === "string") &&
+      [item.time, item.duration, item.playbackAt].every(Number.isFinite) &&
+      item.time >= 0 && item.duration >= 0 && item.playbackAt >= 0 &&
+      [item.progress, item.resume, item.playing, item.seekable].every(
+        (value) => typeof value === "boolean",
+      )
+    );
+  }
+  window.addEventListener("message", (event) => {
+    const data = event.data;
+    if (!data || data.channel !== frameChannel || data.sessionId !== sessionId)
+      return;
+    if (!isMainFrame && event.source === window.parent) {
+      if (data.type === "bind" &&
+        typeof data.documentId === "string" && typeof data.token === "string") {
+        parentBinding = { documentId: data.documentId, token: data.token };
+      } else if (
+        data.type === "command" && parentBinding &&
+        data.documentId === parentBinding.documentId && data.token === parentBinding.token &&
+        data.childDocumentId === documentId &&
+        ["choosePlayer", "testSeek", "seekTo", "resetPlayerTest"].includes(data.command?.type)
+      ) {
+        command(data.command);
+      }
+      return;
+    }
+    const frame = query("iframe").find((item) => item.contentWindow === event.source);
+    if (!frame || typeof data.documentId !== "string") return;
+    if (!observedFrameLoads.has(frame)) {
+      observedFrameLoads.add(frame);
+      frame.addEventListener("load", () => framePeers.delete(frame));
+    }
+    let peer = framePeers.get(frame);
+    if (data.type === "hello") {
+      if (!peer || peer.documentId !== data.documentId) {
+        peer = {
+          frame,
+          documentId: data.documentId,
+          token: Math.random().toString(36).slice(2),
+          players: [],
+          inaccessibleFrames: 0,
+          updatedAt: 0,
+        };
+        framePeers.set(frame, peer);
+      }
+      framePost(event.source, { type: "bind", documentId, token: peer.token });
+    } else if (
+      data.type === "sample" && peer && data.documentId === peer.documentId &&
+      data.parentDocumentId === documentId && data.token === peer.token &&
+      Array.isArray(data.players) && data.players.length <= 100 && data.players.every(validFramePlayer) &&
+      Number.isInteger(data.inaccessibleFrames) && data.inaccessibleFrames >= 0
+    ) {
+      peer.players = data.players;
+      peer.inaccessibleFrames = data.inaccessibleFrames;
+      peer.updatedAt = Date.now();
+    }
+  });
+  function forwardPlayerCommand(candidate, data) {
+    const peer = candidate.peer;
+    const locator = candidate.sample.locator;
+    framePost(peer.frame.contentWindow, {
+      type: "command",
+      documentId,
+      token: peer.token,
+      childDocumentId: peer.documentId,
+      command: { ...data, locator, documentId: peer.documentId },
+    });
   }
   function tick() {
-    highlightEpisodeProgress();
+    if (isMainFrame) highlightEpisodeProgress();
+    framePeers.forEach((peer, frame) => {
+      if (!frame.isConnected) framePeers.delete(frame);
+    });
     const found = gatherPlayers();
     const advancingPlayers = new Set();
-    const players = found.players.map(({ video, locator }) => {
+    const players = found.players.map((item) => {
+      const { video, locator } = item;
+      if (item.sample) return { ...item.sample, locator };
       const state = stateFor(video);
       if (
         !video.paused &&
@@ -376,6 +499,7 @@
         video.currentTime > state.previous + 0.1
       ) {
         state.progress = true;
+        state.playbackAt = Date.now();
         advancingPlayers.add(video);
       }
       state.previous = video.currentTime;
@@ -389,12 +513,27 @@
           video.duration > 0,
         resume: state.resume,
         playing: !video.paused && !video.ended,
+        seekable: video.seekable.length > 0,
+        playbackAt: state.playbackAt,
       };
     });
+    if (!isMainFrame) {
+      framePost(window.parent, { type: "hello", documentId });
+      if (parentBinding) framePost(window.parent, {
+        type: "sample",
+        documentId,
+        parentDocumentId: parentBinding.documentId,
+        token: parentBinding.token,
+        players,
+        inaccessibleFrames: found.inaccessibleFrames,
+      });
+      return;
+    }
     post({
       type: "players",
       players,
       inaccessibleFrames: found.inaccessibleFrames,
+      frameTrackingAvailable: window.__providerFrameInjectionAvailable,
     });
     const configured =
       config.player &&
@@ -406,39 +545,67 @@
       configured ||
       (!config.player && found.players.length === 1 ? found.players[0] : null);
     const video = chosen?.video;
-    if (mode !== "watch" || !video) return;
-    activePlayer = video;
+    const sample = chosen && players[found.players.indexOf(chosen)];
+    if (mode !== "watch" || !chosen) return;
+    activePlayer = chosen;
     const preview = extract();
     if (!preview.valid || !(preview.episode > 0)) return;
-    if (advancingPlayers.has(video))
+    const identity = chosen.identity || video;
+    if (advancingPlayers.has(video) || (
+      chosen.sample && sample.playbackAt > playbackFloor &&
+      sample.playbackAt > (lastPlayback?.at || 0)
+    ))
       lastPlayback = {
-        video,
+        video: identity,
         title: preview.title,
         episode: preview.episode,
-        at: Date.now(),
+        at: sample.playbackAt,
       };
     if (
       pendingResume &&
       pendingResume.title === preview.title &&
       pendingResume.episode === preview.episode &&
-      video.duration > 0 &&
-      video.seekable.length > 0
+      sample.duration > 0 &&
+      sample.seekable
     ) {
       const resume = pendingResume;
       pendingResume = null;
       try {
-        video.currentTime = Math.min(
+        const position = Math.min(
           Math.max(0, resume.progress),
-          Math.max(0, video.duration - 1),
+          Math.max(0, sample.duration - 1),
         );
+        if (chosen.peer) {
+          awaitingResume = {
+            title: preview.title,
+            episode: preview.episode,
+            identity,
+            position,
+            startedAt: Date.now(),
+          };
+          forwardPlayerCommand(chosen, { type: "seekTo", progress: position });
+          return;
+        }
+        video.currentTime = position;
       } catch {
         /* Playback can still be tracked when seeking is unavailable. */
       }
     }
+    if (awaitingResume) {
+      const resume = awaitingResume;
+      const elapsed = Date.now() - resume.startedAt;
+      const samePlayer = resume.title === preview.title &&
+        resume.episode === preview.episode && resume.identity === identity;
+      // Seeking across frames is asynchronous. Do not persist a cached pre-seek sample.
+      const reachedPosition = sample.time >= resume.position - 0.5 &&
+        sample.time <= resume.position + elapsed / 1000 + 1;
+      if (samePlayer && !reachedPosition && elapsed < 5000) return;
+      awaitingResume = null;
+    }
     if (
       Date.now() - lastPosted < 1000 ||
-      !Number.isFinite(video.duration) ||
-      video.duration <= 0
+      !Number.isFinite(sample.duration) ||
+      sample.duration <= 0
     )
       return;
     lastPosted = Date.now();
@@ -447,15 +614,15 @@
       payload: {
         animeTitle: preview.title,
         episode: preview.episode,
-        episodeCount: preview.episodeCount,
+        episodeCount: preview.episodeCount > 0 ? preview.episodeCount : undefined,
         lastPlayedAt:
-          lastPlayback?.video === video &&
+          lastPlayback?.video === identity &&
           lastPlayback.title === preview.title &&
           lastPlayback.episode === preview.episode
             ? lastPlayback.at
             : undefined,
-        progress: video.currentTime,
-        total: video.duration,
+        progress: video ? video.currentTime : sample.time,
+        total: sample.duration,
         providerId: config.id,
         url: location.href,
       },
@@ -492,7 +659,13 @@
             lastEpisode = episode;
             lastPosted = 0;
             pendingResume = null;
-            if (activePlayer) resetVideo(activePlayer);
+            awaitingResume = null;
+            if (activePlayer?.peer)
+              forwardPlayerCommand(activePlayer, { type: "resetPlayerTest" });
+            else if (activePlayer?.video) resetVideo(activePlayer.video);
+            lastPlayback = null;
+            playbackFloor = Date.now();
+            framePeers.clear();
             if (mode === "watch") {
               const preview = extract();
               if (preview.valid)
@@ -501,7 +674,8 @@
                   payload: {
                     animeTitle: preview.title,
                     episode,
-                    episodeCount: preview.episodeCount,
+                    episodeCount:
+                      preview.episodeCount > 0 ? preview.episodeCount : undefined,
                     providerId: config.id,
                     url: element.href || location.href,
                   },
@@ -570,11 +744,32 @@
       pendingResume = data.resume;
       return;
     }
-    if (data.type === "choosePlayer") {
+    if (["choosePlayer", "testSeek", "seekTo"].includes(data.type)) {
       const candidate = gatherPlayers().players.find(
         (item) => JSON.stringify(item.locator) === JSON.stringify(data.locator),
       );
       if (!candidate) return;
+      if (candidate.peer) {
+        if (data.type === "choosePlayer")
+          candidate.peer.frame.scrollIntoView?.({ block: "center" });
+        forwardPlayerCommand(candidate, data);
+        return;
+      }
+      if (data.type === "seekTo") {
+        const video = candidate.video;
+        if (Number.isFinite(data.progress) && video.duration > 0 && video.seekable.length) {
+          try {
+            video.currentTime = Math.min(Math.max(0, data.progress), Math.max(0, video.duration - 1));
+          } catch {
+            /* Some players expose time but do not permit seeking. */
+          }
+        }
+        return;
+      }
+      if (data.type === "testSeek") {
+        testSeek(candidate.video);
+        return;
+      }
       candidate.video.scrollIntoView?.({ block: "center" });
       const outline = candidate.video.style.outline;
       candidate.video.style.outline = "3px solid #2677ff";
@@ -583,34 +778,35 @@
       }, 2000);
       return;
     }
-    if (data.type === "testSeek") {
-      const candidate = gatherPlayers().players.find(
-        (item) => JSON.stringify(item.locator) === JSON.stringify(data.locator),
-      );
-      if (!candidate) return;
-      const video = candidate.video,
-        state = stateFor(video);
-      if (!(video.duration > 0) || !video.seekable.length) return;
-      state.restore = video.currentTime;
-      state.seekTarget = Math.min(video.duration - 0.1, video.currentTime + 1);
-      if (Math.abs(state.restore - state.seekTarget) < 0.2)
-        state.seekTarget = Math.max(0, video.currentTime - 1);
-      state.seekTest = "seek";
-      setTimeout(() => {
-        if (state.seekTest) {
-          state.seekTest = false;
-          state.resume = false;
-        }
-      }, 5000);
-      try {
-        video.currentTime = state.seekTarget;
-      } catch {
-        state.seekTest = false;
-      }
-      return;
-    }
     if (data.type === "resetPlayerTest") {
-      gatherPlayers().players.forEach((item) => resetVideo(item.video));
+      const resetPeers = new Set();
+      gatherPlayers().players.forEach((item) => {
+        if (item.peer) {
+          if (!resetPeers.has(item.peer)) forwardPlayerCommand(item, data);
+          resetPeers.add(item.peer);
+        } else resetVideo(item.video);
+      });
+      framePeers.clear();
+    }
+  }
+  function testSeek(video) {
+    const state = stateFor(video);
+    if (!(video.duration > 0) || !video.seekable.length) return;
+    state.restore = video.currentTime;
+    state.seekTarget = Math.min(video.duration - 0.1, video.currentTime + 1);
+    if (Math.abs(state.restore - state.seekTarget) < 0.2)
+      state.seekTarget = Math.max(0, video.currentTime - 1);
+    state.seekTest = "seek";
+    setTimeout(() => {
+      if (state.seekTest) {
+        state.seekTest = false;
+        state.resume = false;
+      }
+    }, 5000);
+    try {
+      video.currentTime = state.seekTarget;
+    } catch {
+      state.seekTest = false;
     }
   }
   window.ProviderRuntime = {
@@ -618,7 +814,7 @@
     configure(next, nextMode) {
       config = next || {};
       mode = nextMode || mode;
-      highlightEpisodeProgress();
+      if (isMainFrame) highlightEpisodeProgress();
     },
     evaluate,
     extract,
@@ -629,8 +825,10 @@
     documentId,
   };
   function ready() {
-    attachDocument(document);
-    post({ type: "ready" });
+    if (isMainFrame) {
+      attachDocument(document);
+      post({ type: "ready" });
+    }
     tick();
   }
   if (document.readyState === "loading")
@@ -640,6 +838,8 @@
   window.addEventListener("pagehide", () => {
     clearInterval(interval);
     interval = null;
+    framePeers.clear();
+    parentBinding = null;
   });
   window.addEventListener("pageshow", (event) => {
     if (!event.persisted) return;

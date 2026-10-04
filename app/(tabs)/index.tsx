@@ -150,9 +150,9 @@ export default function HomeScreen() {
           }
           <Text style={{ color: fg }}>{item.origin}</Text>
           <Text style={{ color: fg }}>
-            {item.verification?.progress && item.verification.resume
-              ? "Video progress and resume verified"
-              : "Video features not fully verified"}
+            {item.verification?.progress
+              ? "Playback tracking ready"
+              : "Playback tracking not verified"}
           </Text>
         </ProviderSurface>
       ))}
@@ -170,7 +170,7 @@ export default function HomeScreen() {
   const injection = provider
     ? "window.__providerSession=" +
       JSON.stringify(session) +
-      ";window.__providerConfig=" +
+      ";if(window===window.top){window.__providerConfig=" +
       JSON.stringify(provider) +
       ";window.__runtimeMode=" +
       JSON.stringify(
@@ -178,7 +178,7 @@ export default function HomeScreen() {
       ) +
       ";window.__providerProgress=" +
       JSON.stringify(savedProgress) +
-      ";" +
+      ";}" +
       runtime +
       ";true;"
     : "";
@@ -207,6 +207,8 @@ export default function HomeScreen() {
             contentInsetAdjustmentBehavior="always"
             scrollEnabled
             bounces
+            injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
+            injectedJavaScriptForMainFrameOnly={false}
             injectedJavaScriptBeforeContentLoaded={injection}
             injectedJavaScript={injection}
             onLoadStart={(event) => {
@@ -292,6 +294,14 @@ export default function HomeScreen() {
                     ? message.players[0]
                     : undefined;
                 const phase = playbackPhase(player);
+                if (!player && message.inaccessibleFrames > 0 &&
+                  message.frameTrackingAvailable === false) {
+                  clearStatusTimer();
+                  setStatus(
+                    "This embedded player cannot be tracked on this device. Update Android System WebView and retry.",
+                  );
+                  return;
+                }
                 if (phase === "waiting" || phase === "paused") {
                   clearStatusTimer();
                   setStatus(

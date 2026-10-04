@@ -29,8 +29,8 @@
 
 ## How it works (quick)
 
-1. Add a website from Websites or Settings. Select titles and episode information, verify two example pages, and test the site's primary video player.
-2. The creator and main browser share `assets/js/provider-runtime_t.cjs` for extraction, accessible frame discovery, video progress, and resume.
+1. Add a website from Websites or Settings. Select titles and episode information, verify two example pages, and play the site's primary video to verify progress tracking. The automatic resume check is optional under Video options.
+2. The creator and main browser share `assets/js/provider-runtime_t.cjs` for extraction, video progress, and resume. Each embedded frame inspects its own HTML5 video and relays media samples to the main page, including players hosted on another origin. Series and episode information comes from the main page.
 3. Typed messages are validated and persisted in the AppStore (`utils/app-store.util.ts`), using `AsyncStorage`.
 4. Watch History stores the provider used for each playback location. Provider setup warns when progress or seeking cannot be verified.
 5. Backup and restore use `expo-file-system`, `expo-sharing` and `expo-document-picker`.
@@ -86,6 +86,7 @@ npm run web
 Notes:
 
 - Expo powers this project — see `package.json` for scripts.
+- `npm install` / `npm ci` applies the version-checked Android WebView patch in `scripts/patch-webview.cjs`. Rebuild with `npm run android` after installing it; a JavaScript update or Expo Go cannot enable Android frame injection. Android System WebView must support AndroidX's `DOCUMENT_START_SCRIPT` feature. Devices without it retain page and accessible-frame tracking and report the embedded-player limitation.
 - The app uses file-based routing (see the `app` folder) via `expo-router`.
 
 ---

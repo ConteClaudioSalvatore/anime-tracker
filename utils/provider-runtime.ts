@@ -181,7 +181,7 @@ export function validateProvider(draft: Provider<false>): string | null {
   ] as const)
     if (!draft[field]?.trim()) return `Choose the ${label} on the page.`;
   if (draft.isPlayerSupported === null)
-    return "Run the video test before saving.";
+    return "Check playback tracking before saving.";
   return null;
 }
 
@@ -215,11 +215,8 @@ export function providerSaveError(
     if (!checks[page].valid)
       return `Example ${index + 1} did not pass: ${checks[page].errors.join(" ") || "The page could not be read."} Retest this example or edit the selections.`;
   }
-  if (
-    (!draft.verification?.progress || !draft.verification.resume) &&
-    !saveAnyway
-  )
-    return "Return to Video test to verify playback and resume, or acknowledge the limitations before saving.";
+  if (!draft.verification?.progress && !saveAnyway)
+    return "Return to Playback tracking to verify progress, or acknowledge the limitations before saving.";
   return null;
 }
 
