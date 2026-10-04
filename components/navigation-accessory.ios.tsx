@@ -1,5 +1,13 @@
 import { AccessoryContext, AppStateContext } from "@/utils";
-import { Button, Group, Host, HStack, Label, Menu, Spacer } from "@expo/ui/swift-ui";
+import {
+  Button,
+  Group,
+  Host,
+  HStack,
+  Label,
+  Menu,
+  Spacer,
+} from "@expo/ui/swift-ui";
 import {
   buttonBorderShape,
   buttonStyle,
@@ -29,7 +37,10 @@ export default function NavigationAccessory() {
         inset: 0,
       }}
     >
-      <HStack spacing={isInline ? 4 : 8} modifiers={[padding({ all: isInline ? 4 : 8 })]}>
+      <HStack
+        spacing={isInline ? 4 : 8}
+        modifiers={[padding({ all: isInline ? 4 : 8 })]}
+      >
         <Group>
           {canGoBack && (
             <Button
@@ -69,25 +80,80 @@ export default function NavigationAccessory() {
         <Spacer />
         {isInline ? (
           <Menu
-            label={<Label title="Website controls" systemImage="ellipsis" modifiers={[padding({ all: 8 })]} />}
-            modifiers={[buttonStyle("bordered"), labelStyle("iconOnly"), tint("#000000aa"), controlSize("small"), buttonBorderShape("circle"), foregroundStyle("white")]}
+            label={
+              <Label
+                title="Website controls"
+                systemImage="ellipsis"
+                modifiers={[padding({ all: 8 })]}
+              />
+            }
+            modifiers={[
+              buttonStyle("bordered"),
+              labelStyle("iconOnly"),
+              tint("#000000aa"),
+              controlSize("small"),
+              buttonBorderShape("circle"),
+              foregroundStyle("white"),
+            ]}
           >
-            <Button label="Websites" systemImage="globe" onPress={() => updateState(previous => ({ ...previous, browserSheet: 'providers' }))} />
-            <Button label="Playback details" systemImage="info.circle" onPress={() => updateState(previous => ({ ...previous, browserSheet: 'status' }))} />
+            <Button
+              label="Websites"
+              systemImage="globe"
+              onPress={() =>
+                updateState((previous) => ({
+                  ...previous,
+                  browserSheet: "providers",
+                }))
+              }
+            />
+            <Button
+              label="Playback details"
+              systemImage="info.circle"
+              onPress={() =>
+                updateState((previous) => ({
+                  ...previous,
+                  browserSheet: "status",
+                }))
+              }
+            />
           </Menu>
         ) : (
           <>
             <Button
-              modifiers={[buttonStyle("bordered"), labelStyle("iconOnly"), tint("#000000aa"), controlSize("regular"), buttonBorderShape("circle"), foregroundStyle("white")]}
+              modifiers={[
+                buttonStyle("bordered"),
+                labelStyle("iconOnly"),
+                tint("#000000aa"),
+                controlSize("regular"),
+                buttonBorderShape("circle"),
+                foregroundStyle("white"),
+              ]}
               systemImage="globe"
               label="Websites"
-              onPress={() => updateState(previous => ({ ...previous, browserSheet: 'providers' }))}
+              onPress={() =>
+                updateState((previous) => ({
+                  ...previous,
+                  browserSheet: "providers",
+                }))
+              }
             />
             <Button
-              modifiers={[buttonStyle("bordered"), labelStyle("iconOnly"), tint("#000000aa"), controlSize("regular"), buttonBorderShape("circle"), foregroundStyle("white")]}
+              modifiers={[
+                buttonStyle("bordered"),
+                labelStyle("iconOnly"),
+                tint("#000000aa"),
+                controlSize("regular"),
+                buttonBorderShape("circle"),
+                foregroundStyle("white"),
+              ]}
               systemImage="info.circle"
               label="Playback details"
-              onPress={() => updateState(previous => ({ ...previous, browserSheet: 'status' }))}
+              onPress={() =>
+                updateState((previous) => ({
+                  ...previous,
+                  browserSheet: "status",
+                }))
+              }
             />
           </>
         )}

@@ -10,7 +10,7 @@ import {
   removeProvider,
 } from "./app.actions";
 
-import { upsertProviderList } from '@/utils/provider-runtime';
+import { upsertProviderList } from "@/utils/provider-runtime";
 
 export const reducer = createReducer<AppStoreState>(
   on(animeUpdated, (state, { payload: { defaultUrl, payload } }) => ({
@@ -27,11 +27,20 @@ export const reducer = createReducer<AppStoreState>(
             : payload.episode,
         latestWatchedEpisode: payload.episode,
         latestVisitedUrl: payload.url ?? defaultUrl,
-        providerId: payload.providerId ?? state.anime[payload.animeTitle]?.providerId,
-        lastPlayedAt: payload.lastPlayedAt === undefined
-          ? state.anime[payload.animeTitle]?.lastPlayedAt
-          : Math.max(payload.lastPlayedAt, state.anime[payload.animeTitle]?.lastPlayedAt ?? 0),
-        total: payload.episodeCount ?? (payload.info?.["Episodi"] ? +payload.info["Episodi"] : state.anime[payload.animeTitle]?.total),
+        providerId:
+          payload.providerId ?? state.anime[payload.animeTitle]?.providerId,
+        lastPlayedAt:
+          payload.lastPlayedAt === undefined
+            ? state.anime[payload.animeTitle]?.lastPlayedAt
+            : Math.max(
+                payload.lastPlayedAt,
+                state.anime[payload.animeTitle]?.lastPlayedAt ?? 0,
+              ),
+        total:
+          payload.episodeCount ??
+          (payload.info?.["Episodi"]
+            ? +payload.info["Episodi"]
+            : state.anime[payload.animeTitle]?.total),
         episodeProgress: {
           ...state.anime[payload.animeTitle]?.episodeProgress,
           [payload.episode]: {
@@ -39,12 +48,14 @@ export const reducer = createReducer<AppStoreState>(
               payload.progress ??
               state.anime[payload.animeTitle]?.episodeProgress?.[
                 payload.episode
-              ]?.progress ?? 0,
+              ]?.progress ??
+              0,
             total:
               payload.total ??
               state.anime[payload.animeTitle]?.episodeProgress?.[
                 payload.episode
-              ]?.total ?? 0,
+              ]?.total ??
+              0,
           },
         },
       },

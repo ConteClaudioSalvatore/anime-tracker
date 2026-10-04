@@ -54,18 +54,38 @@ export default function NavigationAccessory() {
           </Row>
         )}
         <Spacer flexible />
-        <Button variant="text" onPress={() => updateState(previous => ({ ...previous, browserSheet: 'providers' }))}>
+        <Button
+          variant="text"
+          onPress={() =>
+            updateState((previous) => ({
+              ...previous,
+              browserSheet: "providers",
+            }))
+          }
+        >
           <Text hidden>Websites</Text>
-          <Icon name={Icon.select({ ios: 'globe', android: import('@expo/material-symbols/public.xml') })} />
-        </Button>
-        <Button variant="text" onPress={() => updateState(previous => ({ ...previous, browserSheet: 'status' }))}>
-          <Text hidden>Playback details</Text>
-          <Icon name={Icon.select({ ios: 'info.circle', android: import('@expo/material-symbols/info.xml') })} />
+          <Icon
+            name={Icon.select({
+              ios: "globe",
+              android: import("@expo/material-symbols/public.xml"),
+            })}
+          />
         </Button>
         <Button
-          variant="filled"
-          onPress={() => webViewRef?.current?.reload()}
+          variant="text"
+          onPress={() =>
+            updateState((previous) => ({ ...previous, browserSheet: "status" }))
+          }
         >
+          <Text hidden>Playback details</Text>
+          <Icon
+            name={Icon.select({
+              ios: "info.circle",
+              android: import("@expo/material-symbols/info.xml"),
+            })}
+          />
+        </Button>
+        <Button variant="filled" onPress={() => webViewRef?.current?.reload()}>
           <Text hidden>Reload</Text>
           <Icon
             name={Icon.select({

@@ -4,13 +4,9 @@ import WatchListHeader, {
 } from "@/components/watch-list/header";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Anime } from "@/model";
-import {
-  isAnimeFinished,
-  onClearHistory,
-  StoreContext
-} from "@/utils";
+import { isAnimeFinished, onClearHistory, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
-import { sortWatchList, WatchListSortMode } from '@/utils/watch-list';
+import { sortWatchList, WatchListSortMode } from "@/utils/watch-list";
 import {
   Button,
   Column,
@@ -19,7 +15,7 @@ import {
   Row,
   ScrollView,
   Spacer,
-  Text
+  Text,
 } from "@expo/ui";
 import { HorizontalDivider } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
@@ -37,7 +33,7 @@ export default function WatchListScreen() {
   const [animeActionOpen, setAnimeActionOpen] = React.useState<Anime | null>(
     null,
   );
-  const [sortMode, setSortMode] = React.useState<WatchListSortMode>('recent');
+  const [sortMode, setSortMode] = React.useState<WatchListSortMode>("recent");
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const headerHeight = useHeaderHeight();
@@ -128,8 +124,8 @@ export default function WatchListScreen() {
               <Column spacing={0}>
                 {anyItems ? (
                   <>
-                    {sortWatchList(filteredState, sortMode)
-                      .map(([animeName, data]) => (
+                    {sortWatchList(filteredState, sortMode).map(
+                      ([animeName, data]) => (
                         <Row
                           alignment="center"
                           spacing={8}
@@ -191,7 +187,8 @@ export default function WatchListScreen() {
                             label="⛓️"
                           />
                         </Row>
-                      ))}
+                      ),
+                    )}
                   </>
                 ) : (
                   <Text>nothing to see here 👁️👄👁️</Text>

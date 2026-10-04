@@ -4,5 +4,5 @@ export type AppState = {
   canGoBack?: boolean;
   canGoForward?: boolean;
   reload?: boolean;
-  browserSheet?: 'providers' | 'status';
+  browserSheet?: "providers" | "status";
 };

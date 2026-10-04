@@ -1,7 +1,19 @@
 import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
-import { exportWatchList, restoreBackup, saveBackup } from "@/utils/backup.util";
-import { Button, Form, Host, HStack, Section, Text, VStack } from "@expo/ui/swift-ui";
+import {
+  exportWatchList,
+  restoreBackup,
+  saveBackup,
+} from "@/utils/backup.util";
+import {
+  Button,
+  Form,
+  Host,
+  HStack,
+  Section,
+  Text,
+  VStack,
+} from "@expo/ui/swift-ui";
 import {
   buttonStyle,
   controlSize,
@@ -11,7 +23,7 @@ import {
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import React from "react";
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
+import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { useWindowDimensions } from "react-native";
 
 export default function SettingsScreen() {
@@ -21,7 +33,11 @@ export default function SettingsScreen() {
 
   async function exportSummary() {
     setExporting(true);
-    try { await exportWatchList(); } finally { setExporting(false); }
+    try {
+      await exportWatchList();
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -44,12 +60,20 @@ export default function SettingsScreen() {
           <SettingsProviders />
           <Section
             title="Watch list export"
-            footer={<Text>Series names, episode progress, and completion status only.</Text>}
+            footer={
+              <Text>
+                Series names, episode progress, and completion status only.
+              </Text>
+            }
           >
             <Button
-              label={exporting ? 'Exporting…' : 'Export watch list'}
+              label={exporting ? "Exporting…" : "Export watch list"}
               systemImage="square.and.arrow.up"
-              modifiers={[buttonStyle(isLiquidGlassAvailable() ? 'glass' : 'bordered'), controlSize('small'), disabled(exporting)]}
+              modifiers={[
+                buttonStyle(isLiquidGlassAvailable() ? "glass" : "bordered"),
+                controlSize("small"),
+                disabled(exporting),
+              ]}
               onPress={exportSummary}
             />
           </Section>

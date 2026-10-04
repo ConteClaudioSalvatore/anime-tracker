@@ -1,6 +1,10 @@
 import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
-import { exportWatchList, restoreBackup, saveBackup } from "@/utils/backup.util";
+import {
+  exportWatchList,
+  restoreBackup,
+  saveBackup,
+} from "@/utils/backup.util";
 import { Button, Column, Host, Icon, Row, Spacer, Text } from "@expo/ui";
 import React from "react";
 import { StatusBar } from "react-native";
@@ -11,7 +15,11 @@ export default function SettingsScreen() {
 
   async function exportSummary() {
     setExporting(true);
-    try { await exportWatchList(); } finally { setExporting(false); }
+    try {
+      await exportWatchList();
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -26,8 +34,13 @@ export default function SettingsScreen() {
       <Column alignment="center" style={{ padding: 8 }}>
         <SettingsProviders />
         <Button variant="text" disabled={exporting} onPress={exportSummary}>
-          <Icon name={Icon.select({ ios: 'square.and.arrow.up', android: import('@expo/material-symbols/upload.xml') })} />
-          <Text>{exporting ? 'Exporting…' : 'Export watch list'}</Text>
+          <Icon
+            name={Icon.select({
+              ios: "square.and.arrow.up",
+              android: import("@expo/material-symbols/upload.xml"),
+            })}
+          />
+          <Text>{exporting ? "Exporting…" : "Export watch list"}</Text>
         </Button>
         <Text>Series names, episode progress, and completion status only.</Text>
         <Spacer />

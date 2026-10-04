@@ -17,7 +17,7 @@ import {
 
 import React from "react";
 import { Platform } from "react-native";
-import { WatchListSortMode, watchListSortOptions } from '@/utils/watch-list';
+import { WatchListSortMode, watchListSortOptions } from "@/utils/watch-list";
 
 export const WatchListHeaderContext = React.createContext<{
   isLandscape: boolean;
@@ -107,8 +107,12 @@ export default function WatchListHeader() {
               selectedValue={sortMode}
               onValueChange={(e) => setSortMode(e)}
             >
-              {watchListSortOptions.map(option => (
-                <Picker.Item key={option.value} value={option.value} label={option.label} />
+              {watchListSortOptions.map((option) => (
+                <Picker.Item
+                  key={option.value}
+                  value={option.value}
+                  label={option.label}
+                />
               ))}
             </Picker>
           </Row>

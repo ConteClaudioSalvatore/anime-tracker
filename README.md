@@ -7,6 +7,7 @@
 ## 📌 TL;DR
 
 - Start with no built-in providers. Add a website through the guided provider creator, then browse and track it.
+- Opening an unapproved website asks before adding its exact origin to the provider's approved addresses and continuing. Pop-ups remain blocked.
 - Stores watch progress locally (AsyncStorage) and exposes a simple **Watch List** UI to view / edit items.
 - Export and import your data as a JSON backup from the **Settings** screen.
 - Built with Expo — runs on iOS add Android (behavior may vary by platform, web is not supported by the webview library).
@@ -59,7 +60,6 @@ The separate **Export watch list** action shares a JSON array of `{ name, highes
   <img alt="search-history" src="assets/images/screenshots/android/search-history.png" height="400" />
   <img alt="backup" src="assets/images/screenshots/android/backup.png" height="400" />
 </div>
-
 
 ---
 

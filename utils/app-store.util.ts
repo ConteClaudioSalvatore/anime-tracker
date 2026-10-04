@@ -5,19 +5,23 @@ import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import React from "react";
 import { Storage } from "./storage.util";
-import { WriteQueue } from './write-queue';
-import { normalizeProviders, upsertProviderList } from './provider-runtime';
-import { watchListSummary } from './watch-list';
+import { WriteQueue } from "./write-queue";
+import {
+  approveProviderOrigin,
+  normalizeProviders,
+  upsertProviderList,
+} from "./provider-runtime";
+import { watchListSummary } from "./watch-list";
 
 export const StoreContext = React.createContext<{
   state: AppStoreState;
-  stateChanged: () => void;
+  stateChanged: () => Promise<void>;
 }>({
   state: {
     anime: {},
     providers: [],
   },
-  stateChanged: () => {},
+  stateChanged: async () => {},
 });
 
 export class AppStore {
@@ -50,9 +54,12 @@ export class AppStore {
       const next = updater(prev);
       // Keep startup consistent on every write, including deletion and backup restoration.
       // Older backups contain only history; retain their existing migration path.
-      await Storage.setItem(this.STATE_KEY, Array.isArray(next.providers)
-        ? { ...next, providers: normalizeProviders(next.providers) }
-        : next);
+      await Storage.setItem(
+        this.STATE_KEY,
+        Array.isArray(next.providers)
+          ? { ...next, providers: normalizeProviders(next.providers) }
+          : next,
+      );
     });
   }
 
@@ -64,13 +71,34 @@ export class AppStore {
 
   public static async SaveProvider(provider: Provider): Promise<Provider> {
     let stored: Provider | undefined;
-    await this.Update(previous => {
+    await this.Update((previous) => {
       const providers = upsertProviderList(previous.providers, provider);
-      stored = provider.id ? providers.find(item => item.id === provider.id) : providers[0];
+      stored = provider.id
+        ? providers.find((item) => item.id === provider.id)
+        : providers[0];
       return { ...previous, providers };
     });
-    if (!stored) throw new Error('Could not save this provider.');
+    if (!stored) throw new Error("Could not save this provider.");
     return stored;
+  }
+
+  public static async ApproveProviderOrigin(
+    providerId: number,
+    origin: string,
+  ): Promise<void> {
+    await this.Update((previous) => {
+      const provider = previous.providers.find(
+        (item) => item.id === providerId,
+      );
+      if (!provider) throw new Error("This provider was deleted.");
+      const approved = approveProviderOrigin(provider, origin);
+      return {
+        ...previous,
+        providers: previous.providers.map((item) =>
+          item.id === providerId ? approved : item,
+        ),
+      };
+    });
   }
 
   public static async Backup(): Promise<void> {
@@ -93,15 +121,15 @@ export class AppStore {
 
   public static async ExportWatchList(): Promise<void> {
     if (!(await Sharing.isAvailableAsync())) {
-      throw new Error('System sharing not available');
+      throw new Error("System sharing not available");
     }
     const state = await this.Get();
-    const file = new File(Paths.cache, 'anime-tracker/watch-list.json');
+    const file = new File(Paths.cache, "anime-tracker/watch-list.json");
     file.create({ overwrite: true, intermediates: true });
     file.write(JSON.stringify(watchListSummary(state.anime), null, 2));
     await Sharing.shareAsync(file.uri, {
-      mimeType: 'application/json',
-      dialogTitle: 'Export Watch List',
+      mimeType: "application/json",
+      dialogTitle: "Export Watch List",
     });
   }
 

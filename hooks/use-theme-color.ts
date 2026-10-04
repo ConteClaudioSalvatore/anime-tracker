@@ -12,7 +12,7 @@ export function useThemeColor(
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark,
 ) {
   const theme = useColorScheme() ?? "light";
-  const realTheme = theme === 'unspecified' ? 'light' : theme;
+  const realTheme = theme === "unspecified" ? "light" : theme;
   const colorFromProps = props[realTheme];
 
   if (colorFromProps) {

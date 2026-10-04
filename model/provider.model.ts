@@ -25,5 +25,4 @@ export type Provider<TInitialized extends boolean = true> = {
 >;
 
 export type SaveProviderResult =
-  | { success: true; provider: Provider }
-  | { success: false; message: string };
+  { success: true; provider: Provider } | { success: false; message: string };

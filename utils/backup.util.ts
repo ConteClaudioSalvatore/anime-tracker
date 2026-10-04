@@ -29,6 +29,9 @@ export async function exportWatchList(): Promise<void> {
   try {
     await AppStore.ExportWatchList();
   } catch {
-    Alert.alert('Could not export watch list', 'Check that storage and system sharing are available, then try again.');
+    Alert.alert(
+      "Could not export watch list",
+      "Check that storage and system sharing are available, then try again.",
+    );
   }
 }

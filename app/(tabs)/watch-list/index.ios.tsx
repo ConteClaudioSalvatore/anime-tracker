@@ -8,7 +8,7 @@ import {
   StoreContext,
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
-import { sortWatchList, WatchListSortMode } from '@/utils/watch-list';
+import { sortWatchList, WatchListSortMode } from "@/utils/watch-list";
 
 import {
   Button,
@@ -40,7 +40,7 @@ export default function WatchListScreen() {
   const { updateState } = React.useContext(AppStateContext);
   const [searchValue, setSearchValue] = React.useState("");
   const [onlyInProgress, setOnlyInProgress] = React.useState(true);
-  const [sortMode, setSortMode] = React.useState<WatchListSortMode>('recent');
+  const [sortMode, setSortMode] = React.useState<WatchListSortMode>("recent");
   const router = useRouter();
   const { width, height } = useWindowDimensions();
 
@@ -125,8 +125,8 @@ export default function WatchListScreen() {
               <LazyVStack spacing={8}>
                 {anyItems ? (
                   <>
-                    {sortWatchList(filteredState, sortMode)
-                      .map(([animeName, data]) => (
+                    {sortWatchList(filteredState, sortMode).map(
+                      ([animeName, data]) => (
                         <HStack key={animeName}>
                           <Button
                             onPress={() => {
@@ -186,7 +186,8 @@ export default function WatchListScreen() {
                             label="⛓️"
                           />
                         </HStack>
-                      ))}
+                      ),
+                    )}
                   </>
                 ) : (
                   <Text modifiers={[multilineTextAlignment("center")]}>

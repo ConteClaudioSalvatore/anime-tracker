@@ -1,6 +1,8 @@
 import { AppStoreState } from "@/model";
 
-export function isAnimeFinished(anime: AppStoreState['anime'][string]): boolean {
+export function isAnimeFinished(
+  anime: AppStoreState["anime"][string],
+): boolean {
   const progress = anime.episodeProgress?.[anime.highestWatchedEpisode];
   const watchedFor90Percent =
     progress?.progress !== undefined &&

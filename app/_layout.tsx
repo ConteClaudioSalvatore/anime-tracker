@@ -23,8 +23,8 @@ export default function RootLayout() {
   const [appState, setAppState] = React.useState<AppState>({});
   const webViewRef = React.useRef<WebView>(null);
 
-  const stateChanged = () => {
-    AppStore.Get().then(setStoreState);
+  const stateChanged = async () => {
+    setStoreState(await AppStore.Get());
   };
 
   const contextData = React.useMemo<
@@ -38,10 +38,15 @@ export default function RootLayout() {
   );
 
   React.useEffect(() => {
-    AppStore.Get().then(state => {
+    AppStore.Get().then((state) => {
       setStoreState(state);
-      const provider = state.providers.find(item => item.isDefault);
-      if (provider) setAppState(previous => previous.url ? previous : { url: provider.origin, providerId: provider.id });
+      const provider = state.providers.find((item) => item.isDefault);
+      if (provider)
+        setAppState((previous) =>
+          previous.url
+            ? previous
+            : { url: provider.origin, providerId: provider.id },
+        );
     });
   }, []);
 
@@ -70,7 +75,7 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="provider-creator"
-                options={{ presentation: "modal", title: 'Add provider' }}
+                options={{ presentation: "modal", title: "Add provider" }}
               />
             </Stack>
             <StatusBar style="auto" />
