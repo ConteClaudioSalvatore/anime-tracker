@@ -1,10 +1,11 @@
 import { Anime } from "@/model";
 import { computeTimeStamp } from "./compute-time-stamp.util";
-import { Alert, AlertButton } from "react-native";
+import { Alert } from "react-native";
 import { ImperativeRouter } from "expo-router";
 import { onAnimeRemove } from "./on-anime-remove.util";
 import { AppStore } from "./app-store.util";
 import { toggleAnimeFinished } from "@/store/app.actions";
+import { isAnimeFinished } from "./is-anime-finieshed.util";
 
 export function getAnimeActionContext(anime: Anime): {
   finishedText: string;
@@ -21,7 +22,7 @@ export function getAnimeActionContext(anime: Anime): {
   let finishedText = "Drop Anime";
   if (anime.latestWatchedEpisode === anime.total)
     finishedText = "Mark as finished";
-  if (anime.finished) finishedText = "Resume Anime";
+  if (anime.finished || isAnimeFinished(anime)) finishedText = "Resume Anime";
 
   return { finishedText, timeText };
 }
@@ -53,19 +54,15 @@ export function onAnimeAction(
           });
         },
       },
-      ...(!(anime.latestWatchedEpisode === anime.total && anime.finished)
-        ? ([
-            {
-              text: finishedText,
-              style: "default",
-              onPress: async () => {
-                await AppStore.Dispatch(toggleAnimeFinished(anime.name)).then(
-                  callback,
-                );
-              },
-            },
-          ] as AlertButton[])
-        : []),
+      {
+        text: finishedText,
+        style: "default",
+        onPress: async () => {
+          await AppStore.Dispatch(toggleAnimeFinished(anime.name)).then(
+            callback,
+          );
+        },
+      },
       {
         text: "Remove",
         style: "destructive",

@@ -7,6 +7,8 @@ export type Anime = {
   providerId?: number;
   /** Last observed playback time, in Unix milliseconds. Absent in older history. */
   lastPlayedAt?: number;
+  /** Automatic completion from advancing playback. Absent in legacy history. */
+  playbackFinished?: boolean;
   /**
    * The number of the highest episode watched of a series
    */

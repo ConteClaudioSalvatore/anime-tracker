@@ -11,54 +11,19 @@ import {
 } from "./app.actions";
 
 import { upsertProviderList } from "@/utils/provider-runtime";
+import { mergeAnimeHistory } from "@/utils/anime-history";
+import { isAnimeFinished } from "@/utils/is-anime-finieshed.util";
 
 export const reducer = createReducer<AppStoreState>(
   on(animeUpdated, (state, { payload: { defaultUrl, payload } }) => ({
     ...state,
     anime: {
       ...state.anime,
-      [payload.animeTitle]: {
-        ...state.anime[payload.animeTitle],
-        name: payload.animeTitle,
-        highestWatchedEpisode:
-          (state.anime[payload.animeTitle]?.highestWatchedEpisode ?? 0) >
-          payload.episode
-            ? state.anime[payload.animeTitle].highestWatchedEpisode
-            : payload.episode,
-        latestWatchedEpisode: payload.episode,
-        latestVisitedUrl: payload.url ?? defaultUrl,
-        providerId:
-          payload.providerId ?? state.anime[payload.animeTitle]?.providerId,
-        lastPlayedAt:
-          payload.lastPlayedAt === undefined
-            ? state.anime[payload.animeTitle]?.lastPlayedAt
-            : Math.max(
-                payload.lastPlayedAt,
-                state.anime[payload.animeTitle]?.lastPlayedAt ?? 0,
-              ),
-        total:
-          payload.episodeCount ??
-          (payload.info?.["Episodi"]
-            ? +payload.info["Episodi"]
-            : state.anime[payload.animeTitle]?.total),
-        episodeProgress: {
-          ...state.anime[payload.animeTitle]?.episodeProgress,
-          [payload.episode]: {
-            progress:
-              payload.progress ??
-              state.anime[payload.animeTitle]?.episodeProgress?.[
-                payload.episode
-              ]?.progress ??
-              0,
-            total:
-              payload.total ??
-              state.anime[payload.animeTitle]?.episodeProgress?.[
-                payload.episode
-              ]?.total ??
-              0,
-          },
-        },
-      },
+      [payload.animeTitle]: mergeAnimeHistory(
+        state.anime[payload.animeTitle],
+        payload,
+        defaultUrl,
+      ),
     },
   })),
   on(removeAnime, (state, { payload: animeName }) => ({
@@ -73,7 +38,11 @@ export const reducer = createReducer<AppStoreState>(
       ...state.anime,
       [animeName]: {
         ...state.anime[animeName],
-        finished: !state.anime[animeName]?.finished,
+        finished: !(
+          state.anime[animeName]?.finished ||
+          (state.anime[animeName] && isAnimeFinished(state.anime[animeName]))
+        ),
+        playbackFinished: false,
       },
     },
   })),
@@ -85,6 +54,7 @@ export const reducer = createReducer<AppStoreState>(
         ...state.anime[animeName],
         latestWatchedEpisode: episode,
         highestWatchedEpisode: episode,
+        playbackFinished: false,
       },
     },
   })),

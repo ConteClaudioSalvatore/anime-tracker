@@ -153,15 +153,10 @@ export function providerForUrl(
 
 export function providerEpisodeProgress(
   anime: Record<string, Anime>,
-  providerId: number,
 ): Record<string, Record<number, EpisodeProgress>> {
   return Object.fromEntries(
     Object.entries(anime)
-      .filter(
-        ([, item]) =>
-          item.episodeProgress &&
-          (item.providerId === providerId || item.providerId === undefined),
-      )
+      .filter(([, item]) => item.episodeProgress)
       .map(([title, item]) => [title, item.episodeProgress!]),
   );
 }

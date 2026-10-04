@@ -1,5 +1,5 @@
 import { Alert } from "react-native";
-import { Storage } from "./storage.util";
+import { AppStore } from "./app-store.util";
 
 export function onClearHistory(callback: () => void) {
   Alert.alert(
@@ -13,8 +13,10 @@ export function onClearHistory(callback: () => void) {
       {
         text: "Yes",
         style: "destructive",
-        onPress: () => {
-          Storage.removeItem("state").then(callback);
+        onPress: async () => {
+          await AppStore.Update((state) => ({ ...state, anime: {} })).then(
+            callback,
+          );
         },
       },
     ],

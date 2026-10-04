@@ -54,19 +54,17 @@ export default function WatchListAnimeActions(props: {
           />
           <Text>Edit</Text>
         </Button>
-        {!(anime.latestWatchedEpisode === anime.total && anime.finished) && (
-          <Button
-            variant="filled"
-            onPress={async () => {
-              await AppStore.Dispatch(toggleAnimeFinished(anime.name)).then(
-                stateChanged,
-              );
-              onClose();
-            }}
-          >
-            <Text>{finishedText}</Text>
-          </Button>
-        )}
+        <Button
+          variant="filled"
+          onPress={async () => {
+            await AppStore.Dispatch(toggleAnimeFinished(anime.name)).then(
+              stateChanged,
+            );
+            onClose();
+          }}
+        >
+          <Text>{finishedText}</Text>
+        </Button>
         <AndroidButton
           colors={{
             containerColor: "#dd2222",

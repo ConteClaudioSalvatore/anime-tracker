@@ -46,7 +46,7 @@ export default function HomeScreen() {
     ? providerForUrl(store.providers, state.url, state.providerId)
     : undefined;
   const savedProgress = React.useMemo(
-    () => (provider ? providerEpisodeProgress(store.anime, provider.id) : {}),
+    () => (provider ? providerEpisodeProgress(store.anime) : {}),
     [store.anime, provider],
   );
   const router = useRouter();
@@ -294,8 +294,11 @@ export default function HomeScreen() {
                     ? message.players[0]
                     : undefined;
                 const phase = playbackPhase(player);
-                if (!player && message.inaccessibleFrames > 0 &&
-                  message.frameTrackingAvailable === false) {
+                if (
+                  !player &&
+                  message.inaccessibleFrames > 0 &&
+                  message.frameTrackingAvailable === false
+                ) {
                   clearStatusTimer();
                   setStatus(
                     "This embedded player cannot be tracked on this device. Update Android System WebView and retry.",
@@ -334,22 +337,17 @@ export default function HomeScreen() {
               const resumeKey = payload.animeTitle + ":" + payload.episode;
               if (!resumeSent.current.has(resumeKey)) {
                 resumeSent.current.add(resumeKey);
-                if (
-                  progress?.providerId === provider.id ||
-                  progress?.providerId === undefined
-                ) {
-                  const position =
-                    progress?.episodeProgress?.[payload.episode]?.progress;
-                  if (position && position > 0)
-                    send({
-                      type: "resume",
-                      resume: {
-                        title: payload.animeTitle,
-                        episode: payload.episode,
-                        progress: position,
-                      },
-                    });
-                }
+                const position =
+                  progress?.episodeProgress?.[payload.episode]?.progress;
+                if (position && position > 0)
+                  send({
+                    type: "resume",
+                    resume: {
+                      title: payload.animeTitle,
+                      episode: payload.episode,
+                      progress: position,
+                    },
+                  });
               }
               if (
                 payload.progress !== undefined &&
