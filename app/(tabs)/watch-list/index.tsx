@@ -1,7 +1,7 @@
 import WatchListHeader from "@/components/watch-list/header";
 import WatchListRow from "@/components/watch-list/row";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useWatchList } from "@/hooks/use-watch-list";
+import { useWatchListContext } from "@/hooks/use-watch-list";
 import { Button, Column, Host, ScrollView, Text } from "@expo/ui";
 import { HorizontalDivider } from "@expo/ui/jetpack-compose";
 import {
@@ -14,7 +14,7 @@ import { useHeaderHeight } from "expo-router/build/react-navigation";
 import { Platform } from "react-native";
 
 export default function WatchListScreen() {
-  const list = useWatchList();
+  const list = useWatchListContext();
   const { t } = list;
   const headerHeight = useHeaderHeight();
   const backgroundColor = useThemeColor(

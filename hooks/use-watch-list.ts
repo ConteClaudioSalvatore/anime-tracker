@@ -16,7 +16,18 @@ import {
   type WatchListSortMode,
 } from "@/utils/watch-list";
 import { useRouter } from "expo-router";
-import { useContext, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useMemo, useRef, useState } from "react";
+
+export const WatchListContext = createContext<ReturnType<
+  typeof useWatchList
+> | null>(null);
+
+export function useWatchListContext() {
+  const list = useContext(WatchListContext);
+  if (!list)
+    throw new Error("Watch list must be rendered inside WatchListContext.");
+  return list;
+}
 
 export function useWatchList() {
   const t = useAppTranslation();

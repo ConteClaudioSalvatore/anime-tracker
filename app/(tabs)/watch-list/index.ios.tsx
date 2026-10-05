@@ -1,12 +1,12 @@
-import WatchListHeader from "@/components/watch-list/header";
 import WatchListRow from "@/components/watch-list/row";
-import { useWatchList } from "@/hooks/use-watch-list";
+import { useWatchListContext } from "@/hooks/use-watch-list";
 import {
   Button,
   Divider,
   Host,
   LazyVStack,
   Mask,
+  Picker,
   Rectangle,
   ScrollView,
   Text,
@@ -22,6 +22,8 @@ import {
   frame,
   multilineTextAlignment,
   padding,
+  pickerStyle,
+  tag,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack } from "expo-router";
 import { useHeaderHeight } from "expo-router/build/react-navigation";
@@ -30,7 +32,7 @@ import { Platform, PlatformColor } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WatchListScreen() {
-  const list = useWatchList();
+  const list = useWatchListContext();
   const { t } = list;
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
@@ -74,7 +76,17 @@ export default function WatchListScreen() {
             }),
           ]}
         >
-          <WatchListHeader {...list} />
+          <Picker
+            label={t("watch.filter")}
+            selection={list.onlyInProgress ? "watching" : "all"}
+            onSelectionChange={(value) =>
+              list.setOnlyInProgress(value === "watching")
+            }
+            modifiers={[pickerStyle("segmented")]}
+          >
+            <Text modifiers={[tag("watching")]}>{t("watch.watching")}</Text>
+            <Text modifiers={[tag("all")]}>{t("watch.all")}</Text>
+          </Picker>
           <Mask
             alignment="top"
             modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}

@@ -8,7 +8,6 @@ import {
   Picker,
   Spacer,
   Text,
-  VStack,
 } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
@@ -19,11 +18,15 @@ import {
   disabled,
   frame,
   labelStyle,
-  pickerStyle,
   shapes,
   tag,
+  padding,
+  tint,
+  foregroundStyle,
+  accessibilityValue,
 } from "@expo/ui/swift-ui/modifiers";
 import type { WatchListHeaderProps } from "./types";
+import { PlatformColor } from "react-native";
 
 export default function WatchListHeader({
   hasHistory,
@@ -31,21 +34,20 @@ export default function WatchListHeader({
   onAdd,
   onExport,
   exporting,
-  onlyInProgress,
-  setOnlyInProgress,
   sortMode,
   setSortMode,
 }: WatchListHeaderProps) {
   const t = useAppTranslation();
   const actionModifiers = [
-    buttonStyle("glass"),
+    buttonStyle("bordered"),
     buttonBorderShape("circle"),
     controlSize("regular"),
     labelStyle("iconOnly"),
-    frame({ minWidth: 44, minHeight: 44 }),
+    tint("#000000aa"),
+    foregroundStyle("white"),
   ];
   const actionLabelModifiers = [
-    frame({ width: 20, height: 20 }),
+    frame({ width: 24, height: 24 }),
     contentShape(shapes.rectangle()),
   ];
   const selectedSort = watchListSortOptions.find(
@@ -53,68 +55,78 @@ export default function WatchListHeader({
   )!;
 
   return (
-    <VStack spacing={12} modifiers={[frame({ maxWidth: Infinity })]}>
-      <Picker
-        label={t("watch.filter")}
-        selection={onlyInProgress ? "watching" : "all"}
-        onSelectionChange={(value) => setOnlyInProgress(value === "watching")}
-        modifiers={[pickerStyle("segmented")]}
-      >
-        <Text modifiers={[tag("watching")]}>{t("watch.watching")}</Text>
-        <Text modifiers={[tag("all")]}>{t("watch.all")}</Text>
-      </Picker>
-      <HStack spacing={12}>
-        <Menu
-          label={t(selectedSort.labelKey)}
-          systemImage="arrow.up.arrow.down"
-          modifiers={[accessibilityLabel(t("watch.sortBy"))]}
-        >
-          <Picker
-            label={t("watch.sortBy")}
-            selection={sortMode}
-            onSelectionChange={setSortMode}
-          >
-            {watchListSortOptions.map((option) => (
-              <Text key={option.value} modifiers={[tag(option.value)]}>
-                {t(option.labelKey)}
-              </Text>
-            ))}
-          </Picker>
-        </Menu>
-        <Spacer />
-        <Button onPress={onAdd} modifiers={actionModifiers}>
+    <HStack spacing={8} modifiers={[padding({ all: 8 })]}>
+      <Menu
+        label={
           <Label
-            title={t("watch.addManually")}
-            systemImage="plus"
+            title={t("watch.sortBy")}
+            systemImage="arrow.up.arrow.down"
             modifiers={actionLabelModifiers}
           />
-        </Button>
-        <Menu
-          label={
-            <Label
-              title={t("watch.options")}
-              systemImage="ellipsis"
-              modifiers={actionLabelModifiers}
-            />
-          }
-          modifiers={actionModifiers}
+        }
+        modifiers={[
+          ...actionModifiers,
+          accessibilityLabel(t("watch.sortBy")),
+          accessibilityValue(t(selectedSort.labelKey)),
+        ]}
+      >
+        <Picker
+          label={t("watch.sortBy")}
+          selection={sortMode}
+          onSelectionChange={setSortMode}
+          modifiers={[
+            tint(PlatformColor("label")),
+            foregroundStyle(PlatformColor("label")),
+          ]}
         >
-          <Button
-            label={exporting ? t("backup.exporting") : t("backup.exportList")}
-            systemImage="square.and.arrow.up"
-            modifiers={[disabled(exporting)]}
-            onPress={onExport}
+          {watchListSortOptions.map((option) => (
+            <Text key={option.value} modifiers={[tag(option.value)]}>
+              {t(option.labelKey)}
+            </Text>
+          ))}
+        </Picker>
+      </Menu>
+      <Spacer />
+      <Button onPress={onAdd} modifiers={actionModifiers}>
+        <Label
+          title={t("watch.addManually")}
+          systemImage="plus"
+          modifiers={actionLabelModifiers}
+        />
+      </Button>
+      <Menu
+        label={
+          <Label
+            title={t("watch.options")}
+            systemImage="ellipsis"
+            modifiers={actionLabelModifiers}
           />
-          {hasHistory && (
-            <Button
-              label={t("watch.clearTitle")}
-              systemImage="trash"
-              role="destructive"
-              onPress={onClear}
-            />
-          )}
-        </Menu>
-      </HStack>
-    </VStack>
+        }
+        modifiers={actionModifiers}
+      >
+        <Button
+          label={exporting ? t("backup.exporting") : t("backup.exportList")}
+          systemImage="square.and.arrow.up"
+          modifiers={[
+            disabled(exporting),
+            tint(PlatformColor("label")),
+            foregroundStyle(PlatformColor("label")),
+          ]}
+          onPress={onExport}
+        />
+        {hasHistory && (
+          <Button
+            label={t("watch.clearTitle")}
+            systemImage="trash"
+            role="destructive"
+            modifiers={[
+              tint(PlatformColor("systemRed")),
+              foregroundStyle(PlatformColor("systemRed")),
+            ]}
+            onPress={onClear}
+          />
+        )}
+      </Menu>
+    </HStack>
   );
 }
