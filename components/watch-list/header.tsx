@@ -1,130 +1,94 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
+import { watchListSortOptions } from "@/utils/watch-list";
+import { Button, Column, Icon, Picker, Row, Spacer, Text } from "@expo/ui";
 import {
-  BottomSheet,
-  Button,
-  Column,
-  Icon,
-  Picker,
-  Row,
-  Spacer,
-  Switch,
-  Text,
-} from "@expo/ui";
-import {
-  Button as AndroidButton,
-  Badge,
-  BadgedBox,
+  SegmentedButton,
+  SingleChoiceSegmentedButtonRow,
 } from "@expo/ui/jetpack-compose";
-
-import React from "react";
+import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
 import { Platform } from "react-native";
-import { WatchListSortMode, watchListSortOptions } from "@/utils/watch-list";
+import ActionMenu from "./action-menu";
+import type { WatchListHeaderProps } from "./types";
 
-export const WatchListHeaderContext = React.createContext<{
-  isLandscape: boolean;
-  windowWidth: number;
-  anyItems: boolean;
-  onClear: () => void;
-  onlyInProgress: boolean;
-  setOnlyInProgress: (value: boolean) => void;
-  sortMode: WatchListSortMode;
-  setSortMode: (value: WatchListSortMode) => void;
-  setMenuOpen?: (value: boolean) => void;
-} | null>(null);
-
-export default function WatchListHeader() {
+export default function WatchListHeader({
+  hasHistory,
+  onClear,
+  onAdd,
+  onlyInProgress,
+  setOnlyInProgress,
+  sortMode,
+  setSortMode,
+}: WatchListHeaderProps) {
   const t = useAppTranslation();
-  const contextValue = React.useContext(WatchListHeaderContext);
-  const [menuOpen, setMenuOpen] = React.useState(false);
-
-  if (!contextValue) return null;
-
-  const {
-    anyItems,
-    onClear,
-    onlyInProgress,
-    setOnlyInProgress,
-    sortMode,
-    setSortMode,
-  } = contextValue;
+  const filters = [
+    { watching: true, label: t("watch.watching") },
+    { watching: false, label: t("watch.all") },
+  ];
 
   return (
-    <Row>
-      <Spacer flexible />
-      {anyItems && (
-        <AndroidButton
-          colors={{
-            containerColor: "#dd3333",
-            contentColor: "#ffffff",
-          }}
-          onClick={onClear}
-        >
-          <Icon
-            name={Icon.select({
-              ios: "bin.xmark",
-              android: import("@expo/material-symbols/delete.xml"),
-            })}
-          ></Icon>
-          <Text>{t("common.clear")}</Text>
-        </AndroidButton>
-      )}
+    <Column spacing={12} style={{ width: "100%" }}>
       {Platform.OS === "android" ? (
-        <BadgedBox>
-          <BadgedBox.Badge>
-            {onlyInProgress && (
-              <Badge containerColor="#00aaff" contentColor="#ffffff">
-                <Text>1</Text>
-              </Badge>
-            )}
-          </BadgedBox.Badge>
-
-          <Button variant="text" onPress={() => setMenuOpen(true)}>
-            <Text>{t("common.settings")}</Text>
-            <Icon
-              name={Icon.select({
-                ios: "slider.horizontal.3",
-                android: import("@expo/material-symbols/filter_list.xml"),
-              })}
-            />
-          </Button>
-        </BadgedBox>
+        <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
+          {filters.map((filter) => (
+            <SegmentedButton
+              key={filter.label}
+              selected={onlyInProgress === filter.watching}
+              onClick={() => setOnlyInProgress(filter.watching)}
+              modifiers={[weight(1)]}
+            >
+              <SegmentedButton.Label>
+                <Text>{filter.label}</Text>
+              </SegmentedButton.Label>
+            </SegmentedButton>
+          ))}
+        </SingleChoiceSegmentedButtonRow>
       ) : (
-        <Button variant="text" onPress={() => setMenuOpen(true)}>
-          <Text>{t("common.settings")}</Text>
+        <Row spacing={8}>
+          {filters.map((filter) => (
+            <Button
+              key={filter.label}
+              variant={
+                onlyInProgress === filter.watching ? "filled" : "outlined"
+              }
+              label={filter.label}
+              onPress={() => setOnlyInProgress(filter.watching)}
+            />
+          ))}
+        </Row>
+      )}
+      <Row alignment="center" spacing={8}>
+        <Picker selectedValue={sortMode} onValueChange={setSortMode}>
+          {watchListSortOptions.map((option) => (
+            <Picker.Item
+              key={option.value}
+              value={option.value}
+              label={t(option.labelKey)}
+            />
+          ))}
+        </Picker>
+        <Spacer flexible />
+        <Button variant="text" onPress={onAdd}>
           <Icon
             name={Icon.select({
-              ios: "slider.horizontal.3",
-              android: import("@expo/material-symbols/filter_list.xml"),
+              ios: "plus",
+              android: import("@expo/material-symbols/add.xml"),
             })}
+            accessibilityLabel={t("watch.addManually")}
           />
         </Button>
-      )}
-      <BottomSheet isPresented={menuOpen} onDismiss={() => setMenuOpen(false)}>
-        <Column spacing={8}>
-          <Row alignment="center">
-            <Text>{t("watch.sortBy")}</Text>
-            <Spacer flexible />
-            <Picker
-              appearance="menu"
-              selectedValue={sortMode}
-              onValueChange={(e) => setSortMode(e)}
-            >
-              {watchListSortOptions.map((option) => (
-                <Picker.Item
-                  key={option.value}
-                  value={option.value}
-                  label={t(option.labelKey)}
-                />
-              ))}
-            </Picker>
-          </Row>
-          <Switch
-            label={t("watch.inProgressOnly")}
-            value={onlyInProgress}
-            onValueChange={(e) => setOnlyInProgress(e)}
+        {hasHistory && (
+          <ActionMenu
+            label={t("watch.options")}
+            actions={[
+              {
+                label: t("watch.clearTitle"),
+                onPress: onClear,
+                destructive: true,
+              },
+            ]}
           />
-        </Column>
-      </BottomSheet>
-    </Row>
+        )}
+      </Row>
+    </Column>
   );
 }

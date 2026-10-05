@@ -13,6 +13,15 @@ export const watchListSortOptions: {
   { value: "name-desc", labelKey: "watch.nameDesc" },
 ];
 
+/** Unknown totals have no percentage; visited final episodes need not be finished. */
+export function watchListProgress(anime: Anime): number | undefined {
+  if (!Number.isFinite(anime.total) || anime.total! <= 0) return undefined;
+  const episode = Number.isFinite(anime.highestWatchedEpisode)
+    ? anime.highestWatchedEpisode
+    : 0;
+  return Math.min(1, Math.max(0, episode / anime.total!));
+}
+
 /** Sort a copy so filtering and rendering never reorder stored history. */
 export function sortWatchList(
   entries: [string, Anime][],

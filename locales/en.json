@@ -268,5 +268,22 @@
   "provider.deletedShort": "This provider was deleted.",
   "storage.writeFailed": "Could not save app data.",
   "storage.readFailed": "Could not read app data.",
-  "storage.removeFailed": "Could not remove app data."
+  "storage.removeFailed": "Could not remove app data.",
+  "watch.title": "Watchlist",
+  "watch.watching": "Watching",
+  "watch.all": "All",
+  "watch.filter": "Show series",
+  "watch.options": "Watchlist options",
+  "watch.rowActions": "Actions for {{name}}",
+  "watch.openSeries": "Open {{name}}",
+  "watch.episodeOf": "Episode {{episode}} of {{total}}",
+  "watch.episodeOnly": "Episode {{episode}}",
+  "watch.completed": "Completed",
+  "watch.stopped": "Stopped",
+  "watch.emptyHistoryTitle": "Your watchlist starts here",
+  "watch.emptyHistoryDetail": "Play an episode on one of your websites, or add a series manually.",
+  "watch.emptySearchTitle": "No matching series",
+  "watch.emptySearchDetail": "Try a different title or switch to All.",
+  "watch.emptyWatchingTitle": "Nothing in progress",
+  "watch.emptyWatchingDetail": "Your completed and stopped series are still in All."
 }

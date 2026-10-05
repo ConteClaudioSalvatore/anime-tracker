@@ -268,5 +268,22 @@
   "provider.deletedShort": "Questo provider è stato eliminato.",
   "storage.writeFailed": "Impossibile salvare i dati dell’app.",
   "storage.readFailed": "Impossibile leggere i dati dell’app.",
-  "storage.removeFailed": "Impossibile rimuovere i dati dell’app."
+  "storage.removeFailed": "Impossibile rimuovere i dati dell’app.",
+  "watch.title": "Lista anime",
+  "watch.watching": "In corso",
+  "watch.all": "Tutti",
+  "watch.filter": "Mostra anime",
+  "watch.options": "Opzioni della lista",
+  "watch.rowActions": "Azioni per {{name}}",
+  "watch.openSeries": "Apri {{name}}",
+  "watch.episodeOf": "Episodio {{episode}} di {{total}}",
+  "watch.episodeOnly": "Episodio {{episode}}",
+  "watch.completed": "Completato",
+  "watch.stopped": "Interrotto",
+  "watch.emptyHistoryTitle": "La tua lista anime inizia qui",
+  "watch.emptyHistoryDetail": "Guarda un episodio su uno dei tuoi siti o aggiungi un anime manualmente.",
+  "watch.emptySearchTitle": "Nessun anime trovato",
+  "watch.emptySearchDetail": "Prova un altro titolo o passa a Tutti.",
+  "watch.emptyWatchingTitle": "Nessun anime in corso",
+  "watch.emptyWatchingDetail": "Gli anime completati e interrotti sono ancora nella lista Tutti."
 }

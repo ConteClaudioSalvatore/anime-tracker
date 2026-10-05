@@ -12,6 +12,14 @@ On Android, leave an episode or an unfinished provider setup open, change the sy
 
 The automated localization tests cover locale selection, catalog completeness, interpolation, plurals, legacy runtime diagnostics, and foreground language changes with preserved Home state. They do not verify native system settings, layout, accessibility announcements, or real media playback.
 
+## Watchlist layout
+
+On iOS and Android, check the Watchlist in English and Italian, light and dark mode, portrait and landscape, and with larger system text. Verify the Watching/All control, sorting, search, Add manually button, and screen overflow menu remain usable on small screens. Long series titles must wrap without hiding the episode text or the row's ellipsis menu. On iOS, controls must use native Liquid Glass where supported and system fallbacks otherwise.
+
+Check empty history, no series in progress, and no search results separately. Clear history must remain available in the screen menu whenever history exists, even if filters hide all entries, and cancellation must preserve it. Known positive episode totals show a bounded progress bar; unknown totals show only the episode number. A full bar must not mark an unfinished final episode completed. Completed and stopped entries must have readable status text, not just a different color.
+
+Tap a row and confirm the recorded website and episode URL open, including when websites share aliases or the recorded website has been deleted. Entries without a saved URL should open the website chooser. Use each row's menu to edit progress, change its finished status, and remove it; verify confirmation, cancellation, persistence, and the default recently played order. None of these manual actions should update the playback date. With VoiceOver or TalkBack, confirm icon buttons have meaningful labels and row menus identify the series. Native appearance, scrolling, and accessibility still require device checks; bundle exports and automated tests cannot verify them.
+
 ## Provider checks
 
 On both iOS and Android:

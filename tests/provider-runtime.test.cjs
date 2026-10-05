@@ -33,7 +33,11 @@ const { WriteQueue } = require("../utils/write-queue.ts");
 const { ProviderPageChecks } = require("../utils/provider-page-checks.ts");
 const { reducer } = require("../store/app.state.ts");
 const actions = require("../store/app.actions.ts");
-const { sortWatchList, watchListSummary } = require("../utils/watch-list.ts");
+const {
+  sortWatchList,
+  watchListSummary,
+  watchListProgress,
+} = require("../utils/watch-list.ts");
 const { isAnimeFinished } = require("../utils/is-anime-finieshed.util.ts");
 const { ProviderNavigationGuard } = require("../utils/provider-navigation.ts");
 const script = fs.readFileSync(
@@ -2652,4 +2656,31 @@ test("runtime bridge accepts legacy diagnostics and rejects malformed optional d
       null,
     );
   }
+});
+
+test("watch list progress omits unknown totals and never changes completion or history", () => {
+  for (const total of [undefined, null, 0, -1, NaN, Infinity]) {
+    assert.equal(
+      watchListProgress({ highestWatchedEpisode: 8, total }),
+      undefined,
+    );
+  }
+  const anime = Object.freeze({
+    highestWatchedEpisode: 24,
+    total: 24,
+    playbackFinished: false,
+  });
+  assert.equal(watchListProgress(anime), 1);
+  assert.equal(
+    isAnimeFinished(anime),
+    false,
+    "A full bar is not evidence of completed playback",
+  );
+  assert.equal(
+    watchListProgress({ highestWatchedEpisode: 8, total: 24 }),
+    1 / 3,
+  );
+  assert.equal(watchListProgress({ highestWatchedEpisode: 30, total: 24 }), 1);
+  assert.equal(watchListProgress({ highestWatchedEpisode: -3, total: 24 }), 0);
+  assert.equal(watchListProgress({ highestWatchedEpisode: NaN, total: 24 }), 0);
 });

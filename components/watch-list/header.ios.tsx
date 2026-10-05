@@ -1,84 +1,64 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
+import { watchListSortOptions } from "@/utils/watch-list";
 import {
   Button,
   HStack,
+  Label,
   Menu,
-  Overlay,
   Picker,
   Spacer,
   Text,
-  Toggle,
+  VStack,
 } from "@expo/ui/swift-ui";
 import {
-  background,
+  accessibilityLabel,
+  buttonBorderShape,
   buttonStyle,
-  clipShape,
-  font,
-  foregroundStyle,
+  contentShape,
+  controlSize,
   frame,
   labelStyle,
-  ModifierConfig,
-  offset,
   pickerStyle,
+  shapes,
   tag,
-  tint,
 } from "@expo/ui/swift-ui/modifiers";
-import { SFSymbol } from "expo-symbols";
-import React from "react";
-import { WatchListSortMode, watchListSortOptions } from "@/utils/watch-list";
-
-export const WatchListHeaderContext = React.createContext<{
-  isLandscape: boolean;
-  windowWidth: number;
-  anyItems: boolean;
-  onClear: () => void;
-  onlyInProgress: boolean;
-  setOnlyInProgress: (value: boolean) => void;
-  sortMode: WatchListSortMode;
-  setSortMode: (value: WatchListSortMode) => void;
-} | null>(null);
+import type { WatchListHeaderProps } from "./types";
 
 export default function WatchListHeader({
-  modifiers,
-}: {
-  modifiers?: ModifierConfig[];
-}) {
+  hasHistory,
+  onClear,
+  onAdd,
+  onlyInProgress,
+  setOnlyInProgress,
+  sortMode,
+  setSortMode,
+}: WatchListHeaderProps) {
   const t = useAppTranslation();
-  const contextValue = React.useContext(WatchListHeaderContext);
-
-  if (!contextValue) return null;
-
-  const {
-    anyItems,
-    onClear,
-    onlyInProgress,
-    setOnlyInProgress,
-    sortMode,
-    setSortMode,
-  } = contextValue;
+  const selectedSort = watchListSortOptions.find(
+    (option) => option.value === sortMode,
+  )!;
 
   return (
-    <HStack modifiers={modifiers}>
-      <Spacer />
-      {anyItems && (
-        <Button
-          modifiers={[tint("#ff000044"), buttonStyle("glassProminent")]}
-          systemImage="bin.xmark"
-          label={t("common.clear")}
-          onPress={onClear}
-        />
-      )}
-      <Overlay alignment="topTrailing">
+    <VStack spacing={12} modifiers={[frame({ maxWidth: Infinity })]}>
+      <Picker
+        label={t("watch.filter")}
+        selection={onlyInProgress ? "watching" : "all"}
+        onSelectionChange={(value) => setOnlyInProgress(value === "watching")}
+        modifiers={[pickerStyle("segmented")]}
+      >
+        <Text modifiers={[tag("watching")]}>{t("watch.watching")}</Text>
+        <Text modifiers={[tag("all")]}>{t("watch.all")}</Text>
+      </Picker>
+      <HStack spacing={12}>
         <Menu
-          label={t("common.settings")}
-          modifiers={[labelStyle("titleAndIcon")]}
-          systemImage={"slider.horizontal.3" satisfies SFSymbol}
+          label={t(selectedSort.labelKey)}
+          systemImage="arrow.up.arrow.down"
+          modifiers={[accessibilityLabel(t("watch.sortBy"))]}
         >
           <Picker
-            selection={sortMode}
-            onSelectionChange={(e) => setSortMode(e)}
-            modifiers={[pickerStyle("menu")]}
             label={t("watch.sortBy")}
+            selection={sortMode}
+            onSelectionChange={setSortMode}
           >
             {watchListSortOptions.map((option) => (
               <Text key={option.value} modifiers={[tag(option.value)]}>
@@ -86,29 +66,47 @@ export default function WatchListHeader({
               </Text>
             ))}
           </Picker>
-          <Toggle
-            isOn={onlyInProgress}
-            onIsOnChange={(e) => setOnlyInProgress(e)}
-            label={t("watch.inProgressOnly")}
-          />
         </Menu>
-        <Overlay.Content>
-          {onlyInProgress && (
-            <Text
-              modifiers={[
-                font({ size: 11, weight: "bold" }),
-                foregroundStyle("#FFFFFF"),
-                frame({ width: 18, height: 18 }),
-                background("#00aaff"),
-                clipShape("circle"),
-                offset({ x: 8, y: -8 }),
-              ]}
-            >
-              1
-            </Text>
-          )}
-        </Overlay.Content>
-      </Overlay>
-    </HStack>
+        <Spacer />
+        <Button
+          label={t("watch.addManually")}
+          systemImage="plus"
+          onPress={onAdd}
+          modifiers={[
+            buttonStyle("glass"),
+            labelStyle("iconOnly"),
+            frame({ minWidth: 44, minHeight: 44 }),
+          ]}
+        />
+        {hasHistory && (
+          <Menu
+            label={
+              <Label
+                title={t("watch.options")}
+                systemImage="ellipsis"
+                modifiers={[
+                  frame({ width: 20, height: 20 }),
+                  contentShape(shapes.rectangle()),
+                ]}
+              />
+            }
+            modifiers={[
+              buttonStyle("glass"),
+              buttonBorderShape("circle"),
+              controlSize("regular"),
+              labelStyle("iconOnly"),
+              frame({ minWidth: 44, minHeight: 44 }),
+            ]}
+          >
+            <Button
+              label={t("watch.clearTitle")}
+              systemImage="trash"
+              role="destructive"
+              onPress={onClear}
+            />
+          </Menu>
+        )}
+      </HStack>
+    </VStack>
   );
 }

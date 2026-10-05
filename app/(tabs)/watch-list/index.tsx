@@ -1,86 +1,38 @@
-import { useAppTranslation } from "@/hooks/use-app-translation";
-import AnimeActions from "@/components/watch-list/anime-actions";
-import WatchListHeader, {
-  WatchListHeaderContext,
-} from "@/components/watch-list/header";
+import WatchListHeader from "@/components/watch-list/header";
+import WatchListRow from "@/components/watch-list/row";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { Anime } from "@/model";
-import { isAnimeFinished, onClearHistory, StoreContext } from "@/utils";
-import { AppStateContext } from "@/utils/app-state.util";
-import { sortWatchList, WatchListSortMode } from "@/utils/watch-list";
-import {
-  Button,
-  Column,
-  Host,
-  Icon,
-  Row,
-  ScrollView,
-  Spacer,
-  Text,
-} from "@expo/ui";
+import { useWatchList } from "@/hooks/use-watch-list";
+import { Button, Column, Host, ScrollView, Text } from "@expo/ui";
 import { HorizontalDivider } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
-
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { useHeaderHeight } from "expo-router/build/react-navigation";
-import React from "react";
-import { Platform, useWindowDimensions } from "react-native";
+import { Platform } from "react-native";
 
 export default function WatchListScreen() {
-  const t = useAppTranslation();
-  const { state: storeState, stateChanged } = React.useContext(StoreContext);
-  const { updateState } = React.useContext(AppStateContext);
-  const [searchValue, setSearchValue] = React.useState("");
-  const [onlyInProgress, setOnlyInProgress] = React.useState(true);
-  const [animeActionOpen, setAnimeActionOpen] = React.useState<Anime | null>(
-    null,
-  );
-  const [sortMode, setSortMode] = React.useState<WatchListSortMode>("recent");
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
+  const list = useWatchList();
+  const { t } = list;
   const headerHeight = useHeaderHeight();
-  const listBackgroundColor = useThemeColor(
-    { dark: "#1a1a1a", light: "#ffffff" },
+  const backgroundColor = useThemeColor(
+    { light: "#ffffff", dark: "#1c1c1e" },
     "background",
   );
-  const listTextColor = useThemeColor(
-    { dark: "#ffffff", light: "#1a1a1a" },
+  const textColor = useThemeColor({}, "text");
+  const secondaryColor = useThemeColor(
+    { light: "#62626a", dark: "#b0b0b8" },
     "text",
-  );
-
-  const isLandscape = width > height;
-
-  const filteredState = React.useMemo(
-    () =>
-      Object.entries(storeState.anime).filter(
-        ([k, v]) =>
-          k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? !(isAnimeFinished(v) || v.finished) : true),
-      ),
-    [storeState, searchValue, onlyInProgress],
-  );
-
-  const anyItems = React.useMemo(
-    () => filteredState.length > 0,
-    [filteredState],
   );
 
   return (
     <>
       <Stack.Screen
-        options={{
-          title: t("watch.history"),
-          headerStyle: {
-            backgroundColor: "transparent",
-          },
-          headerTransparent: true,
-        }}
+        options={{ title: t("watch.title"), headerTransparent: true }}
       />
       <Stack.SearchBar
         placement="automatic"
         placeholder={t("watch.search")}
         hideNavigationBar
-        onChangeText={(e) => setSearchValue(e.nativeEvent.text)}
+        onChangeText={(event) => list.setSearchValue(event.nativeEvent.text)}
       />
       <Host
         style={{
@@ -90,146 +42,84 @@ export default function WatchListScreen() {
           insetInline: 0,
         }}
       >
-        <Column alignment="center" spacing={8} style={{ padding: 8 }}>
-          <WatchListHeaderContext.Provider
-            value={{
-              isLandscape,
-              windowWidth: width,
-              anyItems,
-              onClear: () => onClearHistory(stateChanged),
-              onlyInProgress,
-              setOnlyInProgress,
-              sortMode,
-              setSortMode,
-            }}
-          >
-            <WatchListHeader />
-          </WatchListHeaderContext.Provider>
-          <Column
-            alignment="center"
-            spacing={8}
-            style={{
-              padding: 8,
-              backgroundColor: listBackgroundColor,
-              borderRadius: 16,
-            }}
-            modifiers={[weight(1)]}
-          >
-            <Row spacing={8}>
-              <Text textStyle={{ color: listTextColor }}>
-                {t("watch.anime")}
-              </Text>
-              <Spacer flexible />
-              <Text textStyle={{ color: listTextColor }}>
-                {t("watch.episode")}
-              </Text>
-              <Text textStyle={{ color: listTextColor }}>
-                {t("watch.action")}
-              </Text>
-            </Row>
-            {Platform.OS === "android" && <HorizontalDivider />}
-            <ScrollView>
-              <Column spacing={0}>
-                {anyItems ? (
-                  <>
-                    {sortWatchList(filteredState, sortMode).map(
-                      ([animeName, data]) => (
-                        <Row
-                          alignment="center"
-                          spacing={8}
-                          style={{ padding: 0 }}
-                          key={animeName}
-                        >
-                          {data.latestVisitedUrl ? (
-                            <Button
-                              variant="text"
-                              modifiers={[weight(1)]}
-                              onPress={() => {
-                                updateState(
-                                  data.latestVisitedUrl
-                                    ? {
-                                        url: data.latestVisitedUrl,
-                                        providerId: data.providerId,
-                                        reload: true,
-                                      }
-                                    : {},
-                                );
-                                router.navigate("/");
-                              }}
-                            >
-                              <Text
-                                modifiers={[fillMaxWidth()]}
-                                textStyle={{ textAlign: "left" }}
-                              >
-                                {animeName}
-                              </Text>
-                            </Button>
-                          ) : (
-                            <Text
-                              style={{ padding: 8 }}
-                              modifiers={[weight(1)]}
-                              textStyle={{ color: listTextColor }}
-                            >
-                              {animeName}
-                            </Text>
-                          )}
-                          <Text
-                            textStyle={{
-                              color: isAnimeFinished(data)
-                                ? "green"
-                                : data.finished
-                                  ? "orange"
-                                  : listTextColor,
-                            }}
-                          >
-                            {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
-                          </Text>
-                          <Button
-                            variant="text"
-                            onPress={() =>
-                              setAnimeActionOpen({
-                                ...data,
-                                name: data.name ?? animeName,
-                              })
-                            }
-                            label="⛓️"
-                          />
-                        </Row>
-                      ),
-                    )}
-                  </>
-                ) : (
-                  <Text>{t("watch.empty")}</Text>
+        <Column
+          spacing={16}
+          style={{ padding: 16, height: "100%", width: "100%" }}
+        >
+          <WatchListHeader {...list} />
+          <ScrollView style={{ width: "100%" }} modifiers={[weight(1)]}>
+            {list.items.length ? (
+              <Column
+                spacing={0}
+                style={{ backgroundColor, borderRadius: 20, width: "100%" }}
+              >
+                {list.items.map(([name, data], index) => {
+                  const anime = { ...data, name: data.name ?? name };
+                  return (
+                    <Column key={name} modifiers={[fillMaxWidth()]}>
+                      {index > 0 && Platform.OS === "android" && (
+                        <HorizontalDivider />
+                      )}
+                      <WatchListRow
+                        name={name}
+                        anime={anime}
+                        onOpen={() => list.onOpen(anime)}
+                        onEdit={() => list.onEdit(anime)}
+                        onToggleFinished={() => list.onToggleFinished(anime)}
+                        onRemove={() => list.onRemove(anime)}
+                      />
+                    </Column>
+                  );
+                })}
+              </Column>
+            ) : (
+              <Column
+                alignment="center"
+                spacing={12}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 48,
+                  width: "100%",
+                }}
+              >
+                <Text
+                  textStyle={{
+                    fontSize: 20,
+                    fontWeight: "600",
+                    color: textColor,
+                    textAlign: "center",
+                  }}
+                >
+                  {list.emptyTitle}
+                </Text>
+                <Text
+                  textStyle={{
+                    fontSize: 16,
+                    color: secondaryColor,
+                    textAlign: "center",
+                  }}
+                >
+                  {list.emptyDetail}
+                </Text>
+                {list.emptyKind === "history" && (
+                  <Button
+                    variant="outlined"
+                    label={t("watch.addManually")}
+                    onPress={list.onAdd}
+                  />
+                )}
+                {list.emptyKind === "watching" && (
+                  <Button
+                    variant="outlined"
+                    label={t("watch.all")}
+                    onPress={() => list.setOnlyInProgress(false)}
+                  />
                 )}
               </Column>
-            </ScrollView>
-          </Column>
-          <Button
-            onPress={() =>
-              router.navigate({
-                pathname: "/anime-modal",
-                params: {},
-              })
-            }
-            label={t("watch.addManually")}
-          >
-            <Icon
-              name={Icon.select({
-                ios: "plus",
-                android: import("@expo/material-symbols/add.xml"),
-              })}
-            />
-            <Text>{t("watch.addManually")}</Text>
-          </Button>
+            )}
+          </ScrollView>
         </Column>
       </Host>
-      {animeActionOpen && (
-        <AnimeActions
-          anime={animeActionOpen}
-          textColor={listTextColor}
-          onClose={() => setAnimeActionOpen(null)}
-        />
-      )}
     </>
   );
 }

@@ -1,24 +1,12 @@
-import { useAppTranslation } from "@/hooks/use-app-translation";
-import WatchListHeader, {
-  WatchListHeaderContext,
-} from "@/components/watch-list/header";
-import {
-  isAnimeFinished,
-  onAnimeAction,
-  onClearHistory,
-  StoreContext,
-} from "@/utils";
-import { AppStateContext } from "@/utils/app-state.util";
-import { sortWatchList, WatchListSortMode } from "@/utils/watch-list";
-
+import WatchListHeader from "@/components/watch-list/header";
+import WatchListRow from "@/components/watch-list/row";
+import { useWatchList } from "@/hooks/use-watch-list";
 import {
   Button,
   Divider,
   Host,
-  HStack,
   LazyVStack,
   ScrollView,
-  Spacer,
   Text,
   VStack,
 } from "@expo/ui/swift-ui";
@@ -26,191 +14,124 @@ import {
   background,
   buttonStyle,
   cornerRadius,
+  fixedSize,
+  font,
   foregroundStyle,
   frame,
   multilineTextAlignment,
   padding,
-  tint,
 } from "@expo/ui/swift-ui/modifiers";
-import { Stack, useRouter } from "expo-router";
-import React from "react";
-import { DynamicColorIOS, useWindowDimensions } from "react-native";
+import { Stack } from "expo-router";
+import { PlatformColor } from "react-native";
 
 export default function WatchListScreen() {
-  const t = useAppTranslation();
-  const { state: storeState, stateChanged } = React.useContext(StoreContext);
-  const { updateState } = React.useContext(AppStateContext);
-  const [searchValue, setSearchValue] = React.useState("");
-  const [onlyInProgress, setOnlyInProgress] = React.useState(true);
-  const [sortMode, setSortMode] = React.useState<WatchListSortMode>("recent");
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
-
-  const isLandscape = width > height;
-
-  const filteredState = React.useMemo(
-    () =>
-      Object.entries(storeState.anime).filter(
-        ([k, v]) =>
-          k.toLowerCase().includes(searchValue.toLowerCase()) &&
-          (onlyInProgress ? !(isAnimeFinished(v) || v.finished) : true),
-      ),
-    [storeState, searchValue, onlyInProgress],
-  );
-
-  const anyItems = React.useMemo(
-    () => filteredState.length > 0,
-    [filteredState],
-  );
+  const list = useWatchList();
+  const { t } = list;
 
   return (
     <>
       <Stack.Screen
-        options={{
-          title: t("watch.history"),
-          headerStyle: {
-            backgroundColor: "transparent",
-          },
-          headerTransparent: true,
-        }}
+        options={{ title: t("watch.title"), headerTransparent: true }}
       />
       <Stack.SearchBar
         placement="automatic"
         placeholder={t("watch.search")}
         hideNavigationBar
-        onChangeText={(e) => setSearchValue(e.nativeEvent.text)}
+        onChangeText={(event) => list.setSearchValue(event.nativeEvent.text)}
       />
       <Host
         style={{
           flex: 1,
+          backgroundColor: PlatformColor("systemGroupedBackgroundColor"),
         }}
       >
-        <VStack
-          spacing={8}
-          alignment="center"
-          modifiers={[padding({ horizontal: 8 })]}
-        >
-          <WatchListHeaderContext.Provider
-            value={{
-              isLandscape,
-              windowWidth: width,
-              anyItems,
-              onClear: () => onClearHistory(stateChanged),
-              onlyInProgress,
-              setOnlyInProgress,
-              sortMode,
-              setSortMode,
-            }}
-          >
-            <WatchListHeader />
-          </WatchListHeaderContext.Provider>
+        <ScrollView>
           <VStack
+            spacing={16}
             modifiers={[
-              padding({ top: 16, bottom: 8, horizontal: 8 }),
-              background(
-                DynamicColorIOS({
-                  dark: "#1a1a1a",
-                  light: "#ffffff",
-                }),
-              ),
-              cornerRadius(16),
+              padding({ horizontal: 16, top: 8, bottom: 24 }),
+              frame({ maxWidth: Infinity }),
             ]}
           >
-            <HStack>
-              <Text>{t("watch.anime")}</Text>
-              <Spacer />
-              <Text>{t("watch.episode")}</Text>
-              <Text>{t("watch.action")}</Text>
-            </HStack>
-            <Divider />
-            <ScrollView>
-              <LazyVStack spacing={8}>
-                {anyItems ? (
-                  <>
-                    {sortWatchList(filteredState, sortMode).map(
-                      ([animeName, data]) => (
-                        <HStack key={animeName}>
-                          <Button
-                            onPress={() => {
-                              updateState(
-                                data.latestVisitedUrl
-                                  ? {
-                                      url: data.latestVisitedUrl,
-                                      providerId: data.providerId,
-                                      reload: true,
-                                    }
-                                  : {},
-                              );
-                              router.navigate("/");
-                            }}
-                            modifiers={[
-                              buttonStyle("borderless"),
-                              tint(
-                                data.latestVisitedUrl
-                                  ? "rgb(0, 100, 255)"
-                                  : DynamicColorIOS({
-                                      dark: "white",
-                                      light: "black",
-                                    }),
-                              ),
-                              frame({
-                                maxWidth: Infinity,
-                                alignment: "leading",
-                              }),
-                            ]}
-                          >
-                            <Text
-                              modifiers={[multilineTextAlignment("leading")]}
-                            >
-                              {animeName}
-                            </Text>
-                          </Button>
-                          <Text
-                            modifiers={
-                              isAnimeFinished(data)
-                                ? [foregroundStyle("green")]
-                                : data.finished
-                                  ? [foregroundStyle("orange")]
-                                  : []
-                            }
-                          >
-                            {`${data.highestWatchedEpisode} / ${data.total ?? "?"}`}
-                          </Text>
-                          <Button
-                            modifiers={[buttonStyle("glass")]}
-                            onPress={() =>
-                              onAnimeAction(
-                                { ...data, name: data.name ?? animeName },
-                                router,
-                                stateChanged,
-                              )
-                            }
-                            label="⛓️"
-                          />
-                        </HStack>
-                      ),
-                    )}
-                  </>
-                ) : (
-                  <Text modifiers={[multilineTextAlignment("center")]}>
-                    {t("watch.empty")}
-                  </Text>
-                )}
+            <WatchListHeader {...list} />
+            {list.items.length ? (
+              <LazyVStack
+                spacing={0}
+                modifiers={[
+                  background(
+                    PlatformColor("secondarySystemGroupedBackgroundColor"),
+                  ),
+                  cornerRadius(20),
+                ]}
+              >
+                {list.items.map(([name, data], index) => {
+                  const anime = { ...data, name: data.name ?? name };
+                  return (
+                    <VStack key={name} spacing={0}>
+                      {index > 0 && (
+                        <Divider modifiers={[padding({ horizontal: 16 })]} />
+                      )}
+                      <WatchListRow
+                        name={name}
+                        anime={anime}
+                        onOpen={() => list.onOpen(anime)}
+                        onEdit={() => list.onEdit(anime)}
+                        onToggleFinished={() => list.onToggleFinished(anime)}
+                        onRemove={() => list.onRemove(anime)}
+                      />
+                    </VStack>
+                  );
+                })}
               </LazyVStack>
-            </ScrollView>
+            ) : (
+              <VStack
+                spacing={12}
+                modifiers={[
+                  padding({ horizontal: 16, vertical: 48 }),
+                  frame({ maxWidth: Infinity }),
+                ]}
+              >
+                <Text
+                  modifiers={[
+                    font({ textStyle: "title3", weight: "semibold" }),
+                    multilineTextAlignment("center"),
+                    fixedSize({ horizontal: false, vertical: true }),
+                  ]}
+                >
+                  {list.emptyTitle}
+                </Text>
+                <Text
+                  modifiers={[
+                    font({ textStyle: "body" }),
+                    foregroundStyle({
+                      type: "hierarchical",
+                      style: "secondary",
+                    }),
+                    multilineTextAlignment("center"),
+                    fixedSize({ horizontal: false, vertical: true }),
+                  ]}
+                >
+                  {list.emptyDetail}
+                </Text>
+                {list.emptyKind === "history" && (
+                  <Button
+                    label={t("watch.addManually")}
+                    systemImage="plus"
+                    onPress={list.onAdd}
+                    modifiers={[buttonStyle("glass")]}
+                  />
+                )}
+                {list.emptyKind === "watching" && (
+                  <Button
+                    label={t("watch.all")}
+                    onPress={() => list.setOnlyInProgress(false)}
+                    modifiers={[buttonStyle("glass")]}
+                  />
+                )}
+              </VStack>
+            )}
           </VStack>
-          <Button
-            modifiers={[buttonStyle("glassProminent"), tint("#0088ff88")]}
-            onPress={() =>
-              router.navigate({
-                pathname: "/anime-modal",
-                params: {},
-              })
-            }
-            label={t("watch.addManually")}
-            systemImage="plus"
-          />
-        </VStack>
+        </ScrollView>
       </Host>
     </>
   );
