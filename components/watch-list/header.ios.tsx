@@ -16,6 +16,7 @@ import {
   buttonStyle,
   contentShape,
   controlSize,
+  disabled,
   frame,
   labelStyle,
   pickerStyle,
@@ -28,6 +29,8 @@ export default function WatchListHeader({
   hasHistory,
   onClear,
   onAdd,
+  onExport,
+  exporting,
   onlyInProgress,
   setOnlyInProgress,
   sortMode,
@@ -78,34 +81,40 @@ export default function WatchListHeader({
             frame({ minWidth: 44, minHeight: 44 }),
           ]}
         />
-        {hasHistory && (
-          <Menu
-            label={
-              <Label
-                title={t("watch.options")}
-                systemImage="ellipsis"
-                modifiers={[
-                  frame({ width: 20, height: 20 }),
-                  contentShape(shapes.rectangle()),
-                ]}
-              />
-            }
-            modifiers={[
-              buttonStyle("glass"),
-              buttonBorderShape("circle"),
-              controlSize("regular"),
-              labelStyle("iconOnly"),
-              frame({ minWidth: 44, minHeight: 44 }),
-            ]}
-          >
+        <Menu
+          label={
+            <Label
+              title={t("watch.options")}
+              systemImage="ellipsis"
+              modifiers={[
+                frame({ width: 20, height: 20 }),
+                contentShape(shapes.rectangle()),
+              ]}
+            />
+          }
+          modifiers={[
+            buttonStyle("glass"),
+            buttonBorderShape("circle"),
+            controlSize("regular"),
+            labelStyle("iconOnly"),
+            frame({ minWidth: 44, minHeight: 44 }),
+          ]}
+        >
+          <Button
+            label={exporting ? t("backup.exporting") : t("backup.exportList")}
+            systemImage="square.and.arrow.up"
+            modifiers={[disabled(exporting)]}
+            onPress={onExport}
+          />
+          {hasHistory && (
             <Button
               label={t("watch.clearTitle")}
               systemImage="trash"
               role="destructive"
               onPress={onClear}
             />
-          </Menu>
-        )}
+          )}
+        </Menu>
       </HStack>
     </VStack>
   );

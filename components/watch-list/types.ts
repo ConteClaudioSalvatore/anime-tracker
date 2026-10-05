@@ -5,6 +5,8 @@ export interface WatchListHeaderProps {
   hasHistory: boolean;
   onClear: () => void;
   onAdd: () => void;
+  onExport: () => void;
+  exporting: boolean;
   onlyInProgress: boolean;
   setOnlyInProgress: (value: boolean) => void;
   sortMode: WatchListSortMode;

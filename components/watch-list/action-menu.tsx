@@ -7,7 +7,12 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface ActionMenuProps {
   label: string;
-  actions: { label: string; onPress: () => void; destructive?: boolean }[];
+  actions: {
+    label: string;
+    onPress: () => void;
+    destructive?: boolean;
+    disabled?: boolean;
+  }[];
 }
 
 export default function ActionMenu({ label, actions }: ActionMenuProps) {
@@ -47,6 +52,7 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
           {actions.map((action) => (
             <DropdownMenuItem
               key={action.label}
+              enabled={!action.disabled}
               onClick={() => select(action.onPress)}
               elementColors={
                 action.destructive ? { textColor: destructiveColor } : undefined
@@ -71,6 +77,7 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
           {actions.map((action) => (
             <Button
               key={action.label}
+              disabled={action.disabled}
               variant="text"
               label={action.label}
               onPress={() => select(action.onPress)}

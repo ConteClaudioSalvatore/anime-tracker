@@ -14,6 +14,8 @@ export default function WatchListHeader({
   hasHistory,
   onClear,
   onAdd,
+  onExport,
+  exporting,
   onlyInProgress,
   setOnlyInProgress,
   sortMode,
@@ -76,18 +78,25 @@ export default function WatchListHeader({
             accessibilityLabel={t("watch.addManually")}
           />
         </Button>
-        {hasHistory && (
-          <ActionMenu
-            label={t("watch.options")}
-            actions={[
-              {
-                label: t("watch.clearTitle"),
-                onPress: onClear,
-                destructive: true,
-              },
-            ]}
-          />
-        )}
+        <ActionMenu
+          label={t("watch.options")}
+          actions={[
+            {
+              label: exporting ? t("backup.exporting") : t("backup.exportList"),
+              onPress: onExport,
+              disabled: exporting,
+            },
+            ...(hasHistory
+              ? [
+                  {
+                    label: t("watch.clearTitle"),
+                    onPress: onClear,
+                    destructive: true,
+                  },
+                ]
+              : []),
+          ]}
+        />
       </Row>
     </Column>
   );

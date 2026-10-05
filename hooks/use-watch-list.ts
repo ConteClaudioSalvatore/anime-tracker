@@ -9,9 +9,10 @@ import {
   StoreContext,
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
+import { exportWatchList } from "@/utils/backup.util";
 import { sortWatchList, type WatchListSortMode } from "@/utils/watch-list";
 import { useRouter } from "expo-router";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useRef, useState } from "react";
 
 export function useWatchList() {
   const t = useAppTranslation();
@@ -21,6 +22,8 @@ export function useWatchList() {
   const [searchValue, setSearchValue] = useState("");
   const [onlyInProgress, setOnlyInProgress] = useState(true);
   const [sortMode, setSortMode] = useState<WatchListSortMode>("recent");
+  const [exporting, setExporting] = useState(false);
+  const exportInFlight = useRef(false);
   const hasHistory = Object.keys(state.anime).length > 0;
   const items = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
@@ -54,10 +57,24 @@ export function useWatchList() {
         : "watch.emptyWatchingDetail",
   );
 
+  async function exportSummary() {
+    if (exportInFlight.current) return;
+    exportInFlight.current = true;
+    setExporting(true);
+    try {
+      await exportWatchList();
+    } finally {
+      exportInFlight.current = false;
+      setExporting(false);
+    }
+  }
+
   return {
     t,
     items,
     hasHistory,
+    exporting,
+    onExport: exportSummary,
     setSearchValue,
     onlyInProgress,
     setOnlyInProgress,

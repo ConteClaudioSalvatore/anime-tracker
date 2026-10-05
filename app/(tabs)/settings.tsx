@@ -1,11 +1,7 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
-import {
-  exportWatchList,
-  restoreBackup,
-  saveBackup,
-} from "@/utils/backup.util";
+import { restoreBackup, saveBackup } from "@/utils/backup.util";
 import { Button, Column, Host, Icon, Row, Spacer, Text } from "@expo/ui";
 import React from "react";
 import { StatusBar } from "react-native";
@@ -13,16 +9,6 @@ import { StatusBar } from "react-native";
 export default function SettingsScreen() {
   const t = useAppTranslation();
   const { stateChanged } = React.useContext(StoreContext);
-  const [exporting, setExporting] = React.useState(false);
-
-  async function exportSummary() {
-    setExporting(true);
-    try {
-      await exportWatchList();
-    } finally {
-      setExporting(false);
-    }
-  }
 
   return (
     <Host
@@ -35,18 +21,6 @@ export default function SettingsScreen() {
     >
       <Column alignment="center" style={{ padding: 8 }}>
         <SettingsProviders />
-        <Button variant="text" disabled={exporting} onPress={exportSummary}>
-          <Icon
-            name={Icon.select({
-              ios: "square.and.arrow.up",
-              android: import("@expo/material-symbols/upload.xml"),
-            })}
-          />
-          <Text>
-            {exporting ? t("backup.exporting") : t("backup.exportList")}
-          </Text>
-        </Button>
-        <Text>{t("backup.exportHelp")}</Text>
         <Spacer />
         <Row alignment="center" style={{ padding: 8 }} spacing={8}>
           <Button
