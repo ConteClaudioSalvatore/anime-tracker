@@ -1,24 +1,21 @@
+import { translate as t } from "@/utils/i18n";
 import { Alert } from "react-native";
 import { AppStore } from "./app-store.util";
 
 export function restoreBackup(callback: () => void): void {
-  Alert.alert(
-    "Restore BACKUP",
-    "Are you sure to restore the previous backup? This will override your current data.",
-    [
-      {
-        text: "Cancel",
-        style: "cancel",
+  Alert.alert(t("backup.restoreTitle"), t("backup.restoreConfirm"), [
+    {
+      text: t("common.cancel"),
+      style: "cancel",
+    },
+    {
+      text: t("backup.proceed"),
+      style: "destructive",
+      onPress: async () => {
+        await AppStore.RestoreBackup().then(callback);
       },
-      {
-        text: "Proceed",
-        style: "destructive",
-        onPress: async () => {
-          await AppStore.RestoreBackup().then(callback);
-        },
-      },
-    ],
-  );
+    },
+  ]);
 }
 
 export async function saveBackup(): Promise<void> {
@@ -29,9 +26,6 @@ export async function exportWatchList(): Promise<void> {
   try {
     await AppStore.ExportWatchList();
   } catch {
-    Alert.alert(
-      "Could not export watch list",
-      "Check that storage and system sharing are available, then try again.",
-    );
+    Alert.alert(t("backup.exportFailed"), t("backup.exportFailedHelp"));
   }
 }

@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { AccessoryContext, AppStateContext } from "@/utils";
 import {
   Button,
@@ -22,6 +23,7 @@ import React from "react";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function NavigationAccessory() {
+  const t = useAppTranslation();
   const isInline = NativeTabs.BottomAccessory.usePlacement() === "inline";
   const { webViewRef } = React.useContext(AccessoryContext);
   const {
@@ -54,7 +56,7 @@ export default function NavigationAccessory() {
                 buttonBorderShape("circle"),
                 foregroundStyle("white"),
               ]}
-              label="back"
+              label={t("common.back")}
               onPress={() => webViewRef?.current?.goBack()}
               systemImage="lessthan"
             />
@@ -72,7 +74,7 @@ export default function NavigationAccessory() {
                 foregroundStyle("white"),
               ]}
               systemImage="greaterthan"
-              label="forward"
+              label={t("common.forward")}
               onPress={() => webViewRef?.current?.goForward()}
             />
           )}
@@ -82,7 +84,7 @@ export default function NavigationAccessory() {
           <Menu
             label={
               <Label
-                title="Website controls"
+                title={t("navigation.websiteControls")}
                 systemImage="ellipsis"
                 modifiers={[padding({ all: 8 })]}
               />
@@ -97,7 +99,7 @@ export default function NavigationAccessory() {
             ]}
           >
             <Button
-              label="Websites"
+              label={t("navigation.websites")}
               systemImage="globe"
               onPress={() =>
                 updateState((previous) => ({
@@ -107,7 +109,7 @@ export default function NavigationAccessory() {
               }
             />
             <Button
-              label="Playback details"
+              label={t("navigation.playbackDetails")}
               systemImage="info.circle"
               onPress={() =>
                 updateState((previous) => ({
@@ -129,7 +131,7 @@ export default function NavigationAccessory() {
                 foregroundStyle("white"),
               ]}
               systemImage="globe"
-              label="Websites"
+              label={t("navigation.websites")}
               onPress={() =>
                 updateState((previous) => ({
                   ...previous,
@@ -147,7 +149,7 @@ export default function NavigationAccessory() {
                 foregroundStyle("white"),
               ]}
               systemImage="info.circle"
-              label="Playback details"
+              label={t("navigation.playbackDetails")}
               onPress={() =>
                 updateState((previous) => ({
                   ...previous,
@@ -167,7 +169,7 @@ export default function NavigationAccessory() {
             foregroundStyle("white"),
           ]}
           systemImage="arrow.2.circlepath"
-          label="Reload"
+          label={t("common.reload")}
           onPress={() => webViewRef?.current?.reload()}
         />
       </HStack>

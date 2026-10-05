@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Text, View } from "react-native";
 import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-creator";
 import ActionButton from "./action-button";
@@ -11,6 +12,7 @@ type Props = {
   >;
 };
 export function WebsiteStep({ creator }: Props) {
+  const t = useAppTranslation();
   const { colors, edit, changeWebsite, state, actions } = creator;
   const { draft, aliasInput } = state.setup;
   const { advanced } = state.wizard;
@@ -23,10 +25,10 @@ export function WebsiteStep({ creator }: Props) {
   );
   return (
     <>
-      {copy("Provider name")}
+      {copy(t("provider.name"))}
       <ProviderInput
-        accessibilityLabel="Provider name"
-        placeholder="My anime website"
+        accessibilityLabel={t("provider.name")}
+        placeholder={t("provider.namePlaceholder")}
         placeholderTextColor={colors.muted}
         value={draft.name ?? ""}
         onChangeText={(name) => edit({ ...draft, name })}
@@ -35,9 +37,9 @@ export function WebsiteStep({ creator }: Props) {
           { color: colors.text, borderColor: colors.border },
         ]}
       />
-      {copy("Homepage address")}
+      {copy(t("provider.homepage"))}
       <ProviderInput
-        accessibilityLabel="Homepage address"
+        accessibilityLabel={t("provider.homepage")}
         placeholder="https://example.com"
         placeholderTextColor={colors.muted}
         value={draft.origin ?? ""}
@@ -50,23 +52,17 @@ export function WebsiteStep({ creator }: Props) {
           { color: colors.text, borderColor: colors.border },
         ]}
       />
-      {copy(
-        "Paste the homepage URL from your browser. HTTPS is added if you leave it out.",
-        true,
-      )}
+      {copy(t("provider.homepageHelp"), true)}
       <ActionButton
         expanded={advanced}
-        label="Approved website aliases"
+        label={t("provider.aliases")}
         onPress={() => updateWizard({ advanced: !advanced })}
       />
       {advanced && (
         <View style={[styles.expandedTools, { borderColor: colors.border }]}>
-          {copy(
-            "Only add other website addresses that this provider should be allowed to open. Separate addresses with commas. Embedded players do not need an alias.",
-            true,
-          )}
+          {copy(t("provider.aliasHelp"), true)}
           <ProviderInput
-            accessibilityLabel="Approved website aliases"
+            accessibilityLabel={t("provider.aliases")}
             placeholder="https://mirror.example.com"
             placeholderTextColor={colors.muted}
             value={aliasInput}
@@ -88,7 +84,7 @@ export function WebsiteStep({ creator }: Props) {
               {copy(origin)}
               <ActionButton
                 variant="tertiary"
-                label={"Remove alias " + origin}
+                label={t("provider.removeAlias", { origin })}
                 onPress={() =>
                   edit({
                     ...draft,

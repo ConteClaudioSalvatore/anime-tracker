@@ -1,3 +1,4 @@
+import type { TranslationKey } from "./i18n";
 import type { Anime } from "../model/anime.model";
 import { isAnimeFinished } from "./is-anime-finieshed.util";
 
@@ -5,11 +6,11 @@ export type WatchListSortMode = "recent" | "name-asc" | "name-desc";
 
 export const watchListSortOptions: {
   value: WatchListSortMode;
-  label: string;
+  labelKey: TranslationKey;
 }[] = [
-  { value: "recent", label: "Recently played" },
-  { value: "name-asc", label: "A–Z" },
-  { value: "name-desc", label: "Z–A" },
+  { value: "recent", labelKey: "watch.recent" },
+  { value: "name-asc", labelKey: "watch.nameAsc" },
+  { value: "name-desc", labelKey: "watch.nameDesc" },
 ];
 
 /** Sort a copy so filtering and rendering never reorder stored history. */

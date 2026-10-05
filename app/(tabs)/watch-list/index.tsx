@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import AnimeActions from "@/components/watch-list/anime-actions";
 import WatchListHeader, {
   WatchListHeaderContext,
@@ -26,6 +27,7 @@ import React from "react";
 import { Platform, useWindowDimensions } from "react-native";
 
 export default function WatchListScreen() {
+  const t = useAppTranslation();
   const { state: storeState, stateChanged } = React.useContext(StoreContext);
   const { updateState } = React.useContext(AppStateContext);
   const [searchValue, setSearchValue] = React.useState("");
@@ -67,7 +69,7 @@ export default function WatchListScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Watch History",
+          title: t("watch.history"),
           headerStyle: {
             backgroundColor: "transparent",
           },
@@ -76,7 +78,7 @@ export default function WatchListScreen() {
       />
       <Stack.SearchBar
         placement="automatic"
-        placeholder="Search Watch List"
+        placeholder={t("watch.search")}
         hideNavigationBar
         onChangeText={(e) => setSearchValue(e.nativeEvent.text)}
       />
@@ -114,10 +116,16 @@ export default function WatchListScreen() {
             modifiers={[weight(1)]}
           >
             <Row spacing={8}>
-              <Text textStyle={{ color: listTextColor }}>Anime</Text>
+              <Text textStyle={{ color: listTextColor }}>
+                {t("watch.anime")}
+              </Text>
               <Spacer flexible />
-              <Text textStyle={{ color: listTextColor }}>Episode</Text>
-              <Text textStyle={{ color: listTextColor }}>Action</Text>
+              <Text textStyle={{ color: listTextColor }}>
+                {t("watch.episode")}
+              </Text>
+              <Text textStyle={{ color: listTextColor }}>
+                {t("watch.action")}
+              </Text>
             </Row>
             {Platform.OS === "android" && <HorizontalDivider />}
             <ScrollView>
@@ -191,7 +199,7 @@ export default function WatchListScreen() {
                     )}
                   </>
                 ) : (
-                  <Text>nothing to see here 👁️👄👁️</Text>
+                  <Text>{t("watch.empty")}</Text>
                 )}
               </Column>
             </ScrollView>
@@ -203,7 +211,7 @@ export default function WatchListScreen() {
                 params: {},
               })
             }
-            label="Add manually"
+            label={t("watch.addManually")}
           >
             <Icon
               name={Icon.select({
@@ -211,7 +219,7 @@ export default function WatchListScreen() {
                 android: import("@expo/material-symbols/add.xml"),
               })}
             />
-            <Text>Add manually</Text>
+            <Text>{t("watch.addManually")}</Text>
           </Button>
         </Column>
       </Host>

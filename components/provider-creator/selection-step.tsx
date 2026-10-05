@@ -1,3 +1,5 @@
+import { selectionFeedback } from "@/utils/runtime-feedback";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Text, View } from "react-native";
 import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-creator";
 import ActionButton from "./action-button";
@@ -11,6 +13,7 @@ type Props = {
   >;
 };
 export function SelectionStep({ creator }: Props) {
+  const t = useAppTranslation();
   const { colors, field, state, actions, browser } = creator;
   const { saving } = state.setup;
   const { advanced } = state.wizard;
@@ -27,31 +30,32 @@ export function SelectionStep({ creator }: Props) {
     <>
       {copy(
         candidate
-          ? candidate.count +
-              " matches · " +
-              candidate.texts.slice(0, 6).join(", ")
-          : "No selection yet",
+          ? t("creator.matches", {
+              count: candidate.count,
+              texts: candidate.texts.slice(0, 6).join(", "),
+            })
+          : t("creator.noSelection"),
         true,
       )}
       {candidate?.valid &&
         copy(
           field === "totalEpisodesSelector" && candidate.values[0] === null
-            ? "Total not announced yet. Progress tracking will still work."
-            : "Selection looks good. Continue when the preview matches the website.",
+            ? t("creator.unknownTotalHelp")
+            : t("creator.selectionGood"),
         )}
-      {candidate?.error && copy(candidate.error)}
+      {candidate?.error && copy(selectionFeedback(candidate, t))}
       {candidate && (
         <ActionButton
           variant="tertiary"
-          label="Change selection"
-          accessibilityLabel="Choose again"
+          label={t("creator.changeSelection")}
+          accessibilityLabel={t("creator.chooseAgain")}
           onPress={startSelection}
           disabled={!ready || saving}
         />
       )}
       <ActionButton
         expanded={advanced}
-        label="Selection tools"
+        label={t("creator.selectionTools")}
         onPress={() => updateWizard({ advanced: !advanced })}
         disabled={saving}
       />
@@ -60,21 +64,21 @@ export function SelectionStep({ creator }: Props) {
           <View style={styles.row}>
             <ActionButton
               variant="tertiary"
-              label="Parent"
-              accessibilityLabel="Select surrounding element"
+              label={t("creator.parent")}
+              accessibilityLabel={t("creator.selectParent")}
               onPress={() => send({ type: "parent" })}
               disabled={!select || saving}
             />
             <ActionButton
               variant="tertiary"
-              label={"Undo"}
+              label={t("creator.undo")}
               onPress={() => send({ type: "undo" })}
               disabled={!select || saving}
             />
           </View>
-          {copy("CSS selector", true)}
+          {copy(t("creator.cssSelector"), true)}
           <ProviderInput
-            accessibilityLabel="CSS selector"
+            accessibilityLabel={t("creator.cssSelector")}
             value={manualSelector}
             autoCapitalize="none"
             autoCorrect={false}
@@ -92,7 +96,7 @@ export function SelectionStep({ creator }: Props) {
           {
             <ActionButton
               variant="tertiary"
-              label={"Test selector"}
+              label={t("creator.testSelector")}
               onPress={testSelector}
               disabled={!ready || saving}
             />

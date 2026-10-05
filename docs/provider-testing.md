@@ -2,6 +2,18 @@
 
 Run `npm test`, `npx tsc --noEmit`, and `npm run lint`. Tests execute the production runtime against local HTML fixtures. Media timing is controlled in the fixtures; native playback must also be checked on a device.
 
+## English and Italian
+
+Rebuild the development apps after adding `expo-localization`; a JavaScript reload does not install the native module or declare the supported system languages. The app follows the phone or OS per-app language preferences, selects the first supported English or Italian locale, and falls back to English. There is no in-app language selector.
+
+On rebuilt iOS and Android apps, check both languages in tabs, website selection, playback details, Watch List, anime editing, Settings, provider creation, confirmation dialogs, and accessibility labels. Verify Italian text wraps comfortably on small screens and with Dynamic Type; native buttons, Liquid Glass surfaces, expandable controls, and editable text fields must remain usable. Check singular and plural episode counts, unknown totals, example failures, and loading errors. Provider names, series titles, addresses, selectors, and website content must remain unchanged.
+
+On Android, leave an episode or an unfinished provider setup open, change the system language, and return to the app. Existing feedback must update without clearing the setup, replacing the browser session, reloading the website, or interrupting playback. Confirm stored positions, navigation approvals, provider startup behavior, tab minimization, backups, and exports still work. On iOS, verify the OS per-app language setting and the language shown after the system restarts the app. Repeat with an unsupported preferred language and English or Italian later in the preference list, then with no supported language to confirm English fallback.
+
+The automated localization tests cover locale selection, catalog completeness, interpolation, plurals, legacy runtime diagnostics, and foreground language changes with preserved Home state. They do not verify native system settings, layout, accessibility announcements, or real media playback.
+
+## Provider checks
+
 On both iOS and Android:
 
 1. Start with no providers. Confirm the Websites screen offers Add provider and no preconfigured website.

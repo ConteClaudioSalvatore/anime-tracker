@@ -1,3 +1,4 @@
+import { translate, type Translator } from "@/utils/i18n";
 import { Anime } from "@/model";
 import { computeTimeStamp } from "./compute-time-stamp.util";
 import { Alert } from "react-native";
@@ -7,22 +8,30 @@ import { AppStore } from "./app-store.util";
 import { toggleAnimeFinished } from "@/store/app.actions";
 import { isAnimeFinished } from "./is-anime-finieshed.util";
 
-export function getAnimeActionContext(anime: Anime): {
+export function getAnimeActionContext(
+  anime: Anime,
+  t: Translator = translate,
+): {
   finishedText: string;
   timeText: string;
 } {
   let timeText = "";
   if (anime.episodeProgress?.[anime.latestWatchedEpisode]) {
-    timeText = `\nTime: ${computeTimeStamp(anime.episodeProgress?.[anime.latestWatchedEpisode]?.progress ?? 0)}`;
+    timeText = t("watch.time", {
+      time: computeTimeStamp(
+        anime.episodeProgress?.[anime.latestWatchedEpisode]?.progress ?? 0,
+      ),
+    });
     if (anime.episodeProgress[anime.latestWatchedEpisode].total)
       timeText = timeText.concat(
         ` / ${computeTimeStamp(anime.episodeProgress[anime.latestWatchedEpisode]?.total ?? 0)}`,
       );
   }
-  let finishedText = "Drop Anime";
+  let finishedText = t("watch.drop");
   if (anime.latestWatchedEpisode === anime.total)
-    finishedText = "Mark as finished";
-  if (anime.finished || isAnimeFinished(anime)) finishedText = "Resume Anime";
+    finishedText = t("watch.finish");
+  if (anime.finished || isAnimeFinished(anime))
+    finishedText = t("watch.resume");
 
   return { finishedText, timeText };
 }
@@ -32,17 +41,20 @@ export function onAnimeAction(
   router: ImperativeRouter,
   callback: () => void,
 ): void {
-  const { finishedText, timeText } = getAnimeActionContext(anime);
+  const t = translate;
+  const { finishedText, timeText } = getAnimeActionContext(anime, t);
   Alert.alert(
-    "Actions",
-    `Latest watched episode: ${anime.latestWatchedEpisode}`.concat(timeText),
+    t("common.actions"),
+    t("watch.latestEpisode", { episode: anime.latestWatchedEpisode }).concat(
+      timeText,
+    ),
     [
       {
-        text: "Cancel",
+        text: t("common.cancel"),
         style: "cancel",
       },
       {
-        text: "Edit",
+        text: t("common.edit"),
         style: "default",
         onPress: () => {
           router.navigate({
@@ -64,7 +76,7 @@ export function onAnimeAction(
         },
       },
       {
-        text: "Remove",
+        text: t("common.remove"),
         style: "destructive",
         onPress: () => onAnimeRemove(anime.name, callback),
       },

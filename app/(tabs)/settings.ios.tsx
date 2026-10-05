@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
 import {
@@ -27,6 +28,7 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { useWindowDimensions } from "react-native";
 
 export default function SettingsScreen() {
+  const t = useAppTranslation();
   const { stateChanged } = React.useContext(StoreContext);
   const { width } = useWindowDimensions();
   const [exporting, setExporting] = React.useState(false);
@@ -59,15 +61,11 @@ export default function SettingsScreen() {
         <Form>
           <SettingsProviders />
           <Section
-            title="Watch list export"
-            footer={
-              <Text>
-                Series names, episode progress, and completion status only.
-              </Text>
-            }
+            title={t("backup.exportSection")}
+            footer={<Text>{t("backup.exportHelp")}</Text>}
           >
             <Button
-              label={exporting ? "Exporting…" : "Export watch list"}
+              label={exporting ? t("backup.exporting") : t("backup.exportList")}
               systemImage="square.and.arrow.up"
               modifiers={[
                 buttonStyle(isLiquidGlassAvailable() ? "glass" : "bordered"),
@@ -80,7 +78,7 @@ export default function SettingsScreen() {
         </Form>
         <HStack>
           <Button
-            label="BACKUP"
+            label={t("backup.backup")}
             systemImage="square.and.arrow.up"
             modifiers={[
               buttonStyle("glassProminent"),
@@ -96,7 +94,7 @@ export default function SettingsScreen() {
               controlSize("large"),
             ]}
             systemImage="square.and.arrow.down"
-            label="RESTORE BACKUP"
+            label={t("backup.restore")}
             onPress={() => restoreBackup(stateChanged)}
           />
         </HStack>

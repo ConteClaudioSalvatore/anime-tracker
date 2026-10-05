@@ -1,3 +1,5 @@
+import { useAppLocalization } from "@/hooks/use-app-localization";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
@@ -14,6 +16,8 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  useAppLocalization();
+  const t = useAppTranslation();
   const colorScheme = useColorScheme();
 
   const [storeState, setStoreState] = React.useState<AppStoreState>({
@@ -70,12 +74,12 @@ export default function RootLayout() {
                 name="anime-modal"
                 options={{
                   presentation: "modal",
-                  title: "Add/Edit Anime",
+                  title: t("navigation.animeModal"),
                 }}
               />
               <Stack.Screen
                 name="provider-creator"
-                options={{ presentation: "modal", title: "Add provider" }}
+                options={{ presentation: "modal", title: t("provider.add") }}
               />
             </Stack>
             <StatusBar style="auto" />

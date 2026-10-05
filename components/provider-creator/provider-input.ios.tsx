@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
 import { Host, TextField, useNativeState } from "@expo/ui/swift-ui";
 import {
@@ -20,6 +21,7 @@ export default function ProviderInput({
   autoCorrect,
   autoCapitalize,
 }: TextInputProps) {
+  const t = useAppTranslation();
   const text = useNativeState(value);
   React.useEffect(() => {
     text.set(value);
@@ -40,7 +42,7 @@ export default function ProviderInput({
             autoCapitalize === "none" ? "never" : "sentences",
           ),
           autocorrectionDisabled(autoCorrect === false),
-          accessibilityLabel(label ?? placeholder ?? "Text input"),
+          accessibilityLabel(label ?? placeholder ?? t("common.textInput")),
         ]}
       />
     </Host>

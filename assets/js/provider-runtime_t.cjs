@@ -77,7 +77,9 @@
       )
       .replace(/\s*(?:episodes?|episodi)$/i, "")
       .trim();
-    return /^(?:[?\s]+|[-–—…]+|\.{2,}|n\/?a|tba|tbd|unknown|ongoing|not (?:yet )?(?:announced|available|known|specified)|to be (?:announced|determined)|sconosciut[oa]|in corso|da (?:annunciare|definire|determinare))$/i.test(label);
+    return /^(?:[?\s]+|[-–—…]+|\.{2,}|n\/?a|tba|tbd|unknown|ongoing|not (?:yet )?(?:announced|available|known|specified)|to be (?:announced|determined)|sconosciut[oa]|in corso|da (?:annunciare|definire|determinare))$/i.test(
+      label,
+    );
   };
   function query(selector, doc = document) {
     try {
@@ -154,6 +156,7 @@
         values: [],
         valid: false,
         error: "This selection cannot be read. Choose it again.",
+        errorCode: "unreadable-selection",
       };
     }
     const texts = elements.map(text),
@@ -176,6 +179,13 @@
         .map((value) => (Number.isFinite(value) ? value : null))
         .slice(0, 50),
       valid,
+      errorCode: valid
+        ? undefined
+        : kind === "seriesNameSelector"
+          ? "choose-title"
+          : kind === "totalEpisodesSelector"
+            ? "choose-total"
+            : "choose-episodes",
       error: valid
         ? undefined
         : kind === "seriesNameSelector"
@@ -238,6 +248,9 @@
       errors: [title, episodes, total]
         .filter((item) => !item.valid)
         .map((item) => item.error),
+      errorCodes: [title, episodes, total]
+        .filter((item) => !item.valid)
+        .map((item) => item.errorCode),
     };
   }
   function highlightEpisodeProgress() {
@@ -414,7 +427,9 @@
       item.locator.framePath.length <= 8 &&
       item.locator.framePath.every((part) => typeof part === "string") &&
       [item.time, item.duration, item.playbackAt].every(Number.isFinite) &&
-      item.time >= 0 && item.duration >= 0 && item.playbackAt >= 0 &&
+      item.time >= 0 &&
+      item.duration >= 0 &&
+      item.playbackAt >= 0 &&
       [item.progress, item.resume, item.playing, item.seekable].every(
         (value) => typeof value === "boolean",
       )
@@ -425,20 +440,29 @@
     if (!data || data.channel !== frameChannel || data.sessionId !== sessionId)
       return;
     if (!isMainFrame && event.source === window.parent) {
-      if (data.type === "bind" &&
-        typeof data.documentId === "string" && typeof data.token === "string") {
+      if (
+        data.type === "bind" &&
+        typeof data.documentId === "string" &&
+        typeof data.token === "string"
+      ) {
         parentBinding = { documentId: data.documentId, token: data.token };
       } else if (
-        data.type === "command" && parentBinding &&
-        data.documentId === parentBinding.documentId && data.token === parentBinding.token &&
+        data.type === "command" &&
+        parentBinding &&
+        data.documentId === parentBinding.documentId &&
+        data.token === parentBinding.token &&
         data.childDocumentId === documentId &&
-        ["choosePlayer", "testSeek", "seekTo", "resetPlayerTest"].includes(data.command?.type)
+        ["choosePlayer", "testSeek", "seekTo", "resetPlayerTest"].includes(
+          data.command?.type,
+        )
       ) {
         command(data.command);
       }
       return;
     }
-    const frame = query("iframe").find((item) => item.contentWindow === event.source);
+    const frame = query("iframe").find(
+      (item) => item.contentWindow === event.source,
+    );
     if (!frame || typeof data.documentId !== "string") return;
     if (!observedFrameLoads.has(frame)) {
       observedFrameLoads.add(frame);
@@ -459,10 +483,16 @@
       }
       framePost(event.source, { type: "bind", documentId, token: peer.token });
     } else if (
-      data.type === "sample" && peer && data.documentId === peer.documentId &&
-      data.parentDocumentId === documentId && data.token === peer.token &&
-      Array.isArray(data.players) && data.players.length <= 100 && data.players.every(validFramePlayer) &&
-      Number.isInteger(data.inaccessibleFrames) && data.inaccessibleFrames >= 0
+      data.type === "sample" &&
+      peer &&
+      data.documentId === peer.documentId &&
+      data.parentDocumentId === documentId &&
+      data.token === peer.token &&
+      Array.isArray(data.players) &&
+      data.players.length <= 100 &&
+      data.players.every(validFramePlayer) &&
+      Number.isInteger(data.inaccessibleFrames) &&
+      data.inaccessibleFrames >= 0
     ) {
       peer.players = data.players;
       peer.inaccessibleFrames = data.inaccessibleFrames;
@@ -519,14 +549,15 @@
     });
     if (!isMainFrame) {
       framePost(window.parent, { type: "hello", documentId });
-      if (parentBinding) framePost(window.parent, {
-        type: "sample",
-        documentId,
-        parentDocumentId: parentBinding.documentId,
-        token: parentBinding.token,
-        players,
-        inaccessibleFrames: found.inaccessibleFrames,
-      });
+      if (parentBinding)
+        framePost(window.parent, {
+          type: "sample",
+          documentId,
+          parentDocumentId: parentBinding.documentId,
+          token: parentBinding.token,
+          players,
+          inaccessibleFrames: found.inaccessibleFrames,
+        });
       return;
     }
     post({
@@ -551,10 +582,12 @@
     const preview = extract();
     if (!preview.valid || !(preview.episode > 0)) return;
     const identity = chosen.identity || video;
-    if (advancingPlayers.has(video) || (
-      chosen.sample && sample.playbackAt > playbackFloor &&
-      sample.playbackAt > (lastPlayback?.at || 0)
-    ))
+    if (
+      advancingPlayers.has(video) ||
+      (chosen.sample &&
+        sample.playbackAt > playbackFloor &&
+        sample.playbackAt > (lastPlayback?.at || 0))
+    )
       lastPlayback = {
         video: identity,
         title: preview.title,
@@ -594,10 +627,13 @@
     if (awaitingResume) {
       const resume = awaitingResume;
       const elapsed = Date.now() - resume.startedAt;
-      const samePlayer = resume.title === preview.title &&
-        resume.episode === preview.episode && resume.identity === identity;
+      const samePlayer =
+        resume.title === preview.title &&
+        resume.episode === preview.episode &&
+        resume.identity === identity;
       // Seeking across frames is asynchronous. Do not persist a cached pre-seek sample.
-      const reachedPosition = sample.time >= resume.position - 0.5 &&
+      const reachedPosition =
+        sample.time >= resume.position - 0.5 &&
         sample.time <= resume.position + elapsed / 1000 + 1;
       if (samePlayer && !reachedPosition && elapsed < 5000) return;
       awaitingResume = null;
@@ -614,7 +650,8 @@
       payload: {
         animeTitle: preview.title,
         episode: preview.episode,
-        episodeCount: preview.episodeCount > 0 ? preview.episodeCount : undefined,
+        episodeCount:
+          preview.episodeCount > 0 ? preview.episodeCount : undefined,
         lastPlayedAt:
           lastPlayback?.video === identity &&
           lastPlayback.title === preview.title &&
@@ -675,7 +712,9 @@
                     animeTitle: preview.title,
                     episode,
                     episodeCount:
-                      preview.episodeCount > 0 ? preview.episodeCount : undefined,
+                      preview.episodeCount > 0
+                        ? preview.episodeCount
+                        : undefined,
                     providerId: config.id,
                     url: element.href || location.href,
                   },
@@ -757,9 +796,16 @@
       }
       if (data.type === "seekTo") {
         const video = candidate.video;
-        if (Number.isFinite(data.progress) && video.duration > 0 && video.seekable.length) {
+        if (
+          Number.isFinite(data.progress) &&
+          video.duration > 0 &&
+          video.seekable.length
+        ) {
           try {
-            video.currentTime = Math.min(Math.max(0, data.progress), Math.max(0, video.duration - 1));
+            video.currentTime = Math.min(
+              Math.max(0, data.progress),
+              Math.max(0, video.duration - 1),
+            );
           } catch {
             /* Some players expose time but do not permit seeking. */
           }

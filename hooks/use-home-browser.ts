@@ -1,3 +1,5 @@
+import { useMessageFormatter } from "@/hooks/use-app-translation";
+import { message as feedback, type AppMessage } from "@/utils/i18n";
 import React from "react";
 import type { WebViewProps } from "react-native-webview";
 import runtime from "@/assets/js/provider-runtime_t.cjs";
@@ -24,6 +26,7 @@ import {
 import { useProviderNavigation } from "@/hooks/use-provider-navigation";
 
 export function useHomeBrowser() {
+  const format = useMessageFormatter();
   const { webViewRef } = React.useContext(AccessoryContext);
   const { state, updateState } = React.useContext(AppStateContext);
   const { state: store, stateChanged } = React.useContext(StoreContext);
@@ -37,10 +40,10 @@ export function useHomeBrowser() {
   const setSheet = (browserSheet?: "providers" | "status") =>
     updateState((previous) => ({ ...previous, browserSheet }));
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const [notice, setNotice] = React.useState("");
-  const [status, setStatus] = React.useState(
-    "Open an episode to start tracking.",
+  const [error, setError] = React.useState<AppMessage>("");
+  const [notice, setNotice] = React.useState<AppMessage>("");
+  const [status, setStatus] = React.useState<AppMessage>(
+    feedback("home.openEpisode"),
   );
   const session = React.useId();
   const pageSession = React.useRef(new RuntimeSession());
@@ -131,7 +134,7 @@ export function useHomeBrowser() {
     setNotice("");
     pageSession.current.documentId = null;
     resumeSent.current.clear();
-    setStatus("Tap the player placeholder or Play button to start tracking.");
+    setStatus(feedback("home.activatePlayer"));
     clearStatusTimer();
   };
 
@@ -144,17 +147,13 @@ export function useHomeBrowser() {
 
   const onError: NonNullable<WebViewProps["onError"]> = () => {
     setLoading(false);
-    setError(
-      "Could not load the website. Check your connection and choose Reload.",
-    );
+    setError(feedback("browser.loadFailed"));
   };
 
   const onHttpError: NonNullable<WebViewProps["onHttpError"]> = (event) => {
     if (event.nativeEvent.statusCode >= 400)
       setError(
-        "Website returned error " +
-          event.nativeEvent.statusCode +
-          ". Choose Reload to retry.",
+        feedback("browser.httpError", { code: event.nativeEvent.statusCode }),
       );
   };
 
@@ -212,27 +211,22 @@ export function useHomeBrowser() {
         message.frameTrackingAvailable === false
       ) {
         clearStatusTimer();
-        setStatus(
-          "This embedded player cannot be tracked on this device. Update Android System WebView and retry.",
-        );
+        setStatus(feedback("home.inaccessiblePlayer"));
         return;
       }
       if (phase === "waiting" || phase === "paused") {
         clearStatusTimer();
         setStatus(
           phase === "waiting"
-            ? "Tap the player placeholder or Play button. Waiting for the primary video to appear."
-            : "Player detected. Press Play to start tracking.",
+            ? feedback("home.waitingPlayer")
+            : feedback("home.pressPlay"),
         );
       } else if (phase === "verified") {
         clearStatusTimer();
       } else if (!statusTimer.current) {
-        setStatus("Checking playback progress…");
+        setStatus(feedback("home.checkingPlayback"));
         statusTimer.current = setTimeout(
-          () =>
-            setStatus(
-              "If progress is not tracking, select the site’s primary player. If you already have, the site may not be supported. Edit this provider to retest.",
-            ),
+          () => setStatus(feedback("home.trackingHelp")),
           20000,
         );
       }
@@ -287,20 +281,19 @@ export function useHomeBrowser() {
       stateChanged();
       setStatus(
         payload.progress !== undefined
-          ? payload.animeTitle +
-              " · Episode " +
-              payload.episode +
-              " · " +
-              Math.floor(payload.progress) +
-              " / " +
-              Math.floor(payload.total!) +
-              " seconds"
-          : payload.animeTitle + " · Episode " + payload.episode + " selected",
+          ? feedback("home.progress", {
+              title: payload.animeTitle,
+              episode: payload.episode,
+              time: Math.floor(payload.progress),
+              total: Math.floor(payload.total!),
+            })
+          : feedback("home.selected", {
+              title: payload.animeTitle,
+              episode: payload.episode,
+            }),
       );
     } catch {
-      setError(
-        "Could not save playback progress. Your previous history is preserved; choose Reload to retry.",
-      );
+      setError(feedback("home.saveProgressFailed"));
     }
   };
 
@@ -317,9 +310,9 @@ export function useHomeBrowser() {
     webViewRef,
     injection,
     loading,
-    error,
-    notice,
-    status,
+    error: format(error),
+    notice: format(notice),
+    status: format(status),
     open,
     setSheet,
     dismissNotice,

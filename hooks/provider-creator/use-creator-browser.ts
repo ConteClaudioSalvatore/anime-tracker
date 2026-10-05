@@ -1,3 +1,4 @@
+import { message } from "@/utils/i18n";
 import React from "react";
 import WebView, { type WebViewProps } from "react-native-webview";
 import type { Provider } from "@/model/provider.model";
@@ -207,17 +208,15 @@ export function useCreatorBrowser({
   const onError: NonNullable<WebViewProps["onError"]> = () => {
     updateBrowser({ loading: false });
     updateWizard({
-      error:
-        "The website could not load. Check your connection and choose Reload.",
+      error: message("browser.loadFailed"),
     });
   };
   const onHttpError: NonNullable<WebViewProps["onHttpError"]> = (event) => {
     if (event.nativeEvent.statusCode >= 400)
       updateWizard({
-        error:
-          "Website returned error " +
-          event.nativeEvent.statusCode +
-          ". Choose Reload to retry.",
+        error: message("browser.httpError", {
+          code: event.nativeEvent.statusCode,
+        }),
       });
   };
   const onNavigationStateChange: NonNullable<

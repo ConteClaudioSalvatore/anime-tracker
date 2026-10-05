@@ -1,7 +1,12 @@
+import {
+  useAppTranslation,
+  useMessageFormatter,
+} from "@/hooks/use-app-translation";
 import { Text, View } from "react-native";
 import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-creator";
 import ActionButton from "./action-button";
-import { steps } from "./creator-config";
+import { editSteps } from "./creator-config";
+import { extractionFeedback } from "@/utils/runtime-feedback";
 import { styles } from "./creator-styles";
 
 type Props = {
@@ -11,6 +16,8 @@ type Props = {
   >;
 };
 export function ReviewStep({ creator }: Props) {
+  const t = useAppTranslation();
+  const format = useMessageFormatter();
   const { colors, go, state, actions, browser } = creator;
   const { draft, pages, checks, saving } = state.setup;
   const { advanced } = state.wizard;
@@ -26,17 +33,21 @@ export function ReviewStep({ creator }: Props) {
     <>
       {copy((draft.name ?? "") + " · " + draft.origin)}
       {copy(
-        "Progress: " +
-          (draft.verification?.progress ? "verified" : "not verified") +
-          " · Resume: " +
-          (draft.verification?.resume ? "verified" : "not verified (optional)"),
+        t("creator.progressResume", {
+          progress: draft.verification?.progress
+            ? t("creator.verified")
+            : t("creator.notVerified"),
+          resume: draft.verification?.resume
+            ? t("creator.verified")
+            : t("creator.resumeOptional"),
+        }),
       )}
       {pages.length < 2 && (
         <>
-          {copy("Add two example pages to verify this provider.")}
+          {copy(t("creator.addExamplesHelp"))}
           {
             <ActionButton
-              label={"Choose example pages"}
+              label={t("creator.chooseExamples")}
               onPress={() => go(1)}
               disabled={saving}
             />
@@ -45,23 +56,25 @@ export function ReviewStep({ creator }: Props) {
       )}
       {pages.map((page, index) => (
         <View key={page} style={styles.example}>
-          {copy("Example " + (index + 1) + ": " + page, true)}
+          {copy(t("creator.example", { index: index + 1, url: page }), true)}
           {checks[page] &&
             copy(
               checks[page].valid
-                ? checks[page].title +
-                    " · " +
-                    (checks[page].listedEpisodes ?? "?") +
-                    " listed · " +
-                    (checks[page].episodeCount > 0
-                      ? checks[page].episodeCount + " total episodes"
-                      : "total unknown") +
-                    " — passed"
-                : checks[page].errors.join(" "),
+                ? t("creator.reviewResult", {
+                    title: checks[page].title,
+                    listed: checks[page].listedEpisodes ?? "?",
+                    total:
+                      checks[page].episodeCount > 0
+                        ? t("creator.totalCount", {
+                            count: checks[page].episodeCount,
+                          })
+                        : t("creator.totalUnknown"),
+                  })
+                : extractionFeedback(checks[page]).map(format).join(" "),
             )}
           {checks[page]?.valid === false && (
             <ActionButton
-              label={"Retest example " + (index + 1)}
+              label={t("creator.retestExample", { index: index + 1 })}
               onPress={() => testExample(page)}
               disabled={!!reviewPage || saving}
             />
@@ -70,7 +83,7 @@ export function ReviewStep({ creator }: Props) {
       ))}
       <ActionButton
         expanded={advanced}
-        label="Edit setup or retest"
+        label={t("creator.editRetest")}
         onPress={() => updateWizard({ advanced: !advanced })}
         disabled={saving}
       />
@@ -82,17 +95,19 @@ export function ReviewStep({ creator }: Props) {
               <ActionButton
                 key={page}
                 variant="tertiary"
-                label={"Retest example " + (pages.indexOf(page) + 1)}
+                label={t("creator.retestExample", {
+                  index: pages.indexOf(page) + 1,
+                })}
                 onPress={() => testExample(page)}
                 disabled={!!reviewPage || saving}
               />
             ))}
-          {copy("Edit a step", true)}
+          {copy(t("creator.editStep"), true)}
           {[0, 1, 2, 3, 4, 5].map((index) => (
             <ActionButton
               variant="tertiary"
               key={index}
-              label={"Edit " + steps[index].toLowerCase()}
+              label={t(editSteps[index])}
               onPress={() => go(index)}
               disabled={saving}
             />
@@ -100,9 +115,7 @@ export function ReviewStep({ creator }: Props) {
         </View>
       )}
       {(!draft.verification?.progress || !draft.verification?.resume) &&
-        copy(
-          "This provider has unverified video features. Return to Video test to retry or explicitly acknowledge the limitations.",
-        )}
+        copy(t("creator.unverifiedHelp"))}
     </>
   );
 }

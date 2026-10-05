@@ -2,6 +2,14 @@ import type { Provider } from "./provider.model";
 
 export type SelectorField =
   "seriesNameSelector" | "episodeNumberSelector" | "totalEpisodesSelector";
+export const runtimeDiagnosticCodes = [
+  "unreadable-selection",
+  "choose-title",
+  "choose-total",
+  "choose-episodes",
+  "page-timeout",
+] as const;
+export type RuntimeDiagnosticCode = (typeof runtimeDiagnosticCodes)[number];
 export type FieldPreview = {
   selector: string;
   count: number;
@@ -9,6 +17,7 @@ export type FieldPreview = {
   values: (number | null)[];
   valid: boolean;
   error?: string;
+  errorCode?: RuntimeDiagnosticCode;
 };
 export type ExtractionPreview = {
   title: string;
@@ -18,6 +27,7 @@ export type ExtractionPreview = {
   listedEpisodes?: number;
   valid: boolean;
   errors: string[];
+  errorCodes?: RuntimeDiagnosticCode[];
 };
 export type PlayerSample = {
   locator: NonNullable<Provider["player"]>;
@@ -85,6 +95,23 @@ export function parseRuntimeMessage(
       return null;
     const strings = (items: unknown) =>
       Array.isArray(items) && items.every((item) => typeof item === "string");
+    const diagnostic = (code: unknown) =>
+      runtimeDiagnosticCodes.some((known) => known === code);
+    if (
+      value.type === "selection" &&
+      value.preview?.errorCode !== undefined &&
+      (!diagnostic(value.preview.errorCode) ||
+        typeof value.preview.error !== "string")
+    )
+      return null;
+    if (
+      value.type === "extraction" &&
+      value.preview?.errorCodes !== undefined &&
+      (!Array.isArray(value.preview.errorCodes) ||
+        !value.preview.errorCodes.every(diagnostic) ||
+        value.preview.errorCodes.length !== value.preview.errors?.length)
+    )
+      return null;
     if (
       value.type === "selection" &&
       (!value.preview ||
@@ -125,7 +152,8 @@ export function parseRuntimeMessage(
             typeof item.progress !== "boolean" ||
             typeof item.resume !== "boolean" ||
             typeof item.playing !== "boolean" ||
-            (item.seekable !== undefined && typeof item.seekable !== "boolean") ||
+            (item.seekable !== undefined &&
+              typeof item.seekable !== "boolean") ||
             !Number.isFinite(item.time) ||
             !Number.isFinite(item.duration),
         ))

@@ -1,10 +1,17 @@
+import {
+  translate as t,
+  message,
+  TranslationError,
+  formatMessage,
+  errorMessage,
+} from "@/utils/i18n";
 import React from "react";
 import { Alert } from "react-native";
 import { useNavigation, type useRouter } from "expo-router";
 import { AppStore, StoreContext } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import type { Provider, SaveProviderResult } from "@/model/provider.model";
-import { providerSaveError } from "@/utils/provider-runtime";
+import { providerSaveMessage } from "@/utils/provider-runtime";
 import type { CreatorState } from "./use-creator-state";
 
 type PersistenceOptions = CreatorState & {
@@ -30,21 +37,17 @@ export function useCreatorPersistence({
         if (allowExit.current || saved || !dirty) return;
         event.preventDefault();
         if (saveLock.current) return;
-        Alert.alert(
-          "Discard provider changes?",
-          "Your unfinished setup will be lost.",
-          [
-            { text: "Keep editing", style: "cancel" },
-            {
-              text: "Discard",
-              style: "destructive",
-              onPress: () => {
-                allowExit.current = true;
-                navigation.dispatch(event.data.action);
-              },
+        Alert.alert(t("provider.discardTitle"), t("provider.discardHelp"), [
+          { text: t("provider.keepEditing"), style: "cancel" },
+          {
+            text: t("provider.discard"),
+            style: "destructive",
+            onPress: () => {
+              allowExit.current = true;
+              navigation.dispatch(event.data.action);
             },
-          ],
-        );
+          },
+        ]);
       }),
     [navigation, dirty, saved],
   );
@@ -58,8 +61,7 @@ export function useCreatorPersistence({
           : undefined;
         if (id && !existing) {
           updateWizard({
-            error:
-              "This provider no longer exists. Close this screen and create a new provider.",
+            error: message("provider.missing"),
           });
           updateSetup({ initialized: true });
           return;
@@ -78,7 +80,7 @@ export function useCreatorPersistence({
       .catch(() => {
         if (active) {
           updateWizard({
-            error: "Could not load providers. Close this screen and try again.",
+            error: message("provider.loadFailed"),
           });
           updateSetup({ initialized: true });
         }
@@ -88,7 +90,7 @@ export function useCreatorPersistence({
     };
   }, [id, updateBrowser, updatePlayback, updateSetup, updateWizard]);
   async function saveProvider(): Promise<SaveProviderResult> {
-    const invalid = providerSaveError(draft, pages, checks, saveAnyway);
+    const invalid = providerSaveMessage(draft, pages, checks, saveAnyway);
     if (invalid) return { success: false, message: invalid };
     try {
       const provider = {
@@ -101,19 +103,14 @@ export function useCreatorPersistence({
         id &&
         !(await AppStore.Get()).providers.some((item) => item.id === Number(id))
       )
-        throw new Error(
-          "This provider was deleted. Create a new provider instead.",
-        );
+        throw new TranslationError(message("provider.deleted"));
       const stored = await AppStore.SaveProvider(provider);
       stateChanged();
       return { success: true, provider: stored };
     } catch (cause) {
       return {
         success: false,
-        message:
-          cause instanceof Error
-            ? cause.message
-            : "Could not save. Your setup is still here; try again.",
+        message: errorMessage(cause, "provider.saveFailed"),
       };
     }
   }
@@ -127,15 +124,15 @@ export function useCreatorPersistence({
     updateSetup({ saving: false });
     if (!result.success) {
       updateWizard({ error: result.message });
-      Alert.alert("Provider not saved", result.message);
+      Alert.alert(t("provider.notSaved"), formatMessage(result.message));
       return;
     }
     allowExit.current = true;
     updateSetup({ saved: true, dirty: false });
-    Alert.alert("Provider saved", "Your website is ready to open.", [
-      { text: "Done", onPress: () => router.back() },
+    Alert.alert(t("provider.saved"), t("provider.savedHelp"), [
+      { text: t("common.done"), onPress: () => router.back() },
       {
-        text: "Open website",
+        text: t("provider.openWebsite"),
         onPress: () => {
           updateState({
             url: result.provider.origin,

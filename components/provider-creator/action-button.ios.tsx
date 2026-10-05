@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Button, Host } from "@expo/ui/swift-ui";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import {
@@ -20,6 +21,7 @@ export default function ActionButton({
   accessibilityLabel: labelForAccessibility = label,
   expanded,
 }: ActionButtonProps) {
+  const t = useAppTranslation();
   const prominent = variant === "primary";
   return (
     <Host matchContents>
@@ -52,9 +54,13 @@ export default function ActionButton({
             ? []
             : [
                 frame({ minHeight: 44 }),
-                accessibilityValue(expanded ? "Expanded" : "Collapsed"),
+                accessibilityValue(
+                  expanded ? t("common.expanded") : t("common.collapsed"),
+                ),
                 accessibilityHint(
-                  expanded ? "Collapse this section" : "Expand this section",
+                  expanded
+                    ? t("common.collapseSection")
+                    : t("common.expandSection"),
                 ),
               ]),
         ]}

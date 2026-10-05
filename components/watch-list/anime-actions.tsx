@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Anime } from "@/model";
 import { toggleAnimeFinished } from "@/store/app.actions";
 import {
@@ -17,20 +18,21 @@ export default function WatchListAnimeActions(props: {
   textColor: string;
   onClose: () => void;
 }) {
+  const t = useAppTranslation();
   const { anime, textColor, onClose } = props;
 
   const { stateChanged } = React.useContext(StoreContext);
   const router = useRouter();
-  const { finishedText, timeText } = getAnimeActionContext(anime);
+  const { finishedText, timeText } = getAnimeActionContext(anime, t);
 
   return (
     <BottomSheet isPresented onDismiss={onClose}>
       <Column alignment="center" spacing={4} modifiers={[fillMaxWidth()]}>
         <Text textStyle={{ color: textColor, fontWeight: "bold" }}>
-          Actions
+          {t("common.actions")}
         </Text>
         <Text textStyle={{ color: textColor }}>
-          {`Latest watched episode: ${anime.latestWatchedEpisode}`}
+          {t("watch.latestEpisode", { episode: anime.latestWatchedEpisode })}
         </Text>
         <Text textStyle={{ color: textColor }}>{timeText}</Text>
         <Button
@@ -52,7 +54,7 @@ export default function WatchListAnimeActions(props: {
               android: import("@expo/material-symbols/edit.xml"),
             })}
           />
-          <Text>Edit</Text>
+          <Text>{t("common.edit")}</Text>
         </Button>
         <Button
           variant="filled"
@@ -80,10 +82,10 @@ export default function WatchListAnimeActions(props: {
               android: import("@expo/material-symbols/delete.xml"),
             })}
           />
-          <Text textStyle={{ color: "white" }}>Remove</Text>
+          <Text textStyle={{ color: "white" }}>{t("common.remove")}</Text>
         </AndroidButton>
         <Button variant="outlined" onPress={onClose}>
-          <Text>Cancel</Text>
+          <Text>{t("common.cancel")}</Text>
         </Button>
       </Column>
     </BottomSheet>

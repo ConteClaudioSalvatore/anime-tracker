@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ActivityIndicator, Text, View } from "react-native";
 import WebView from "react-native-webview";
 import runtime from "@/assets/js/provider-runtime_t.cjs";
@@ -8,6 +9,7 @@ import { styles } from "./creator-styles";
 
 type Props = { creator: Pick<ProviderCreator, "colors" | "state" | "browser"> };
 export function CreatorBrowser({ creator }: Props) {
+  const t = useAppTranslation();
   const { colors, state, browser } = creator;
   const { draft, saving } = state.setup;
   const { source, url, navigationState, loading } = state.browser;
@@ -23,7 +25,7 @@ export function CreatorBrowser({ creator }: Props) {
       >
         <Text
           numberOfLines={1}
-          accessibilityLabel={"Website address " + url}
+          accessibilityLabel={t("browser.address", { url })}
           style={{ color: colors.muted, flex: 1, fontSize: 12 }}
         >
           {url}
@@ -31,16 +33,16 @@ export function CreatorBrowser({ creator }: Props) {
         <View style={styles.row}>
           {
             <ActionButton
-              label="Back"
+              label={t("common.back")}
               variant="tertiary"
-              accessibilityLabel="Browser back"
+              accessibilityLabel={t("navigation.browserBack")}
               onPress={() => webView.current?.goBack()}
               disabled={!navigationState.back || saving}
             />
           }
           {
             <ActionButton
-              label={"Forward"}
+              label={t("common.forward")}
               variant="tertiary"
               onPress={() => webView.current?.goForward()}
               disabled={!navigationState.forward || saving}
@@ -48,14 +50,16 @@ export function CreatorBrowser({ creator }: Props) {
           }
           {
             <ActionButton
-              label={"Reload"}
+              label={t("common.reload")}
               variant="tertiary"
               onPress={() => webView.current?.reload()}
               disabled={saving}
             />
           }
         </View>
-        {loading && <ActivityIndicator accessibilityLabel="Loading website" />}
+        {loading && (
+          <ActivityIndicator accessibilityLabel={t("browser.loading")} />
+        )}
       </ProviderSurface>
       <WebView
         ref={webView}

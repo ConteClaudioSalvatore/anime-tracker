@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
 import {
   ActivityIndicator,
@@ -37,6 +38,7 @@ export default function BrowserSheet({
   onChooseWebsite,
   children,
 }: BrowserSheetProps) {
+  const t = useAppTranslation();
   const colors = useProviderPalette();
   return (
     <Modal
@@ -50,8 +52,8 @@ export default function BrowserSheet({
           <ActionButton
             label={
               sheet === "providers"
-                ? "Close websites"
-                : "Close playback details"
+                ? t("home.closeWebsites")
+                : t("home.closeDetails")
             }
             onPress={onClose}
           />
@@ -64,13 +66,13 @@ export default function BrowserSheet({
               accessibilityRole="header"
               style={[styles.title, { color: colors.text }]}
             >
-              {provider?.name ?? "Playback details"}
+              {provider?.name ?? t("navigation.playbackDetails")}
             </Text>
             <Text selectable style={{ color: colors.muted }}>
               {url}
             </Text>
             {loading && (
-              <ActivityIndicator accessibilityLabel="Loading website" />
+              <ActivityIndicator accessibilityLabel={t("browser.loading")} />
             )}
             <Text
               accessibilityLiveRegion="polite"
@@ -84,7 +86,10 @@ export default function BrowserSheet({
               </Text>
             )}
             {!!notice && <Text style={{ color: colors.text }}>{notice}</Text>}
-            <ActionButton label="Choose website" onPress={onChooseWebsite} />
+            <ActionButton
+              label={t("home.chooseWebsite")}
+              onPress={onChooseWebsite}
+            />
           </ScrollView>
         )}
       </SafeAreaView>

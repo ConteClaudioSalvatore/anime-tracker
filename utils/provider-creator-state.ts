@@ -1,3 +1,4 @@
+import type { AppMessage } from "./i18n";
 import type { Provider } from "@/model/provider.model";
 import type {
   ExtractionPreview,
@@ -21,7 +22,7 @@ export type ProviderCreatorState = {
   };
   wizard: {
     step: number;
-    error: string;
+    error: AppMessage;
     collapsed: boolean;
     advanced: boolean;
   };

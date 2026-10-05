@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import { CreatorPanel } from "@/components/provider-creator/creator-panel";
 import { styles } from "@/components/provider-creator/creator-styles";
 
 export default function ProviderCreatorScreen() {
+  const t = useAppTranslation();
   const creator = useProviderCreator();
   const { colors, id, router, state } = creator;
   const { initialized, saving } = state.setup;
@@ -25,7 +27,7 @@ export default function ProviderCreatorScreen() {
     >
       <Stack.Screen
         options={{
-          title: id ? "Edit provider" : "Add provider",
+          title: id ? t("provider.edit") : t("provider.add"),
           gestureEnabled: false,
           headerBackVisible: false,
         }}
@@ -33,11 +35,11 @@ export default function ProviderCreatorScreen() {
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           variant="plain"
-          accessibilityLabel="Close provider setup"
+          accessibilityLabel={t("provider.closeSetup")}
           onPress={() => router.back()}
           disabled={saving}
         >
-          Close
+          {t("common.close")}
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
       <KeyboardAvoidingView
@@ -45,7 +47,7 @@ export default function ProviderCreatorScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {!initialized ? (
-          <ActivityIndicator accessibilityLabel="Loading provider" />
+          <ActivityIndicator accessibilityLabel={t("provider.loading")} />
         ) : (
           <>
             <CreatorHeader creator={creator} />

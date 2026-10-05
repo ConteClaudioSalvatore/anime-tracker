@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
 import { Platform, StyleSheet, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +13,7 @@ import { useHomeBrowser } from "@/hooks/use-home-browser";
 import { useProviderPalette } from "@/hooks/use-provider-palette";
 
 export default function HomeScreen() {
+  const t = useAppTranslation();
   const {
     provider,
     providers,
@@ -117,7 +119,10 @@ export default function HomeScreen() {
               >
                 {error || notice}
               </Text>
-              <ActionButton label="Dismiss" onPress={dismissNotice} />
+              <ActionButton
+                label={t("common.dismiss")}
+                onPress={dismissNotice}
+              />
             </ProviderSurface>
           )}
         </>

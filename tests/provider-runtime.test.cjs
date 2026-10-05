@@ -26,6 +26,7 @@ require.extensions[".ts"] = (module, filename) => {
   });
   module._compile(result.outputText, filename);
 };
+const { formatMessage } = require("../utils/i18n.ts");
 const helpers = require("../utils/provider-runtime.ts");
 const bridge = require("../model/provider-runtime.model.ts");
 const { WriteQueue } = require("../utils/write-queue.ts");
@@ -1008,7 +1009,7 @@ test("failed approvals leave navigation blocked and permit retry", async () => {
   guard.handle(request);
   await guard.pending;
   assert.equal(navigated.length, 0);
-  assert.match(errors[0], /stayed blocked/);
+  assert.match(formatMessage(errors[0]), /stayed blocked/);
   fail = false;
   guard.handle(request);
   await guard.pending;
@@ -1016,7 +1017,7 @@ test("failed approvals leave navigation blocked and permit retry", async () => {
   assert.deepEqual(navigated, [request.url]);
   guard.handle({ url: "javascript:alert(1)" });
   assert.equal(attempts, 2);
-  assert.match(errors[1], /HTTP or HTTPS/);
+  assert.match(formatMessage(errors[1]), /HTTP or HTTPS/);
 });
 test("pending prompts do not save or navigate after a page or provider change", async () => {
   for (const change of ["page", "provider", "unmount"]) {
@@ -2555,4 +2556,100 @@ test("restored browser-history documents get a fresh bridge identity", (t) => {
     .filter((message) => message.type === "ready")
     .at(-1).documentId;
   assert.notEqual(next, original);
+});
+
+test("runtime diagnostics retain legacy text while providing translatable selection and extraction codes", (t) => {
+  const { dom, win, runtime, messages } = setup();
+  t.after(() => dom.window.close());
+  win.document.querySelector("h1").textContent = "";
+  win.document.querySelector("#episode-total").textContent = "Invalid count";
+  const selection = runtime.evaluate(
+    provider.seriesNameSelector,
+    "seriesNameSelector",
+  );
+  assert.equal(selection.errorCode, "choose-title");
+  assert.equal(selection.error, "Choose one series title.");
+  runtime.command({ type: "extract", requestId: "diagnostics" });
+  const parsed = bridge.parseRuntimeMessage(
+    JSON.stringify(messages.at(-1)),
+    "session",
+  );
+  assert.deepEqual(parsed.preview.errorCodes, ["choose-title", "choose-total"]);
+  assert.equal(parsed.preview.errors[0], "Choose one series title.");
+  assert.match(parsed.preview.errors[1], /total episode count/);
+  const { extractionFeedback } = require("../utils/runtime-feedback.ts");
+  assert.deepEqual(
+    extractionFeedback(parsed.preview).map((item) => item.key),
+    ["runtime.chooseTitle", "runtime.chooseTotal"],
+  );
+  const unreadable = runtime.evaluate("[", "seriesNameSelector");
+  // Invalid CSS retains the existing unreadable-selection diagnostic.
+  assert.equal(unreadable.valid, false);
+  assert.equal(unreadable.errorCode, "unreadable-selection");
+  assert.equal(
+    unreadable.error,
+    "This selection cannot be read. Choose it again.",
+  );
+});
+
+test("runtime bridge accepts legacy diagnostics and rejects malformed optional diagnostic codes", () => {
+  const base = {
+    channel: "provider-runtime",
+    sessionId: "session",
+    documentId: "document",
+    url: provider.origin,
+    type: "selection",
+    requestId: "test",
+    field: "seriesNameSelector",
+    preview: {
+      selector: "h1",
+      count: 0,
+      texts: [],
+      values: [],
+      valid: false,
+      error: "Legacy error",
+    },
+  };
+  const parse = (value) =>
+    bridge.parseRuntimeMessage(JSON.stringify(value), "session");
+  assert.ok(parse(base));
+  assert.ok(
+    parse({ ...base, preview: { ...base.preview, errorCode: "choose-title" } }),
+  );
+  for (const errorCode of ["unknown-key", "__proto__", 1, null]) {
+    assert.equal(
+      parse({ ...base, preview: { ...base.preview, errorCode } }),
+      null,
+    );
+  }
+  const extraction = {
+    ...base,
+    type: "extraction",
+    preview: {
+      title: "",
+      episode: 0,
+      episodeCount: 0,
+      valid: false,
+      errors: ["Legacy error"],
+    },
+  };
+  assert.ok(parse(extraction));
+  assert.ok(
+    parse({
+      ...extraction,
+      preview: { ...extraction.preview, errorCodes: ["choose-title"] },
+    }),
+  );
+  for (const errorCodes of [
+    ["unknown-key"],
+    [],
+    ["choose-title", "choose-total"],
+    "choose-title",
+    null,
+  ]) {
+    assert.equal(
+      parse({ ...extraction, preview: { ...extraction.preview, errorCodes } }),
+      null,
+    );
+  }
 });

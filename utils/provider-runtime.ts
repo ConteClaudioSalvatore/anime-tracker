@@ -1,3 +1,10 @@
+import {
+  message,
+  formatMessage,
+  TranslationError,
+  type LocalizedMessage,
+} from "./i18n";
+import { extractionFeedback } from "./runtime-feedback";
 import type { Provider } from "../model/provider.model";
 import type { Anime } from "../model/anime.model";
 import type { EpisodeProgress } from "../model/episode-progress.model";
@@ -17,7 +24,7 @@ export function normalizeWebsite(input: string): string {
     url.username ||
     url.password
   )
-    throw new Error("Enter a website address, such as https://example.com.");
+    throw new TranslationError(message("validation.websiteAddress"));
   url.hash = "";
   return url.href;
 }
@@ -69,8 +76,7 @@ export function approveProviderOrigin<T extends boolean>(
   value: string,
 ): Provider<T> {
   const origin = websiteOrigin(value);
-  if (!origin)
-    throw new Error("Only HTTP and HTTPS website addresses can be approved.");
+  if (!origin) throw new TranslationError(message("validation.httpOnly"));
   return allowedUrl(provider, origin)
     ? provider
     : {
@@ -93,15 +99,16 @@ export function learnPageRule(
   pages: string[],
   website: string,
 ): NonNullable<Provider["pageRule"]> {
-  if (pages.length < 2) throw new Error("Choose two different series pages.");
+  if (pages.length < 2)
+    throw new TranslationError(message("validation.differentPages"));
   const urls = pages.map((value) => new URL(value));
   urls.forEach((url) => {
     url.hash = "";
   });
   if (new Set(urls.map((url) => url.href)).size < 2)
-    throw new Error("Choose two different series pages.");
+    throw new TranslationError(message("validation.differentPages"));
   if (urls.some((url) => url.origin !== new URL(website).origin))
-    throw new Error("Choose pages on this website.");
+    throw new TranslationError(message("validation.sameWebsite"));
   const segments = urls.map((url) => url.pathname.split("/").filter(Boolean));
   let common = 0;
   while (
@@ -161,22 +168,24 @@ export function providerEpisodeProgress(
   );
 }
 
-export function validateProvider(draft: Provider<false>): string | null {
-  if (!draft.name?.trim()) return "Enter a provider name.";
+export function providerValidationMessage(
+  draft: Provider<false>,
+): LocalizedMessage | null {
+  if (!draft.name?.trim()) return message("validation.name");
   try {
     normalizeWebsite(draft.origin ?? "");
   } catch {
-    return "Enter a valid website address.";
+    return message("validation.validWebsite");
   }
-  if (!draft.seriesPageOrigin) return "Choose example series pages.";
+  if (!draft.seriesPageOrigin) return message("validation.chooseExamples");
   for (const [field, label] of [
-    ["seriesNameSelector", "series title"],
-    ["episodeNumberSelector", "episodes"],
-    ["totalEpisodesSelector", "total episodes"],
+    ["seriesNameSelector", "validation.chooseTitle"],
+    ["episodeNumberSelector", "validation.chooseEpisodes"],
+    ["totalEpisodesSelector", "validation.chooseTotal"],
   ] as const)
-    if (!draft[field]?.trim()) return `Choose the ${label} on the page.`;
+    if (!draft[field]?.trim()) return message(label);
   if (draft.isPlayerSupported === null)
-    return "Check playback tracking before saving.";
+    return message("validation.checkPlayback");
   return null;
 }
 
@@ -195,23 +204,28 @@ export function newProviderDraft(): Provider<false> {
   };
 }
 
-export function providerSaveError(
+export function providerSaveMessage(
   draft: Provider<false>,
   pages: string[],
   checks: Record<string, ExtractionPreview>,
   saveAnyway: boolean,
-): string | null {
-  const invalid = validateProvider(draft);
+): LocalizedMessage | null {
+  const invalid = providerValidationMessage(draft);
   if (invalid) return invalid;
-  if (pages.length < 2) return "Choose two example pages before saving.";
+  if (pages.length < 2) return message("validation.saveExamples");
   for (const [index, page] of pages.entries()) {
     if (!checks[page])
-      return `Example ${index + 1} still needs to be checked. Choose Test example ${index + 1}.`;
+      return message("validation.exampleUnchecked", { index: index + 1 });
     if (!checks[page].valid)
-      return `Example ${index + 1} did not pass: ${checks[page].errors.join(" ") || "The page could not be read."} Retest this example or edit the selections.`;
+      return message("validation.exampleFailed", {
+        index: index + 1,
+        reason: checks[page].errors.length
+          ? extractionFeedback(checks[page])
+          : message("validation.readFailed"),
+      });
   }
   if (!draft.verification?.progress && !saveAnyway)
-    return "Return to Playback tracking to verify progress, or acknowledge the limitations before saving.";
+    return message("validation.verifyOrAcknowledge");
   return null;
 }
 
@@ -240,12 +254,25 @@ export function upsertProviderList(
       ...providers,
     ];
   if (!providers.some((item) => item.id === provider.id))
-    throw new Error(
-      "This provider was deleted. Create a new provider instead.",
-    );
+    throw new TranslationError(message("provider.deleted"));
   return providers.map((item) =>
     item.id === provider.id
       ? { ...provider, isDefault: providers.length === 1 || provider.isDefault }
       : item,
   );
+}
+
+/** String APIs remain available for existing consumers. UI state uses descriptors. */
+export function validateProvider(draft: Provider<false>): string | null {
+  const invalid = providerValidationMessage(draft);
+  return invalid ? formatMessage(invalid) : null;
+}
+export function providerSaveError(
+  draft: Provider<false>,
+  pages: string[],
+  checks: Record<string, ExtractionPreview>,
+  saveAnyway: boolean,
+): string | null {
+  const invalid = providerSaveMessage(draft, pages, checks, saveAnyway);
+  return invalid ? formatMessage(invalid) : null;
 }

@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
 
 import NavigationAccessory from "@/components/navigation-accessory";
@@ -9,6 +10,7 @@ import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Platform } from "react-native";
 
 export default function TabLayout() {
+  const t = useAppTranslation();
   const pathName = usePathname();
 
   const { state, updateState } = React.useContext(AppStateContext);
@@ -43,7 +45,7 @@ export default function TabLayout() {
         }}
       >
         <NativeTabs.Trigger.Label>
-          {provider?.name ?? "Websites"}
+          {provider?.name ?? t("navigation.websites")}
         </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf="house.fill"
@@ -51,14 +53,18 @@ export default function TabLayout() {
         ></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="watch-list" role="search">
-        <NativeTabs.Trigger.Label>Watch List</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>
+          {t("navigation.watchList")}
+        </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf="eyeglasses"
           md="history"
         ></NativeTabs.Trigger.Icon>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>
+          {t("common.settings")}
+        </NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           sf="gear.circle.fill"
           md="settings"

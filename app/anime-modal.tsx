@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { TextBox } from "@/components/text-box";
 import { ThemedView } from "@/components/themed-view";
 import { AnimeModalPayload } from "@/model";
@@ -10,6 +11,7 @@ import React from "react";
 import { StyleSheet } from "react-native";
 
 function AddAnimeModal() {
+  const t = useAppTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { stateChanged } = React.useContext(StoreContext);
@@ -54,7 +56,9 @@ function AddAnimeModal() {
           modifiers={[buttonStyle("glassProminent")]}
           onPress={onUpdateState}
         >
-          <Text>{params.animeName ? "EDIT" : "ADD"}</Text>
+          <Text>
+            {params.animeName ? t("common.editUpper") : t("common.add")}
+          </Text>
         </Button>
       </Host>
     </ThemedView>

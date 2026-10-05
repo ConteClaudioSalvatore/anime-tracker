@@ -1,3 +1,4 @@
+import { translate as t, TranslationError, message } from "@/utils/i18n";
 import { Action, AppStoreState, Provider } from "@/model";
 import { reducer } from "@/store/app.state";
 import * as DocumentPicker from "expo-document-picker";
@@ -78,7 +79,7 @@ export class AppStore {
         : providers[0];
       return { ...previous, providers };
     });
-    if (!stored) throw new Error("Could not save this provider.");
+    if (!stored) throw new TranslationError(message("provider.storeFailed"));
     return stored;
   }
 
@@ -90,7 +91,8 @@ export class AppStore {
       const provider = previous.providers.find(
         (item) => item.id === providerId,
       );
-      if (!provider) throw new Error("This provider was deleted.");
+      if (!provider)
+        throw new TranslationError(message("provider.deletedShort"));
       const approved = approveProviderOrigin(provider, origin);
       return {
         ...previous,
@@ -110,18 +112,18 @@ export class AppStore {
     this.BACKUP.write(JSON.stringify(res));
 
     if (!(await Sharing.isAvailableAsync())) {
-      throw new Error("System sharing not available");
+      throw new TranslationError(message("backup.sharingUnavailable"));
     }
 
     await Sharing.shareAsync(this.BACKUP.uri, {
       mimeType: "application/json",
-      dialogTitle: "Export Anime Tracker Backup",
+      dialogTitle: t("backup.shareBackup"),
     });
   }
 
   public static async ExportWatchList(): Promise<void> {
     if (!(await Sharing.isAvailableAsync())) {
-      throw new Error("System sharing not available");
+      throw new TranslationError(message("backup.sharingUnavailable"));
     }
     const state = await this.Get();
     const file = new File(Paths.cache, "anime-tracker/watch-list.json");
@@ -129,7 +131,7 @@ export class AppStore {
     file.write(JSON.stringify(watchListSummary(state.anime), null, 2));
     await Sharing.shareAsync(file.uri, {
       mimeType: "application/json",
-      dialogTitle: "Export Watch List",
+      dialogTitle: t("backup.shareList"),
     });
   }
 

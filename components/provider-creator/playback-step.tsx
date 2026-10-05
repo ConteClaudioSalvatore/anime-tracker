@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Text, View } from "react-native";
 import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-creator";
 import ActionButton from "./action-button";
@@ -10,6 +11,7 @@ type Props = {
   >;
 };
 export function PlaybackStep({ creator }: Props) {
+  const t = useAppTranslation();
   const { colors, selectedPlayer, videoPhase, state, actions, browser } =
     creator;
   const { saveAnyway, saving } = state.setup;
@@ -36,64 +38,52 @@ export function PlaybackStep({ creator }: Props) {
       {players.map((player, index) => (
         <View key={JSON.stringify(player.locator)} style={styles.example}>
           {playerKey === JSON.stringify(player.locator) ? (
-            copy("Primary player " + (index + 1))
+            copy(t("playback.primaryPlayer", { index: index + 1 }))
           ) : (
             <ActionButton
-              label={"Choose player " + (index + 1)}
+              label={t("playback.choosePlayer", { index: index + 1 })}
               onPress={() => choosePlayer(player)}
               disabled={saving}
             />
           )}
           {copy(
-            player.time.toFixed(1) +
-              " / " +
-              player.duration.toFixed(1) +
-              " seconds · " +
-              (player.progress ? "Tracking ready" : "Waiting for playback") +
-              (player.resume ? " · Automatic resume verified" : ""),
+            t("playback.sample", {
+              time: player.time.toFixed(1),
+              duration: player.duration.toFixed(1),
+              status: player.progress
+                ? t("playback.ready")
+                : t("playback.waiting"),
+              resume: player.resume ? t("playback.resumeVerifiedSuffix") : "",
+            }),
             true,
           )}
         </View>
       ))}
-      {videoPhase === "waiting" &&
-        copy(
-          "Tap the website’s player placeholder or Play button. We’ll detect the video when it appears. If several players appear, choose the primary one.",
-          true,
-        )}
+      {videoPhase === "waiting" && copy(t("playback.activateHelp"), true)}
       {inaccessible > 0 &&
         frameTrackingAvailable === false &&
-        copy(
-          "This device cannot inspect embedded players. Update Android System WebView and retry.",
-          true,
-        )}
-      {videoPhase === "paused" &&
-        copy(
-          "Player detected. Press Play on the website to verify progress tracking.",
-          true,
-        )}
-      {videoPhase === "verified" &&
-        copy(
-          "Playback tracking is ready. Continue to Review. You can also check automatic resume in Video options.",
-        )}
+        copy(t("playback.inaccessibleHelp"), true)}
+      {videoPhase === "paused" && copy(t("playback.pausedHelp"), true)}
+      {videoPhase === "verified" && copy(t("playback.verifiedHelp"))}
       <ActionButton
         expanded={advanced}
-        label="Video options"
+        label={t("playback.options")}
         onPress={() => updateWizard({ advanced: !advanced })}
         disabled={saving}
       />
       {advanced && (
         <View style={[styles.expandedTools, { borderColor: colors.border }]}>
-          {copy("Automatic resume (optional)")}
+          {copy(t("playback.resumeOptional"))}
           {copy(
             selectedPlayer?.resume
-              ? "Automatic resume verified."
+              ? t("playback.resumeVerified")
               : resumeTest === "testing"
-                ? "Checking automatic resume…"
+                ? t("playback.resumeChecking")
                 : resumeTest === "failed"
-                  ? "Resume could not be verified. You can continue with progress tracking or retry."
+                  ? t("playback.resumeFailed")
                   : selectedPlayer?.seekable === false
-                    ? "Automatic resume is not available yet. You can continue once progress is verified."
-                    : "This check briefly seeks one second, then restores the playback position. It is not required to continue.",
+                    ? t("playback.resumeUnavailable")
+                    : t("playback.resumeExplain"),
             true,
           )}
           {!selectedPlayer?.resume && (
@@ -101,10 +91,10 @@ export function PlaybackStep({ creator }: Props) {
               variant="tertiary"
               label={
                 resumeTest === "testing"
-                  ? "Checking resume…"
+                  ? t("playback.checkingResume")
                   : resumeTest === "failed"
-                    ? "Retry resume check"
-                    : "Check automatic resume"
+                    ? t("playback.retryResume")
+                    : t("playback.checkResume")
               }
               onPress={checkResume}
               disabled={
@@ -118,13 +108,13 @@ export function PlaybackStep({ creator }: Props) {
           )}
           <ActionButton
             variant="tertiary"
-            label={"Retry playback check"}
+            label={t("playback.retry")}
             onPress={retryPlayback}
             disabled={!ready || saving}
           />
           <ActionButton
             variant="tertiary"
-            label="Playback help"
+            label={t("playback.help")}
             onPress={() => updatePlayback({ videoHelp: true })}
             disabled={saving}
           />
@@ -134,26 +124,20 @@ export function PlaybackStep({ creator }: Props) {
         <>
           {copy(
             selectedPlayer?.progress
-              ? "Progress tracking is verified. Automatic resume is an optional check in Video options."
-              : "Tap the player placeholder, choose the site’s primary player, and press Play. If you have done that and it still cannot be verified, this site may not be supported.",
+              ? t("playback.progressVerifiedHelp")
+              : t("playback.unsupportedHelp"),
           )}
           {!selectedPlayer?.progress && (
             <>
               {inaccessible > 0 &&
                 frameTrackingAvailable !== false &&
-                copy(
-                  "Some embedded frames are not reporting a video yet. Activate the primary player and retry.",
-                  true,
-                )}
-              {copy(
-                "If you save anyway, playback progress and automatic resume may not work. Some embedded players do not expose a trackable video.",
-                true,
-              )}
+                copy(t("playback.framesHelp"), true)}
+              {copy(t("playback.limitationsHelp"), true)}
               {saveAnyway ? (
-                copy("Limitations acknowledged", true)
+                copy(t("playback.acknowledged"), true)
               ) : (
                 <ActionButton
-                  label="Continue with limitations"
+                  label={t("playback.continueLimited")}
                   onPress={() => {
                     updateSetup({ saveAnyway: true, dirty: true });
                   }}

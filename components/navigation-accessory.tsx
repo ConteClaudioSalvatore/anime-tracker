@@ -1,8 +1,10 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { AccessoryContext, AppStateContext } from "@/utils";
 import { Button, Host, Icon, Row, Spacer, Text } from "@expo/ui";
 import React from "react";
 
 export default function NavigationAccessory() {
+  const t = useAppTranslation();
   const { webViewRef } = React.useContext(AccessoryContext);
   const {
     state: { canGoBack, canGoForward },
@@ -26,7 +28,7 @@ export default function NavigationAccessory() {
                 variant="text"
                 onPress={() => webViewRef?.current?.goBack()}
               >
-                <Text hidden>back</Text>
+                <Text hidden>{t("common.back")}</Text>
                 <Icon
                   name={Icon.select({
                     ios: "lessthan",
@@ -41,7 +43,7 @@ export default function NavigationAccessory() {
                 variant="text"
                 onPress={() => webViewRef?.current?.goForward()}
               >
-                <Text hidden>forward</Text>
+                <Text hidden>{t("common.forward")}</Text>
                 <Icon
                   name={Icon.select({
                     ios: "greaterthan",
@@ -63,7 +65,7 @@ export default function NavigationAccessory() {
             }))
           }
         >
-          <Text hidden>Websites</Text>
+          <Text hidden>{t("navigation.websites")}</Text>
           <Icon
             name={Icon.select({
               ios: "globe",
@@ -77,7 +79,7 @@ export default function NavigationAccessory() {
             updateState((previous) => ({ ...previous, browserSheet: "status" }))
           }
         >
-          <Text hidden>Playback details</Text>
+          <Text hidden>{t("navigation.playbackDetails")}</Text>
           <Icon
             name={Icon.select({
               ios: "info.circle",
@@ -86,7 +88,7 @@ export default function NavigationAccessory() {
           />
         </Button>
         <Button variant="filled" onPress={() => webViewRef?.current?.reload()}>
-          <Text hidden>Reload</Text>
+          <Text hidden>{t("common.reload")}</Text>
           <Icon
             name={Icon.select({
               ios: "arrow.2.circlepath",

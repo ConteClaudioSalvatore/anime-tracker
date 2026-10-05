@@ -1,3 +1,4 @@
+import { type AppMessage, translate as t } from "@/utils/i18n";
 import React from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "expo-router";
@@ -9,7 +10,7 @@ export function useProviderNavigation(options: {
   pageKey: () => string;
   approve: (provider: Provider<false>, origin: string) => Promise<void>;
   navigate: (url: string) => void;
-  onError: (message: string) => void;
+  onError: (message: AppMessage) => void;
 }) {
   const latest = React.useRef(options);
   const guard = React.useRef<ProviderNavigationGuard | null>(null);
@@ -36,15 +37,21 @@ export function useProviderNavigation(options: {
       confirm: (provider, origin) =>
         new Promise((resolve) => {
           Alert.alert(
-            "Allow another website?",
-            `${provider.name ?? "This provider"} wants to open:\n${origin}\n\nAdd this address to its approved websites and continue?`,
+            t("navigation.approveTitle"),
+            t("navigation.approveMessage", {
+              name: provider.name ?? t("navigation.providerFallback"),
+              origin,
+            }),
             [
               {
-                text: "Cancel",
+                text: t("common.cancel"),
                 style: "cancel",
                 onPress: () => resolve(false),
               },
-              { text: "Add and continue", onPress: () => resolve(true) },
+              {
+                text: t("navigation.approveAction"),
+                onPress: () => resolve(true),
+              },
             ],
             { cancelable: true, onDismiss: () => resolve(false) },
           );

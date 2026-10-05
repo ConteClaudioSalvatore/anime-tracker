@@ -60,6 +60,7 @@ export class ProviderPageChecks {
         errors: [
           "The page did not finish loading. Check the website and retry this example.",
         ],
+        errorCodes: ["page-timeout"],
       },
     };
     this.pending = null;

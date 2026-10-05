@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
 import { Platform, ScrollView, StyleSheet, Text } from "react-native";
 import ActionButton from "@/components/provider-creator/action-button";
@@ -18,6 +19,7 @@ export default function ProviderChooser({
   onOpen,
   onAdd,
 }: ProviderChooserProps) {
+  const t = useAppTranslation();
   const colors = useProviderPalette();
   return (
     <ScrollView contentContainerStyle={styles.chooser}>
@@ -25,32 +27,27 @@ export default function ProviderChooser({
         accessibilityRole="header"
         style={[styles.title, { color: colors.text }]}
       >
-        Your websites
+        {t("home.websites")}
       </Text>
-      <Text style={{ color: colors.text }}>
-        Choose a provider or teach the app how your website works.
-      </Text>
+      <Text style={{ color: colors.text }}>{t("home.chooseProvider")}</Text>
       {missingProvider && (
-        <Text style={{ color: colors.text }}>
-          The website for this saved episode is not configured. Add it or choose
-          another provider.
-        </Text>
+        <Text style={{ color: colors.text }}>{t("home.missingProvider")}</Text>
       )}
       {providers.map((item) => (
         <ProviderSurface key={item.id} style={[styles.item, styles.iosItem]}>
           <ActionButton
-            label={"Open " + item.name}
+            label={t("provider.openNamed", { name: item.name })}
             onPress={() => onOpen(item)}
           />
           <Text style={{ color: colors.text }}>{item.origin}</Text>
           <Text style={{ color: colors.text }}>
             {item.verification?.progress
-              ? "Playback tracking ready"
-              : "Playback tracking not verified"}
+              ? t("provider.trackingReady")
+              : t("provider.trackingUnverified")}
           </Text>
         </ProviderSurface>
       ))}
-      <ActionButton label="Add provider" onPress={onAdd} />
+      <ActionButton label={t("provider.add")} onPress={onAdd} />
     </ScrollView>
   );
 }

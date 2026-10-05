@@ -1,3 +1,11 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import { selectionFeedback } from "@/utils/runtime-feedback";
+import {
+  TranslationError,
+  message,
+  formatMessage,
+  errorMessage,
+} from "@/utils/i18n";
 import React from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import type { Provider } from "@/model/provider.model";
@@ -6,7 +14,7 @@ import {
   learnPageRule,
   normalizeWebsite,
   playbackPhase,
-  providerSaveError,
+  providerSaveMessage,
 } from "@/utils/provider-runtime";
 import { ProviderPageChecks } from "@/utils/provider-page-checks";
 import { useProviderPalette } from "@/hooks/use-provider-palette";
@@ -16,6 +24,7 @@ import { useCreatorState } from "./use-creator-state";
 import { useCreatorBrowser } from "./use-creator-browser";
 
 export function useProviderCreator() {
+  const t = useAppTranslation();
   const { id } = useLocalSearchParams<{
     id?: string;
   }>();
@@ -74,7 +83,8 @@ export function useProviderCreator() {
     updateWizard({ error: "" });
     if (step === 0) {
       try {
-        if (!draft.name?.trim()) throw new Error("Enter a provider name.");
+        if (!draft.name?.trim())
+          throw new TranslationError(message("validation.name"));
         const origin = normalizeWebsite(draft.origin ?? "");
         const aliases = aliasInput
           .split(/[,\n]/)
@@ -90,10 +100,7 @@ export function useProviderCreator() {
         go(1);
       } catch (cause) {
         updateWizard({
-          error:
-            cause instanceof Error
-              ? cause.message
-              : "Check the website address.",
+          error: errorMessage(cause, "validation.checkAddress"),
         });
       }
       return;
@@ -101,7 +108,7 @@ export function useProviderCreator() {
     if (step === 1) {
       try {
         if (pages.some((value) => !allowedUrl(draft, value)))
-          throw new Error("Choose pages on the website or an approved alias.");
+          throw new TranslationError(message("validation.pageOrAlias"));
         const rule = learnPageRule(pages, pages[0]);
         edit({
           ...draft,
@@ -111,7 +118,9 @@ export function useProviderCreator() {
         });
         go(2);
       } catch (cause) {
-        updateWizard({ error: (cause as Error).message });
+        updateWizard({
+          error: errorMessage(cause, "validation.differentPages"),
+        });
       }
       return;
     }
@@ -140,14 +149,14 @@ export function useProviderCreator() {
   function capturePage() {
     if (!ready || saving || pages.length >= 2) return;
     if (!allowedUrl(draft, url)) {
-      updateWizard({ error: "Choose a page on this website." });
+      updateWizard({ error: message("validation.pageOnWebsite") });
       return;
     }
     const captured = new URL(url);
     captured.hash = "";
     if (pages.includes(captured.href)) {
       updateWizard({
-        error: "This page is already selected. Open a different series.",
+        error: message("validation.duplicatePage"),
       });
       return;
     }
@@ -167,51 +176,58 @@ export function useProviderCreator() {
             : true);
   const hint =
     step === 0
-      ? "Enter a name and website address."
+      ? t("creator.websiteHint")
       : step === 1
-        ? "Choose two different series pages."
+        ? t("validation.differentPages")
         : field
-          ? (candidate?.error ??
-            "Select the requested information on the website.")
+          ? candidate?.error
+            ? selectionFeedback(candidate, t)
+            : t("creator.selectHint")
           : step === 5
-            ? "Play the episode to verify progress. Checking automatic resume is optional."
-            : "Review the example pages before saving.";
+            ? t("creator.playbackHint")
+            : t("creator.reviewHint");
   const saveError =
-    step === 6 ? providerSaveError(draft, pages, checks, saveAnyway) : null;
-  const selectionLabel =
-    step === 2 ? "title" : step === 3 ? "episodes" : "total";
+    step === 6 ? providerSaveMessage(draft, pages, checks, saveAnyway) : null;
+  const selectionLabels = {
+    2: ["creator.tapTitle", "creator.selectTitle"],
+    3: ["creator.tapEpisodes", "creator.selectEpisodes"],
+    4: ["creator.tapTotal", "creator.selectTotal"],
+  } as const;
+  const selectionLabel = selectionLabels[step as 2 | 3 | 4];
   const primaryAction =
     step === 6
       ? {
           label: saving
-            ? "Saving…"
+            ? t("common.saving")
             : reviewPage
-              ? "Checking…"
-              : "Save provider",
+              ? t("common.checking")
+              : t("provider.save"),
           onPress: () => void save(),
           disabled: saved || !!reviewPage || saving,
         }
       : step === 1 && pages.length < 2
         ? {
-            label: "Use this page",
+            label: t("creator.usePage"),
             onPress: capturePage,
             disabled: !ready || saving,
           }
         : field && !candidate?.valid
           ? {
-              label: select
-                ? "Tap the " + selectionLabel
-                : "Select " + selectionLabel,
+              label: t(selectionLabel[select ? 0 : 1]),
               onPress: startSelection,
               disabled: select || !ready || saving,
             }
           : step === 5 && !canContinue
             ? {
-                label: "Play the episode",
+                label: t("creator.playEpisode"),
                 onPress: next,
                 disabled: true,
               }
-            : { label: "Continue", onPress: next, disabled: !canContinue };
+            : {
+                label: t("common.continue"),
+                onPress: next,
+                disabled: !canContinue,
+              };
   return {
     state,
     actions,
@@ -224,7 +240,7 @@ export function useProviderCreator() {
     go,
     canContinue,
     hint,
-    saveError,
+    saveError: saveError ? formatMessage(saveError, t) : null,
     primaryAction,
     colors,
     id,

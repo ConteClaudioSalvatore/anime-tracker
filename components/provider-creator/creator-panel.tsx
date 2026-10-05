@@ -1,3 +1,5 @@
+import { formatMessage } from "@/utils/i18n";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ScrollView, Text, View } from "react-native";
 import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-creator";
 import ActionButton from "./action-button";
@@ -12,6 +14,7 @@ import { ReviewStep } from "./review-step";
 
 type Props = { creator: ProviderCreator };
 export function CreatorPanel({ creator }: Props) {
+  const t = useAppTranslation();
   const {
     colors,
     field,
@@ -50,7 +53,7 @@ export function CreatorPanel({ creator }: Props) {
       >
         {!collapsed && (
           <>
-            {copy(instructions[step])}
+            {copy(t(instructions[step]))}
             {step === 0 && <WebsiteStep creator={creator} />}
             {step === 1 && <ExamplePagesStep creator={creator} />}
             {field && <SelectionStep creator={creator} />}
@@ -61,22 +64,21 @@ export function CreatorPanel({ creator }: Props) {
         {step === 6 &&
           (reviewPage
             ? copy(
-                "Checking example " +
-                  (pages.indexOf(reviewPage) + 1) +
-                  " of " +
-                  pages.length +
-                  "…",
+                t("creator.checkingExample", {
+                  index: pages.indexOf(reviewPage) + 1,
+                  count: pages.length,
+                }),
                 true,
               )
             : saveError
               ? copy(saveError)
-              : copy("Both example pages passed. Ready to save."))}
+              : copy(t("creator.reviewPassed")))}
         {!!error && (
           <Text
             accessibilityRole="alert"
             style={[styles.copy, { color: colors.error }]}
           >
-            {error}
+            {formatMessage(error, t)}
           </Text>
         )}
         {!canContinue && step < 6 && copy(hint, true)}
@@ -87,9 +89,11 @@ export function CreatorPanel({ creator }: Props) {
             <ActionButton
               variant="tertiary"
               expanded={!collapsed}
-              label="Details"
+              label={t("creator.details")}
               accessibilityLabel={
-                collapsed ? "Show instructions" : "Hide details"
+                collapsed
+                  ? t("creator.showInstructions")
+                  : t("creator.hideDetails")
               }
               onPress={() => updateWizard({ collapsed: !collapsed })}
               disabled={saving}
@@ -98,7 +102,7 @@ export function CreatorPanel({ creator }: Props) {
           {field && select && (
             <ActionButton
               variant="tertiary"
-              label="Browse"
+              label={t("creator.browse")}
               onPress={() => updateSelection({ select: false })}
               disabled={!ready || saving}
             />
@@ -107,8 +111,8 @@ export function CreatorPanel({ creator }: Props) {
           {step > 0 && (
             <ActionButton
               variant="tertiary"
-              label="Previous"
-              accessibilityLabel="Previous step"
+              label={t("common.previous")}
+              accessibilityLabel={t("creator.previousStep")}
               onPress={() => go(step - 1)}
               disabled={saving}
             />

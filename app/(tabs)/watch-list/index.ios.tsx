@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import WatchListHeader, {
   WatchListHeaderContext,
 } from "@/components/watch-list/header";
@@ -36,6 +37,7 @@ import React from "react";
 import { DynamicColorIOS, useWindowDimensions } from "react-native";
 
 export default function WatchListScreen() {
+  const t = useAppTranslation();
   const { state: storeState, stateChanged } = React.useContext(StoreContext);
   const { updateState } = React.useContext(AppStateContext);
   const [searchValue, setSearchValue] = React.useState("");
@@ -65,7 +67,7 @@ export default function WatchListScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Watch History",
+          title: t("watch.history"),
           headerStyle: {
             backgroundColor: "transparent",
           },
@@ -74,7 +76,7 @@ export default function WatchListScreen() {
       />
       <Stack.SearchBar
         placement="automatic"
-        placeholder="Search Watch List"
+        placeholder={t("watch.search")}
         hideNavigationBar
         onChangeText={(e) => setSearchValue(e.nativeEvent.text)}
       />
@@ -115,10 +117,10 @@ export default function WatchListScreen() {
             ]}
           >
             <HStack>
-              <Text>Anime</Text>
+              <Text>{t("watch.anime")}</Text>
               <Spacer />
-              <Text>Episode</Text>
-              <Text>Action</Text>
+              <Text>{t("watch.episode")}</Text>
+              <Text>{t("watch.action")}</Text>
             </HStack>
             <Divider />
             <ScrollView>
@@ -191,7 +193,7 @@ export default function WatchListScreen() {
                   </>
                 ) : (
                   <Text modifiers={[multilineTextAlignment("center")]}>
-                    nothing to see here 👁️👄👁️
+                    {t("watch.empty")}
                   </Text>
                 )}
               </LazyVStack>
@@ -205,7 +207,7 @@ export default function WatchListScreen() {
                 params: {},
               })
             }
-            label="Add manually"
+            label={t("watch.addManually")}
             systemImage="plus"
           />
         </VStack>

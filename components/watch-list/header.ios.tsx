@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import {
   Button,
   HStack,
@@ -42,6 +43,7 @@ export default function WatchListHeader({
 }: {
   modifiers?: ModifierConfig[];
 }) {
+  const t = useAppTranslation();
   const contextValue = React.useContext(WatchListHeaderContext);
 
   if (!contextValue) return null;
@@ -62,13 +64,13 @@ export default function WatchListHeader({
         <Button
           modifiers={[tint("#ff000044"), buttonStyle("glassProminent")]}
           systemImage="bin.xmark"
-          label="CLEAR"
+          label={t("common.clear")}
           onPress={onClear}
         />
       )}
       <Overlay alignment="topTrailing">
         <Menu
-          label={"Settings"}
+          label={t("common.settings")}
           modifiers={[labelStyle("titleAndIcon")]}
           systemImage={"slider.horizontal.3" satisfies SFSymbol}
         >
@@ -76,18 +78,18 @@ export default function WatchListHeader({
             selection={sortMode}
             onSelectionChange={(e) => setSortMode(e)}
             modifiers={[pickerStyle("menu")]}
-            label="Sort By"
+            label={t("watch.sortBy")}
           >
             {watchListSortOptions.map((option) => (
               <Text key={option.value} modifiers={[tag(option.value)]}>
-                {option.label}
+                {t(option.labelKey)}
               </Text>
             ))}
           </Picker>
           <Toggle
             isOn={onlyInProgress}
             onIsOnChange={(e) => setOnlyInProgress(e)}
-            label="Only show in progress"
+            label={t("watch.inProgressOnly")}
           />
         </Menu>
         <Overlay.Content>

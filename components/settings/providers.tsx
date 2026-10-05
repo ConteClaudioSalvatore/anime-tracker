@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { removeProvider } from "@/store/app.actions";
 import { AppStateContext, AppStore, StoreContext } from "@/utils";
@@ -50,6 +51,7 @@ function ProviderAction({
 }
 
 export default function SettingsProviders() {
+  const t = useAppTranslation();
   const { state, stateChanged } = React.useContext(StoreContext);
   const providers = state.providers;
   const { updateState } = React.useContext(AppStateContext);
@@ -68,21 +70,17 @@ export default function SettingsProviders() {
   );
 
   const onProviderDelete = async (providerId: number) => {
-    Alert.alert(
-      "Delete Provider",
-      "Are you sure you want to delete this provider?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await AppStore.Dispatch(removeProvider(providerId));
-            stateChanged();
-          },
+    Alert.alert(t("provider.deleteTitle"), t("provider.deleteConfirm"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("common.delete"),
+        style: "destructive",
+        onPress: async () => {
+          await AppStore.Dispatch(removeProvider(providerId));
+          stateChanged();
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -97,7 +95,7 @@ export default function SettingsProviders() {
       modifiers={[weight(1), fillMaxWidth()]}
     >
       <Text textStyle={{ color: textColor, fontWeight: "bold", fontSize: 18 }}>
-        Your Websites
+        {t("home.websites")}
       </Text>
       {Platform.OS === "android" && <HorizontalDivider />}
       {Platform.OS === "ios" && <Divider />}
@@ -107,7 +105,7 @@ export default function SettingsProviders() {
             <Column key={provider.id} spacing={8}>
               <Row>
                 <ProviderAction
-                  label={"Open " + provider.name}
+                  label={t("provider.openNamed", { name: provider.name })}
                   onPress={() => {
                     updateState({
                       url: provider.origin,
@@ -141,9 +139,11 @@ export default function SettingsProviders() {
                       buttonStyle("glass"),
                       controlSize("small"),
                       labelStyle("iconOnly"),
-                      accessibilityLabel("Delete " + provider.name),
+                      accessibilityLabel(
+                        t("provider.deleteNamed", { name: provider.name }),
+                      ),
                     ]}
-                    label="Delete provider"
+                    label={t("provider.delete")}
                     systemImage="trash"
                     role="destructive"
                     onPress={() => onProviderDelete(provider.id)}
@@ -152,12 +152,12 @@ export default function SettingsProviders() {
               </Row>
               <Text textStyle={{ color: textColor }}>
                 {provider.verification?.progress
-                  ? "Playback tracking ready"
-                  : "Playback tracking not verified"}
+                  ? t("provider.trackingReady")
+                  : t("provider.trackingUnverified")}
               </Text>
               <Row spacing={8}>
                 <ProviderAction
-                  label="Edit setup"
+                  label={t("provider.editSetup")}
                   onPress={() =>
                     router.navigate({
                       pathname: "/provider-creator",
@@ -169,10 +169,10 @@ export default function SettingsProviders() {
                   disabled={providers.length === 1}
                   label={
                     providers.length === 1
-                      ? "Opens on startup"
+                      ? t("provider.opensStartup")
                       : provider.isDefault
-                        ? "Clear startup website"
-                        : "Use on startup"
+                        ? t("provider.clearStartup")
+                        : t("provider.useStartup")
                   }
                   onPress={async () => {
                     try {
@@ -186,7 +186,10 @@ export default function SettingsProviders() {
                       }));
                       stateChanged();
                     } catch {
-                      Alert.alert("Could not save preference", "Try again.");
+                      Alert.alert(
+                        t("provider.startupFailed"),
+                        t("common.retry"),
+                      );
                     }
                   }}
                 />
@@ -194,7 +197,7 @@ export default function SettingsProviders() {
             </Column>
           ))
         ) : (
-          <Text textStyle={{ color: textColor }}>No Providers found</Text>
+          <Text textStyle={{ color: textColor }}>{t("provider.none")}</Text>
         )}
         <Spacer flexible />
         {Platform.OS === "ios" && (
@@ -208,7 +211,7 @@ export default function SettingsProviders() {
               router.navigate("/provider-creator");
             }}
             systemImage="plus"
-            label="Add Provider"
+            label={t("provider.add")}
           />
         )}
         {Platform.OS === "android" && (
@@ -223,7 +226,7 @@ export default function SettingsProviders() {
                 android: import("@expo/material-symbols/add.xml"),
               })}
             />
-            <Text>Add Provider</Text>
+            <Text>{t("provider.add")}</Text>
           </Button>
         )}
       </Column>

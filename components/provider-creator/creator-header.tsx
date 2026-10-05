@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Text, View } from "react-native";
 import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-creator";
 import { steps } from "./creator-config";
@@ -5,6 +6,7 @@ import { styles } from "./creator-styles";
 
 type Props = { creator: Pick<ProviderCreator, "colors" | "state"> };
 export function CreatorHeader({ creator }: Props) {
+  const t = useAppTranslation();
   const { colors, state } = creator;
   const { step } = state.wizard;
   const copy = (value: string, muted = false) => (
@@ -19,7 +21,7 @@ export function CreatorHeader({ creator }: Props) {
           accessibilityRole="header"
           style={[styles.title, { color: colors.text }]}
         >
-          {steps[step]}
+          {t(steps[step])}
         </Text>
         {copy(step + 1 + " / " + steps.length, true)}
       </View>

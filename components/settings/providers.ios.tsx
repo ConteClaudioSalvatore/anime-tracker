@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import type { Provider } from "@/model";
 import { removeProvider } from "@/store/app.actions";
 import { AppStateContext, AppStore, StoreContext } from "@/utils";
@@ -35,6 +36,7 @@ function websiteAddress(provider: Provider) {
 }
 
 export default function SettingsProviders() {
+  const t = useAppTranslation();
   const { state, stateChanged } = React.useContext(StoreContext);
   const { updateState } = React.useContext(AppStateContext);
   const [savingStartup, setSavingStartup] = React.useState(false);
@@ -61,7 +63,7 @@ export default function SettingsProviders() {
       }));
       stateChanged();
     } catch {
-      Alert.alert("Could not save preference", "Try again.");
+      Alert.alert(t("provider.startupFailed"), t("common.retry"));
     } finally {
       setSavingStartup(false);
     }
@@ -69,19 +71,19 @@ export default function SettingsProviders() {
 
   function deleteWebsite(provider: Provider) {
     Alert.alert(
-      "Delete " + provider.name + "?",
-      "Your watch history will be kept.",
+      t("provider.deleteQuestion", { name: provider.name }),
+      t("provider.historyKept"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             try {
               await AppStore.Dispatch(removeProvider(provider.id));
               stateChanged();
             } catch {
-              Alert.alert("Could not delete website", "Try again.");
+              Alert.alert(t("provider.deleteFailed"), t("common.retry"));
             }
           },
         },
@@ -91,12 +93,12 @@ export default function SettingsProviders() {
 
   return (
     <Section
-      title="Websites"
+      title={t("navigation.websites")}
       footer={
         <Text>
           {onlyWebsite
-            ? "Your only website opens automatically. Add another website to choose a startup preference."
-            : "Open on startup chooses the website shown when the app launches."}
+            ? t("provider.onlyStartupHelp")
+            : t("provider.startupHelp")}
         </Text>
       }
     >
@@ -123,11 +125,13 @@ export default function SettingsProviders() {
             </VStack>
             <Spacer />
             <Button
-              label="Open"
+              label={t("common.open")}
               systemImage="arrow.up.right"
               modifiers={[
                 ...actionModifiers,
-                accessibilityLabel("Open " + provider.name),
+                accessibilityLabel(
+                  t("provider.openNamed", { name: provider.name }),
+                ),
               ]}
               onPress={() => {
                 updateState({ url: provider.origin, providerId: provider.id });
@@ -138,8 +142,8 @@ export default function SettingsProviders() {
           <Label
             title={
               provider.verification?.progress
-                ? "Playback tracking ready"
-                : "Playback tracking not verified"
+                ? t("provider.trackingReady")
+                : t("provider.trackingUnverified")
             }
             systemImage={
               provider.verification?.progress
@@ -152,23 +156,27 @@ export default function SettingsProviders() {
             ]}
           />
           <Toggle
-            label="Open on startup"
+            label={t("provider.openStartup")}
             isOn={onlyWebsite || provider.isDefault}
             onIsOnChange={(isOn) => setStartup(provider, isOn)}
             modifiers={[
               toggleStyle("switch"),
               font({ textStyle: "subheadline" }),
               disabled(savingStartup || onlyWebsite),
-              accessibilityLabel("Open " + provider.name + " on startup"),
+              accessibilityLabel(
+                t("provider.startupNamed", { name: provider.name }),
+              ),
             ]}
           />
           <HStack spacing={12}>
             <Button
-              label="Edit"
+              label={t("common.edit")}
               systemImage="pencil"
               modifiers={[
                 ...actionModifiers,
-                accessibilityLabel("Edit " + provider.name),
+                accessibilityLabel(
+                  t("provider.editNamed", { name: provider.name }),
+                ),
               ]}
               onPress={() =>
                 router.navigate({
@@ -179,12 +187,14 @@ export default function SettingsProviders() {
             />
             <Spacer />
             <Button
-              label="Delete"
+              label={t("common.delete")}
               systemImage="trash"
               role="destructive"
               modifiers={[
                 ...actionModifiers,
-                accessibilityLabel("Delete " + provider.name),
+                accessibilityLabel(
+                  t("provider.deleteNamed", { name: provider.name }),
+                ),
               ]}
               onPress={() => deleteWebsite(provider)}
             />
@@ -194,7 +204,7 @@ export default function SettingsProviders() {
       {state.providers.length === 0 && (
         <VStack alignment="leading" spacing={4}>
           <Text modifiers={[font({ textStyle: "headline" })]}>
-            No websites added
+            {t("provider.none")}
           </Text>
           <Text
             modifiers={[
@@ -202,12 +212,12 @@ export default function SettingsProviders() {
               foregroundStyle(secondary),
             ]}
           >
-            Add a website to set up playback tracking.
+            {t("provider.noneHelp")}
           </Text>
         </VStack>
       )}
       <Button
-        label="Add website"
+        label={t("provider.addWebsite")}
         systemImage="plus"
         modifiers={actionModifiers}
         onPress={() => router.navigate("/provider-creator")}

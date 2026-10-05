@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import SettingsProviders from "@/components/settings/providers";
 import { StoreContext } from "@/utils";
 import {
@@ -10,6 +11,7 @@ import React from "react";
 import { StatusBar } from "react-native";
 
 export default function SettingsScreen() {
+  const t = useAppTranslation();
   const { stateChanged } = React.useContext(StoreContext);
   const [exporting, setExporting] = React.useState(false);
 
@@ -40,9 +42,11 @@ export default function SettingsScreen() {
               android: import("@expo/material-symbols/upload.xml"),
             })}
           />
-          <Text>{exporting ? "Exporting…" : "Export watch list"}</Text>
+          <Text>
+            {exporting ? t("backup.exporting") : t("backup.exportList")}
+          </Text>
         </Button>
-        <Text>Series names, episode progress, and completion status only.</Text>
+        <Text>{t("backup.exportHelp")}</Text>
         <Spacer />
         <Row alignment="center" style={{ padding: 8 }} spacing={8}>
           <Button
@@ -57,7 +61,7 @@ export default function SettingsScreen() {
               })}
             />
 
-            <Text>BACKUP</Text>
+            <Text>{t("backup.backup")}</Text>
           </Button>
           <Button
             variant="outlined"
@@ -70,7 +74,7 @@ export default function SettingsScreen() {
                 android: import("@expo/material-symbols/download.xml"),
               })}
             />
-            <Text>RESTORE BACKUP</Text>
+            <Text>{t("backup.restore")}</Text>
           </Button>
         </Row>
       </Column>

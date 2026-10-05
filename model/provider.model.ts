@@ -1,3 +1,5 @@
+import type { AppMessage } from "../utils/i18n";
+
 type Initializable<T extends object, TInitialized extends boolean> = {
   [k in keyof T]: TInitialized extends true ? T[k] : T[k] | null;
 };
@@ -25,4 +27,5 @@ export type Provider<TInitialized extends boolean = true> = {
 >;
 
 export type SaveProviderResult =
-  { success: true; provider: Provider } | { success: false; message: string };
+  | { success: true; provider: Provider }
+  | { success: false; message: AppMessage };

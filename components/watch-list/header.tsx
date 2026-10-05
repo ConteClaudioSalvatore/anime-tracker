@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import {
   BottomSheet,
   Button,
@@ -32,6 +33,7 @@ export const WatchListHeaderContext = React.createContext<{
 } | null>(null);
 
 export default function WatchListHeader() {
+  const t = useAppTranslation();
   const contextValue = React.useContext(WatchListHeaderContext);
   const [menuOpen, setMenuOpen] = React.useState(false);
 
@@ -63,7 +65,7 @@ export default function WatchListHeader() {
               android: import("@expo/material-symbols/delete.xml"),
             })}
           ></Icon>
-          <Text>CLEAR</Text>
+          <Text>{t("common.clear")}</Text>
         </AndroidButton>
       )}
       {Platform.OS === "android" ? (
@@ -77,7 +79,7 @@ export default function WatchListHeader() {
           </BadgedBox.Badge>
 
           <Button variant="text" onPress={() => setMenuOpen(true)}>
-            <Text>Settings</Text>
+            <Text>{t("common.settings")}</Text>
             <Icon
               name={Icon.select({
                 ios: "slider.horizontal.3",
@@ -88,7 +90,7 @@ export default function WatchListHeader() {
         </BadgedBox>
       ) : (
         <Button variant="text" onPress={() => setMenuOpen(true)}>
-          <Text>Settings</Text>
+          <Text>{t("common.settings")}</Text>
           <Icon
             name={Icon.select({
               ios: "slider.horizontal.3",
@@ -100,7 +102,7 @@ export default function WatchListHeader() {
       <BottomSheet isPresented={menuOpen} onDismiss={() => setMenuOpen(false)}>
         <Column spacing={8}>
           <Row alignment="center">
-            <Text>Sort By</Text>
+            <Text>{t("watch.sortBy")}</Text>
             <Spacer flexible />
             <Picker
               appearance="menu"
@@ -111,13 +113,13 @@ export default function WatchListHeader() {
                 <Picker.Item
                   key={option.value}
                   value={option.value}
-                  label={option.label}
+                  label={t(option.labelKey)}
                 />
               ))}
             </Picker>
           </Row>
           <Switch
-            label="Only show in progress"
+            label={t("watch.inProgressOnly")}
             value={onlyInProgress}
             onValueChange={(e) => setOnlyInProgress(e)}
           />
