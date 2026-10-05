@@ -4,6 +4,7 @@ import { Box, RNHostView } from "@expo/ui/jetpack-compose";
 import {
   fillMaxWidth,
   onSizeChanged,
+  onVisibilityChanged,
 } from "@expo/ui/jetpack-compose/modifiers";
 import { useCoverImage } from "@/hooks/use-cover-image";
 import { CoverImage } from "./cover-image";
@@ -25,15 +26,17 @@ export default function CoverSurface({
   const cover = useCoverImage(url);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [containerWidth, setContainerWidth] = useState(0);
-  const image = cover.url ? (
-    <CoverImage
-      size={Platform.OS === "android" ? size : undefined}
-      url={cover.url}
-      visible={cover.visible}
-      onLoad={cover.onLoad}
-      onError={cover.onError}
-    />
-  ) : null;
+  const [inViewport, setInViewport] = useState(Platform.OS !== "android");
+  const image =
+    cover.url && inViewport ? (
+      <CoverImage
+        size={Platform.OS === "android" ? size : undefined}
+        url={cover.url}
+        visible={cover.visible}
+        onLoad={cover.onLoad}
+        onError={cover.onError}
+      />
+    ) : null;
   const surface = (
     <View
       collapsable={false}
@@ -58,7 +61,7 @@ export default function CoverSurface({
             {image}
           </View>
         )}
-      {children(cover.visible, {
+      {children(inViewport && cover.visible, {
         status: cover.status,
         error: cover.error,
         size,
@@ -70,6 +73,7 @@ export default function CoverSurface({
       modifiers={[
         fillMaxWidth(),
         onSizeChanged(({ width }) => setContainerWidth(width)),
+        onVisibilityChanged(setInViewport, { minFractionVisible: 0.01 }),
       ]}
     >
       <RNHostView matchContents modifiers={[fillMaxWidth()]}>

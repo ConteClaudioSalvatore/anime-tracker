@@ -126,6 +126,7 @@ test("Android cover uses row measurements before mounting the image and follows 
       return {
         fillMaxWidth: () => ({ type: "fill" }),
         onSizeChanged: (handler) => ({ type: "measure", handler }),
+        onVisibilityChanged: (handler) => ({ type: "visibility", handler }),
       };
     if (
       request === "./cover-image" &&
@@ -134,7 +135,7 @@ test("Android cover uses row measurements before mounting the image and follows 
       return {
         CoverImage: (props) => {
           imageProps = props;
-          return null;
+          return React.createElement("span", { "data-cover": true });
         },
       };
     return load.call(this, request, parent, ...args);
@@ -185,6 +186,14 @@ test("Android cover uses row measurements before mounting the image and follows 
       nativeEvent: { layout: { width: 379, height: 110 } },
     }),
   );
+  assert.equal(
+    imageProps,
+    undefined,
+    "Measured offscreen rows must not load covers",
+  );
+  await React.act(async () =>
+    containerModifiers.find((item) => item.type === "visibility").handler(true),
+  );
   assert.deepEqual(imageProps.size, { width: 379, height: 110 });
   assert.equal(hostProps.matchContents, true);
   assert.deepEqual(details.size, imageProps.size);
@@ -204,4 +213,135 @@ test("Android cover uses row measurements before mounting the image and follows 
   );
   assert.deepEqual(imageProps.size, { width: 520, height: 160 });
   assert.equal(details.status, "loaded");
+  await React.act(async () =>
+    containerModifiers
+      .find((item) => item.type === "visibility")
+      .handler(false),
+  );
+  assert.equal(dom.window.document.querySelector("[data-cover]"), null);
+  assert.equal(dom.window.document.body.textContent, "plain");
+  await React.act(async () =>
+    containerModifiers.find((item) => item.type === "visibility").handler(true),
+  );
+  assert.ok(dom.window.document.querySelector("[data-cover]"));
+  assert.equal(dom.window.document.body.textContent, "covered");
+});
+
+test("iOS covers load only for rows intersecting the scroll viewport", async (t) => {
+  const dom = new JSDOM('<div id="root"></div>');
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    act: globalThis.IS_REACT_ACT_ENVIRONMENT,
+  };
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  let rowModifiers, imageProps;
+  const load = Module._load;
+  Module._load = function (request, parent, ...args) {
+    if (request === "@expo/ui/swift-ui") {
+      const Container = (props) =>
+        React.createElement("div", null, props.children);
+      Container.Content = Container;
+      return {
+        Background: Container,
+        RNHostView: Container,
+        VStack: (props) => {
+          rowModifiers = props.modifiers;
+          return React.createElement("div", null, props.children);
+        },
+      };
+    }
+    if (request === "@expo/ui/swift-ui/modifiers")
+      return {
+        clipped: () => ({}),
+        frame: () => ({}),
+        onGeometryChange: (handler) => ({ type: "geometry", handler }),
+      };
+    if (
+      request === "./cover-image" &&
+      parent.filename.endsWith("cover-surface.ios.tsx")
+    )
+      return {
+        CoverImage: (props) => {
+          imageProps = props;
+          return React.createElement("span", { "data-cover": true });
+        },
+      };
+    return load.call(this, request, parent, ...args);
+  };
+  let CoverSurface;
+  try {
+    CoverSurface =
+      require("../components/watch-list/cover-surface.ios.tsx").default;
+  } finally {
+    Module._load = load;
+  }
+  const { CoverViewportContext } = require("../utils/cover-viewport.ts");
+  const root = createRoot(dom.window.document.querySelector("#root"));
+  t.after(async () => {
+    await React.act(async () => root.unmount());
+    globalThis.window = previous.window;
+    globalThis.document = previous.document;
+    globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
+    dom.window.close();
+  });
+  async function render(viewport) {
+    await React.act(async () =>
+      root.render(
+        React.createElement(
+          CoverViewportContext.Provider,
+          { value: viewport },
+          React.createElement(CoverSurface, {
+            url: "https://example.com/cover.jpg",
+            children: (visible) =>
+              React.createElement("p", null, visible ? "covered" : "plain"),
+          }),
+        ),
+      ),
+    );
+  }
+  async function position(y) {
+    await React.act(async () =>
+      rowModifiers
+        .find((item) => item.type === "geometry")
+        .handler({
+          x: 0,
+          y,
+          width: 300,
+          height: 100,
+        }),
+    );
+  }
+  await render(null);
+  await position(150);
+  assert.equal(
+    imageProps,
+    undefined,
+    "Unknown viewport cannot start image requests",
+  );
+  const viewport = { x: 0, y: 100, width: 300, height: 400 };
+  await render(viewport);
+  assert.ok(dom.window.document.querySelector("[data-cover]"));
+  await React.act(async () => imageProps.onLoad());
+  assert.equal(dom.window.document.body.textContent, "covered");
+  await position(500);
+  assert.equal(dom.window.document.querySelector("[data-cover]"), null);
+  await position(499);
+  assert.ok(
+    dom.window.document.querySelector("[data-cover]"),
+    "Partially visible rows load",
+  );
+  await position(0);
+  assert.equal(dom.window.document.querySelector("[data-cover]"), null);
+  await position(100);
+  assert.ok(dom.window.document.querySelector("[data-cover]"));
+  assert.equal(
+    imageProps.visible,
+    true,
+    "Loaded covers retain state when scrolled back",
+  );
+  await render({ ...viewport, y: 700 });
+  assert.equal(dom.window.document.querySelector("[data-cover]"), null);
 });
