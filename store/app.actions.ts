@@ -17,7 +17,9 @@ export const toggleAnimeFinished = createAction(
 );
 export const upsertAnime = createAction(
   "@app/upsert-anime",
-  (animeName: string, episode: number) => ({ payload: { animeName, episode } }),
+  (animeName: string, episode: number, total?: number | null) => ({
+    payload: { animeName, episode, ...(total !== undefined ? { total } : {}) },
+  }),
 );
 
 export const upsertProvider = createAction(

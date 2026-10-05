@@ -285,5 +285,21 @@
   "watch.emptySearchTitle": "Nessun anime trovato",
   "watch.emptySearchDetail": "Prova un altro titolo o passa a Tutti.",
   "watch.emptyWatchingTitle": "Nessun anime in corso",
-  "watch.emptyWatchingDetail": "Gli anime completati e interrotti sono ancora nella lista Tutti."
+  "watch.emptyWatchingDetail": "Gli anime completati e interrotti sono ancora nella lista Tutti.",
+  "anime.addTitle": "Aggiungi anime",
+  "anime.editTitle": "Modifica progressi",
+  "anime.series": "Anime",
+  "anime.nameLabel": "Titolo",
+  "anime.namePlaceholder": "Titolo dell’anime",
+  "anime.nameHelp": "Usa il titolo mostrato sul tuo sito.",
+  "anime.progress": "I tuoi progressi",
+  "anime.episodeLabel": "Episodio",
+  "anime.episodeHelp": "L’episodio più alto che hai visto. Usa 0 se non hai ancora iniziato.",
+  "anime.episodeInvalid": "Inserisci un numero intero di episodio, da 0 in su.",
+  "anime.saveChanges": "Salva modifiche",
+  "anime.addToList": "Aggiungi alla lista",
+  "anime.saveFailed": "Impossibile salvare le modifiche. I dati inseriti sono ancora qui; riprova.",
+  "anime.totalLabel": "Episodi totali",
+  "anime.totalHelp": "Inserisci il numero totale di episodi oppure ? se non è noto.",
+  "anime.totalInvalid": "Inserisci un numero intero maggiore di 0 oppure ? per un totale sconosciuto."
 }

@@ -20,6 +20,12 @@ Check empty history, no series in progress, and no search results separately. Cl
 
 Tap a row and confirm the recorded website and episode URL open, including when websites share aliases or the recorded website has been deleted. Entries without a saved URL should open the website chooser. Use each row's menu to edit progress, change its finished status, and remove it; verify confirmation, cancellation, persistence, and the default recently played order. None of these manual actions should update the playback date. With VoiceOver or TalkBack, confirm icon buttons have meaningful labels and row menus identify the series. Native appearance, scrolling, and accessibility still require device checks; bundle exports and automated tests cannot verify them.
 
+## Anime editor
+
+Open Add manually and Edit from a watchlist row on iOS and Android. Check the grouped Title and Progress fields, dynamic Add series/Edit progress header, native Close button, and prominent save action in English and Italian, both appearances, landscape, and larger text. On iOS, verify native field selection and editing, the numeric keyboard, Liquid Glass where supported, and the standard button fallback. With the keyboard open, scroll to the save action and confirm both fields remain reachable; on Android, the title keyboard's Next action should focus the episode field.
+
+Clear and retype the episode without it being replaced with zero while editing. An empty or whitespace-only title and blank, negative, fractional, or invalid episode must not enable saving; episode zero is valid. The Total episodes field must load the saved total when editing and show `?` for new or unknown totals. Check that its keyboard permits typing `?`. Save a positive whole total, then replace it with `?`, restart, and verify the watchlist omits the progress bar and the JSON export contains `totalEpisodes: null`. Blank, zero, fractional, negative, and invalid totals must disable saving. Unknown totals must not automatically finish a series. Simulate a failed save: the modal must retain all fields, show a localized retry message, and permit retry. Double-tapping Save must not write twice or dismiss twice. Close must dismiss without saving. Editing existing progress must preserve the recorded website, episode URL, per-episode history, and playback date; manual changes must not reorder recently played history.
+
 ## Provider checks
 
 On both iOS and Android:

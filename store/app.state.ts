@@ -46,12 +46,13 @@ export const reducer = createReducer<AppStoreState>(
       },
     },
   })),
-  on(upsertAnime, (state, { payload: { animeName, episode } }) => ({
+  on(upsertAnime, (state, { payload: { animeName, episode, total } }) => ({
     ...state,
     anime: {
       ...state.anime,
       [animeName]: {
         ...state.anime[animeName],
+        ...(total !== undefined ? { total: total ?? undefined } : {}),
         latestWatchedEpisode: episode,
         highestWatchedEpisode: episode,
         playbackFinished: false,

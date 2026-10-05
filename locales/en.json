@@ -285,5 +285,21 @@
   "watch.emptySearchTitle": "No matching series",
   "watch.emptySearchDetail": "Try a different title or switch to All.",
   "watch.emptyWatchingTitle": "Nothing in progress",
-  "watch.emptyWatchingDetail": "Your completed and stopped series are still in All."
+  "watch.emptyWatchingDetail": "Your completed and stopped series are still in All.",
+  "anime.addTitle": "Add series",
+  "anime.editTitle": "Edit progress",
+  "anime.series": "Series",
+  "anime.nameLabel": "Title",
+  "anime.namePlaceholder": "Series title",
+  "anime.nameHelp": "Use the title shown on your website.",
+  "anime.progress": "Your progress",
+  "anime.episodeLabel": "Episode",
+  "anime.episodeHelp": "The highest episode you have watched. Use 0 if you haven’t started.",
+  "anime.episodeInvalid": "Enter a whole episode number, 0 or higher.",
+  "anime.saveChanges": "Save changes",
+  "anime.addToList": "Add to watchlist",
+  "anime.saveFailed": "Could not save your changes. Your entries are still here; try again.",
+  "anime.totalLabel": "Total episodes",
+  "anime.totalHelp": "Enter the total number of episodes, or ? if it is unknown.",
+  "anime.totalInvalid": "Enter a whole number greater than 0, or ? for an unknown total."
 }
