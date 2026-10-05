@@ -42,7 +42,7 @@ export function useProviderCreator() {
     saved,
   } = state.setup;
   const { step } = state.wizard;
-  const { url, ready } = state.browser;
+  const { loadedUrl, ready } = state.browser;
   const { select, candidate } = state.selection;
   const { players, playerKey } = state.playback;
   const { reviewPage } = state;
@@ -76,6 +76,7 @@ export function useProviderCreator() {
     dispatch({ type: "changeWebsite", origin });
   }
   function go(next: number) {
+    browser.send({ type: "selectMode", enabled: false });
     resetResumeTest();
     pageChecks.current.cancel();
     dispatch({ type: "go", step: next });
@@ -97,7 +98,12 @@ export function useProviderCreator() {
         ];
         if (origin !== draft.origin || aliases.length)
           edit({ ...draft, origin, whiteListedOrigins });
-        updateBrowser({ source: origin, url: origin });
+        updateBrowser({
+          source: origin,
+          url: origin,
+          loadedUrl: null,
+          ready: false,
+        });
         go(1);
       } catch (cause) {
         updateWizard({
@@ -149,12 +155,12 @@ export function useProviderCreator() {
     go(step + 1);
   }
   function capturePage() {
-    if (!ready || saving || pages.length >= 2) return;
-    if (!allowedUrl(draft, url)) {
+    if (!loadedUrl || saving || pages.length >= 2) return;
+    if (!allowedUrl(draft, loadedUrl)) {
       updateWizard({ error: message("validation.pageOnWebsite") });
       return;
     }
-    const captured = new URL(url);
+    const captured = new URL(loadedUrl);
     captured.hash = "";
     if (pages.includes(captured.href)) {
       updateWizard({
@@ -214,7 +220,7 @@ export function useProviderCreator() {
         ? {
             label: t("creator.usePage"),
             onPress: capturePage,
-            disabled: !ready || saving,
+            disabled: !loadedUrl || saving,
           }
         : field && !optionalField && !candidate?.valid
           ? {

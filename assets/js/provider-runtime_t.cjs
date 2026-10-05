@@ -18,6 +18,7 @@
   const observedFrameLoads = new WeakSet();
   let parentBinding = null;
   let documentId = Math.random().toString(36).slice(2);
+  let nativeNavigationRevision = -1;
   let config = window.__providerConfig || {};
   let mode = window.__runtimeMode || "setup";
   let savedProgress = window.__providerProgress || {};
@@ -806,7 +807,23 @@
       return;
     }
     if (data.type === "reportReady") {
-      post({ type: "ready" });
+      if (
+        Number.isInteger(data.navigationRevision) &&
+        data.navigationRevision >= 0
+      ) {
+        if (data.navigationRevision < nativeNavigationRevision) return;
+        if (data.navigationRevision > nativeNavigationRevision) {
+          nativeNavigationRevision = data.navigationRevision;
+          documentId = Math.random().toString(36).slice(2);
+          window.ProviderRuntime.documentId = documentId;
+          framePeers.clear();
+          parentBinding = null;
+          selectMode = false;
+          clear();
+          history.length = 0;
+        }
+      }
+      post({ type: "ready", navigationRevision: data.navigationRevision });
       return;
     }
     if (data.type === "selectMode") {

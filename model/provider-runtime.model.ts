@@ -51,7 +51,7 @@ export type RuntimeMessage = {
   documentId: string;
   url: string;
 } & (
-  | { type: "ready" }
+  | { type: "ready"; navigationRevision?: number }
   | { type: "anime-cover"; payload: { animeTitle: string; coverUrl: string } }
   | {
       type: "selection";
@@ -105,6 +105,13 @@ export function parseRuntimeMessage(
         "anime-found",
         "anime-cover",
       ].includes(value.type)
+    )
+      return null;
+    if (
+      value.type === "ready" &&
+      value.navigationRevision !== undefined &&
+      (!Number.isSafeInteger(value.navigationRevision) ||
+        value.navigationRevision < 0)
     )
       return null;
     const strings = (items: unknown) =>

@@ -1,235 +1,199 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { useProviderPalette } from "@/hooks/use-provider-palette";
+import type { Provider } from "@/model";
 import { removeProvider } from "@/store/app.actions";
 import { AppStateContext, AppStore, StoreContext } from "@/utils";
-import { Button, Column, Icon, Row, Spacer, Text } from "@expo/ui";
-import {
-  Button as AndroidButton,
-  HorizontalDivider,
-} from "@expo/ui/jetpack-compose";
-import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
-import { Divider, Button as IOSButton } from "@expo/ui/swift-ui";
-import {
-  accessibilityLabel,
-  buttonStyle,
-  controlSize,
-  disabled as disabledModifier,
-  labelStyle,
-  tint,
-} from "@expo/ui/swift-ui/modifiers";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Alert, Platform } from "react-native";
+import { Alert, StyleSheet, Switch, Text, View } from "react-native";
+import SettingsActionButton from "./action-button";
 
-function ProviderAction({
-  label,
-  onPress,
-  disabled = false,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-}) {
-  if (Platform.OS === "ios") {
-    return (
-      <IOSButton
-        label={label}
-        onPress={onPress}
-        modifiers={[
-          buttonStyle("glass"),
-          controlSize("small"),
-          disabledModifier(disabled),
-        ]}
-      />
-    );
+function websiteAddress(provider: Provider) {
+  try {
+    return new URL(provider.origin).host;
+  } catch {
+    return provider.origin;
   }
-  return (
-    <Button variant="text" disabled={disabled} onPress={onPress}>
-      <Text>{label}</Text>
-    </Button>
-  );
 }
 
 export default function SettingsProviders() {
   const t = useAppTranslation();
+  const colors = useProviderPalette();
   const { state, stateChanged } = React.useContext(StoreContext);
-  const providers = state.providers;
   const { updateState } = React.useContext(AppStateContext);
-
+  const [savingStartup, setSavingStartup] = React.useState(false);
   const router = useRouter();
-  const textColor = useThemeColor(
-    {
-      dark: "white",
-      light: "black",
-    },
-    "text",
-  );
-  const listBackgroundColor = useThemeColor(
-    { dark: "#1a1a1a", light: "#ffffff" },
-    "background",
-  );
+  const onlyWebsite = state.providers.length === 1;
 
-  const onProviderDelete = async (providerId: number) => {
-    Alert.alert(t("provider.deleteTitle"), t("provider.deleteConfirm"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("common.delete"),
-        style: "destructive",
-        onPress: async () => {
-          await AppStore.Dispatch(removeProvider(providerId));
-          stateChanged();
+  async function setStartup(provider: Provider, isOn: boolean) {
+    if (onlyWebsite || savingStartup) return;
+    setSavingStartup(true);
+    try {
+      await AppStore.Update((previous) => ({
+        ...previous,
+        providers: previous.providers.map((item) => ({
+          ...item,
+          isDefault: isOn && item.id === provider.id,
+        })),
+      }));
+      await stateChanged();
+    } catch {
+      Alert.alert(t("provider.startupFailed"), t("common.retry"));
+    } finally {
+      setSavingStartup(false);
+    }
+  }
+
+  function deleteWebsite(provider: Provider) {
+    Alert.alert(
+      t("provider.deleteQuestion", { name: provider.name }),
+      t("provider.historyKept"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await AppStore.Dispatch(removeProvider(provider.id));
+              await stateChanged();
+            } catch {
+              Alert.alert(t("provider.deleteFailed"), t("common.retry"));
+            }
+          },
         },
-      },
-    ]);
-  };
+      ],
+    );
+  }
 
   return (
-    <Column
-      alignment="center"
-      style={{
-        padding: 8,
-        backgroundColor: listBackgroundColor,
-        borderRadius: 32,
-      }}
-      spacing={8}
-      modifiers={[weight(1), fillMaxWidth()]}
-    >
-      <Text textStyle={{ color: textColor, fontWeight: "bold", fontSize: 18 }}>
+    <View style={styles.section}>
+      <Text style={[styles.heading, { color: colors.text }]}>
         {t("home.websites")}
       </Text>
-      {Platform.OS === "android" && <HorizontalDivider />}
-      {Platform.OS === "ios" && <Divider />}
-      <Column alignment="center">
-        {providers.length > 0 ? (
-          providers.map((provider) => (
-            <Column key={provider.id} spacing={8}>
-              <Row>
-                <ProviderAction
-                  label={t("provider.openNamed", { name: provider.name })}
-                  onPress={() => {
-                    updateState({
-                      url: provider.origin,
-                      providerId: provider.id,
-                    });
-                    router.navigate("/");
-                  }}
-                />
-                <Spacer flexible />
-                {Platform.OS === "android" && (
-                  <AndroidButton
-                    colors={{
-                      containerColor: "#dd0000",
-                      contentColor: "#ffffff",
-                    }}
-                    modifiers={[]}
-                    onClick={() => onProviderDelete(provider.id)}
-                  >
-                    <Icon
-                      name={Icon.select({
-                        ios: "trash",
-                        android: import("@expo/material-symbols/delete.xml"),
-                      })}
-                    />
-                  </AndroidButton>
-                )}
-                {Platform.OS === "ios" && (
-                  <IOSButton
-                    modifiers={[
-                      tint("#ff0000aa"),
-                      buttonStyle("glass"),
-                      controlSize("small"),
-                      labelStyle("iconOnly"),
-                      accessibilityLabel(
-                        t("provider.deleteNamed", { name: provider.name }),
-                      ),
-                    ]}
-                    label={t("provider.delete")}
-                    systemImage="trash"
-                    role="destructive"
-                    onPress={() => onProviderDelete(provider.id)}
-                  />
-                )}
-              </Row>
-              <Text textStyle={{ color: textColor }}>
-                {provider.verification?.progress
-                  ? t("provider.trackingReady")
-                  : t("provider.trackingUnverified")}
-              </Text>
-              <Row spacing={8}>
-                <ProviderAction
-                  label={t("provider.editSetup")}
-                  onPress={() =>
-                    router.navigate({
-                      pathname: "/provider-creator",
-                      params: { id: String(provider.id) },
-                    })
-                  }
-                />
-                <ProviderAction
-                  disabled={providers.length === 1}
-                  label={
-                    providers.length === 1
-                      ? t("provider.opensStartup")
-                      : provider.isDefault
-                        ? t("provider.clearStartup")
-                        : t("provider.useStartup")
-                  }
-                  onPress={async () => {
-                    try {
-                      await AppStore.Update((previous) => ({
-                        ...previous,
-                        providers: previous.providers.map((item) => ({
-                          ...item,
-                          isDefault:
-                            !provider.isDefault && item.id === provider.id,
-                        })),
-                      }));
-                      stateChanged();
-                    } catch {
-                      Alert.alert(
-                        t("provider.startupFailed"),
-                        t("common.retry"),
-                      );
-                    }
-                  }}
-                />
-              </Row>
-            </Column>
-          ))
-        ) : (
-          <Text textStyle={{ color: textColor }}>{t("provider.none")}</Text>
-        )}
-        <Spacer flexible />
-        {Platform.OS === "ios" && (
-          <IOSButton
-            modifiers={[
-              buttonStyle("glassProminent"),
-              controlSize("small"),
-              tint("#0044aa"),
-            ]}
-            onPress={() => {
-              router.navigate("/provider-creator");
-            }}
-            systemImage="plus"
-            label={t("provider.add")}
-          />
-        )}
-        {Platform.OS === "android" && (
-          <Button
-            onPress={() => {
-              router.navigate("/provider-creator");
-            }}
-          >
-            <Icon
-              name={Icon.select({
-                ios: "plus",
-                android: import("@expo/material-symbols/add.xml"),
-              })}
+      {state.providers.map((provider) => (
+        <View
+          key={provider.id}
+          style={[styles.card, { backgroundColor: colors.card }]}
+        >
+          <Text style={[styles.name, { color: colors.text }]}>
+            {provider.name}
+          </Text>
+          <Text style={[styles.detail, { color: colors.muted }]}>
+            {websiteAddress(provider)}
+          </Text>
+          <View style={styles.status}>
+            <MaterialIcons
+              name={
+                provider.verification?.progress
+                  ? "check-circle-outline"
+                  : "info-outline"
+              }
+              size={18}
+              color={colors.muted}
             />
-            <Text>{t("provider.add")}</Text>
-          </Button>
-        )}
-      </Column>
-    </Column>
+            <Text style={[styles.detail, { color: colors.muted, flex: 1 }]}>
+              {provider.verification?.progress
+                ? t("provider.trackingReady")
+                : t("provider.trackingUnverified")}
+            </Text>
+          </View>
+          <View style={styles.actions}>
+            <SettingsActionButton
+              label={t("common.open")}
+              icon="open-in-new"
+              accessibilityLabel={t("provider.openNamed", {
+                name: provider.name,
+              })}
+              onPress={() => {
+                updateState({ url: provider.origin, providerId: provider.id });
+                router.navigate("/");
+              }}
+            />
+            <SettingsActionButton
+              label={t("common.edit")}
+              icon="edit"
+              accessibilityLabel={t("provider.editNamed", {
+                name: provider.name,
+              })}
+              onPress={() =>
+                router.navigate({
+                  pathname: "/provider-creator",
+                  params: { id: String(provider.id) },
+                })
+              }
+            />
+            <SettingsActionButton
+              label={t("common.delete")}
+              icon="delete-outline"
+              destructive
+              accessibilityLabel={t("provider.deleteNamed", {
+                name: provider.name,
+              })}
+              onPress={() => deleteWebsite(provider)}
+            />
+          </View>
+          <View style={[styles.startup, { borderTopColor: colors.border }]}>
+            <Text style={[styles.detail, { color: colors.text, flex: 1 }]}>
+              {t("provider.openStartup")}
+            </Text>
+            <Switch
+              accessibilityLabel={t("provider.startupNamed", {
+                name: provider.name,
+              })}
+              value={onlyWebsite || provider.isDefault}
+              disabled={onlyWebsite || savingStartup}
+              onValueChange={(isOn) => setStartup(provider, isOn)}
+              trackColor={{ true: "#2463dc" }}
+            />
+          </View>
+        </View>
+      ))}
+      {state.providers.length === 0 && (
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.name, { color: colors.text }]}>
+            {t("provider.none")}
+          </Text>
+          <Text style={[styles.detail, { color: colors.muted }]}>
+            {t("provider.noneHelp")}
+          </Text>
+        </View>
+      )}
+      <Text style={[styles.detail, { color: colors.muted }]}>
+        {onlyWebsite
+          ? t("provider.onlyStartupHelp")
+          : t("provider.startupHelp")}
+      </Text>
+      <SettingsActionButton
+        label={t("provider.addWebsite")}
+        icon="add"
+        primary
+        onPress={() => router.navigate("/provider-creator")}
+      />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  section: { gap: 12 },
+  heading: { fontSize: 18, fontWeight: "600" },
+  card: { borderRadius: 18, padding: 16, gap: 8 },
+  name: { fontSize: 18, fontWeight: "600" },
+  detail: { fontSize: 14, lineHeight: 20 },
+  status: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginVertical: 4,
+  },
+  actions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  startup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 8,
+    marginTop: 4,
+  },
+});

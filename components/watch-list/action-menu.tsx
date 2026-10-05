@@ -1,5 +1,11 @@
 import { BottomSheet, Button, Column, Icon, Row, Text } from "@expo/ui";
-import { DropdownMenu, DropdownMenuItem } from "@expo/ui/jetpack-compose";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  Icon as ComposeIcon,
+  IconButton,
+} from "@expo/ui/jetpack-compose";
+import { size } from "@expo/ui/jetpack-compose/modifiers";
 import { useState } from "react";
 import { Platform } from "react-native";
 import { useAppTranslation } from "@/hooks/use-app-translation";
@@ -17,6 +23,7 @@ interface ActionMenuProps {
 
 export default function ActionMenu({ label, actions }: ActionMenuProps) {
   const t = useAppTranslation();
+  const textColor = useThemeColor({}, "text");
   const destructiveColor = useThemeColor(
     { light: "#b3261e", dark: "#ffb4ab" },
     "text",
@@ -46,8 +53,21 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
       <DropdownMenu
         expanded={expanded}
         onDismissRequest={() => setExpanded(false)}
+        modifiers={[size(48, 48)]}
       >
-        <DropdownMenu.Trigger>{trigger}</DropdownMenu.Trigger>
+        <DropdownMenu.Trigger>
+          <IconButton
+            onClick={() => setExpanded(true)}
+            modifiers={[size(48, 48)]}
+          >
+            <ComposeIcon
+              source={require("@expo/material-symbols/more_horiz.xml")}
+              size={24}
+              tint={textColor}
+              contentDescription={label}
+            />
+          </IconButton>
+        </DropdownMenu.Trigger>
         <DropdownMenu.Items>
           {actions.map((action) => (
             <DropdownMenuItem

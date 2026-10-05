@@ -1,13 +1,16 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { watchListSortOptions } from "@/utils/watch-list";
-import { Button, Column, Icon, Picker, Row, Spacer, Text } from "@expo/ui";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { Button, Column, Icon, Row, Spacer, Text } from "@expo/ui";
 import {
+  Icon as ComposeIcon,
+  IconButton,
   SegmentedButton,
   SingleChoiceSegmentedButtonRow,
 } from "@expo/ui/jetpack-compose";
-import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
+import { fillMaxWidth, size, weight } from "@expo/ui/jetpack-compose/modifiers";
 import { Platform } from "react-native";
 import ActionMenu from "./action-menu";
+import SortPicker from "./sort-picker";
 import type { WatchListHeaderProps } from "./types";
 
 export default function WatchListHeader({
@@ -22,13 +25,18 @@ export default function WatchListHeader({
   setSortMode,
 }: WatchListHeaderProps) {
   const t = useAppTranslation();
+  const textColor = useThemeColor({}, "text");
   const filters = [
     { watching: true, label: t("watch.watching") },
     { watching: false, label: t("watch.all") },
   ];
 
   return (
-    <Column spacing={12} style={{ width: "100%" }}>
+    <Column
+      spacing={12}
+      style={{ width: Platform.OS === "android" ? undefined : "100%" }}
+      modifiers={[fillMaxWidth()]}
+    >
       {Platform.OS === "android" ? (
         <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
           {filters.map((filter) => (
@@ -58,26 +66,33 @@ export default function WatchListHeader({
           ))}
         </Row>
       )}
-      <Row alignment="center" spacing={8}>
-        <Picker selectedValue={sortMode} onValueChange={setSortMode}>
-          {watchListSortOptions.map((option) => (
-            <Picker.Item
-              key={option.value}
-              value={option.value}
-              label={t(option.labelKey)}
+      <Row alignment="center" spacing={8} modifiers={[fillMaxWidth()]}>
+        <SortPicker value={sortMode} onChange={setSortMode} />
+        {Platform.OS !== "android" && <Spacer flexible />}
+        {Platform.OS === "android" ? (
+          <IconButton
+            onClick={onAdd}
+            colors={{ contentColor: textColor }}
+            modifiers={[size(48, 48)]}
+          >
+            <ComposeIcon
+              source={require("@expo/material-symbols/add.xml")}
+              size={24}
+              tint={textColor}
+              contentDescription={t("watch.addManually")}
             />
-          ))}
-        </Picker>
-        <Spacer flexible />
-        <Button variant="text" onPress={onAdd}>
-          <Icon
-            name={Icon.select({
-              ios: "plus",
-              android: import("@expo/material-symbols/add.xml"),
-            })}
-            accessibilityLabel={t("watch.addManually")}
-          />
-        </Button>
+          </IconButton>
+        ) : (
+          <Button variant="text" onPress={onAdd}>
+            <Icon
+              name={Icon.select({
+                ios: "plus",
+                android: import("@expo/material-symbols/add.xml"),
+              })}
+              accessibilityLabel={t("watch.addManually")}
+            />
+          </Button>
+        )}
         <ActionMenu
           label={t("watch.options")}
           actions={[

@@ -35,6 +35,11 @@ export default function ProviderCreatorScreen() {
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           variant="plain"
+          icon={
+            Platform.OS === "android"
+              ? require("@expo/material-symbols/close.xml")
+              : undefined
+          }
           accessibilityLabel={t("provider.closeSetup")}
           onPress={() => router.back()}
           disabled={saving}

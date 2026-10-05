@@ -68,7 +68,11 @@ export default function WatchListRow({
         <Row
           alignment="start"
           spacing={8}
-          style={{ paddingRight: 8, width: "100%" }}
+          style={{
+            paddingRight: 8,
+            width: Platform.OS === "android" ? undefined : "100%",
+          }}
+          modifiers={[fillMaxWidth()]}
         >
           <Column
             spacing={8}

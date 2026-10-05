@@ -90,6 +90,7 @@ export default function HomeScreen() {
             javaScriptEnabled
             domStorageEnabled
             allowsFullscreenVideo
+            allowsInlineMediaPlayback
             setSupportMultipleWindows
             onOpenWindow={() => {
               /* Keep pop-ups separate from provider navigation. */
@@ -97,9 +98,12 @@ export default function HomeScreen() {
           />
           {Platform.OS !== "ios" && (
             <SafeAreaView
-              edges={["bottom"]}
+              edges={["left", "right"]}
               pointerEvents="box-none"
-              style={styles.androidAccessory}
+              style={[
+                styles.androidAccessory,
+                { backgroundColor: colors.card },
+              ]}
             >
               <NavigationAccessory />
             </SafeAreaView>
@@ -148,11 +152,8 @@ const styles = StyleSheet.create({
   webView: { backgroundColor: "transparent" },
   screen: { flex: 1 },
   androidAccessory: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 72,
+    height: 64,
+    flexShrink: 0,
   },
   notice: {
     position: "absolute",

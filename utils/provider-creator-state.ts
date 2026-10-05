@@ -31,6 +31,7 @@ export type ProviderCreatorState = {
     url: string;
     navigationState: { back: boolean; forward: boolean };
     loading: boolean;
+    loadedUrl: string | null;
     ready: boolean;
   };
   selection: {
@@ -70,6 +71,7 @@ export function createProviderCreatorState(): ProviderCreatorState {
       url: "",
       navigationState: { back: false, forward: false },
       loading: false,
+      loadedUrl: null,
       ready: false,
     },
     selection: { select: false, manualSelector: "", candidate: null },
@@ -149,7 +151,12 @@ export function providerCreatorReducer(
     case "pageLoading":
       return {
         ...state,
-        browser: { ...state.browser, loading: true, ready: false },
+        browser: {
+          ...state.browser,
+          loading: true,
+          loadedUrl: null,
+          ready: false,
+        },
         selection: { ...state.selection, candidate: null },
         playback: {
           ...state.playback,
@@ -188,7 +195,12 @@ export function providerCreatorReducer(
           saveAnyway: false,
           dirty: true,
         },
-        browser: { ...state.browser, source: "" },
+        browser: {
+          ...state.browser,
+          source: "",
+          loadedUrl: null,
+          ready: false,
+        },
         playback: { ...state.playback, players: [], playerKey: "" },
       };
     case "removePage":

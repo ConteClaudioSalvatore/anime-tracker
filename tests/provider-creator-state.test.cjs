@@ -209,7 +209,7 @@ test("example changes clear previous results and functional patches keep all new
   assert.deepEqual(Object.keys(checked.setup.checks), captured.setup.pages);
 });
 
-test("creator hooks keep document guards and automatic Review working across commits", async (t) => {
+test("creator hooks recover redirected pages, follow document URLs, and retain stale-page and Review guards", async (t) => {
   const React = require("react");
   const { createRoot } = require("react-dom/client");
   const { JSDOM } = require("jsdom");
@@ -303,14 +303,68 @@ test("creator hooks keep document guards and automatic Review working across com
           documentId,
           url,
           type,
+          ...(type === "ready"
+            ? {
+                navigationRevision:
+                  commands.findLast((command) => command.type === "reportReady")
+                    ?.navigationRevision ?? 1,
+              }
+            : {}),
           ...payload,
         }),
       },
     };
   }
   await React.act(async () =>
-    creator.browser.onLoadStart({ nativeEvent: { url: pages[0] } }),
+    creator.browser.onLoadStart({
+      nativeEvent: { url: pages[0] + "?redirect=1" },
+    }),
   );
+  // DOM readiness can arrive before WebView reports the canonical redirect URL.
+  await React.act(async () =>
+    creator.browser.onMessage(message("ready", "first", pages[0])),
+  );
+  assert.equal(creator.state.browser.ready, false);
+  await React.act(async () =>
+    creator.browser.onLoadEnd({
+      nativeEvent: { url: pages[0] + "?redirect=1" },
+    }),
+  );
+  await React.act(async () =>
+    creator.browser.onMessage(message("ready", "first", pages[0])),
+  );
+  assert.equal(creator.state.browser.ready, false);
+  const reports = commands.filter(
+    (command) => command.type === "reportReady",
+  ).length;
+  await React.act(async () =>
+    creator.browser.onNavigationStateChange({
+      url: pages[0],
+      loading: true,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(
+    commands.filter((command) => command.type === "reportReady").length,
+    reports,
+    "Do not accept readiness from an outgoing document during loading",
+  );
+  await React.act(async () =>
+    creator.browser.onNavigationStateChange({
+      url: pages[0],
+      loading: false,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(
+    commands.filter((command) => command.type === "reportReady").length,
+    reports + 1,
+    "Request readiness again once the native redirect URL is known",
+  );
+  assert.equal(creator.state.browser.loadedUrl, pages[0]);
+  assert.equal(creator.state.browser.ready, false);
   await React.act(async () =>
     creator.browser.onMessage(message("ready", "first", pages[0])),
   );
@@ -346,13 +400,118 @@ test("creator hooks keep document guards and automatic Review working across com
   assert.equal(creator.state.setup.draft.seriesNameSelector, "h1");
   assert.deepEqual(creator.state.selection.candidate, preview);
   await React.act(async () =>
+    creator.actions.dispatch({ type: "go", step: 3 }),
+  );
+  await React.act(async () => creator.browser.startSelection());
+  const obsoleteSelection = commands.findLast(
+    (command) => command.type === "selectMode",
+  ).requestId;
+  assert.equal(creator.state.selection.select, true);
+  await React.act(async () =>
+    creator.actions.dispatch({ type: "go", step: 2 }),
+  );
+  assert.equal(creator.state.selection.select, false);
+  assert.equal(
+    commands.findLast((command) => command.type === "selectMode").enabled,
+    false,
+  );
+  assert.equal(creator.state.selection.candidate, null);
+  const previousCheck = commands.findLast(
+    (command) => command.type === "evaluate",
+  );
+  const checksBeforeRetry = commands.filter(
+    (command) =>
+      command.type === "evaluate" &&
+      command.requestId === previousCheck.requestId,
+  ).length;
+  // Drop the first recheck response when returning to the title step.
+  await React.act(
+    async () => new Promise((resolve) => setTimeout(resolve, 550)),
+  );
+  assert.ok(
+    commands.filter(
+      (command) =>
+        command.type === "evaluate" &&
+        command.requestId === previousCheck.requestId,
+    ).length > checksBeforeRetry,
+    "Returning to a completed step retries a lost selector evaluation",
+  );
+  await React.act(async () =>
+    creator.browser.onMessage(
+      message("selection", "first", pages[0], {
+        requestId: obsoleteSelection,
+        field: "episodeNumberSelector",
+        preview: { ...preview, selector: "a" },
+      }),
+    ),
+  );
+  assert.equal(creator.state.selection.candidate, null);
+  await React.act(async () =>
+    creator.browser.onMessage(
+      message("selection", "first", pages[0], {
+        requestId: previousCheck.requestId,
+        field: "seriesNameSelector",
+        preview,
+      }),
+    ),
+  );
+  assert.deepEqual(creator.state.selection.candidate, preview);
+  assert.equal(creator.state.selection.select, false);
+  // Same-document navigation need not produce a native navigation callback.
+  const currentUrl = pages[0] + "/episode/2?view=full";
+  await React.act(async () =>
+    creator.browser.onMessage(
+      message("players", "first", currentUrl, {
+        players: [],
+        inaccessibleFrames: 0,
+      }),
+    ),
+  );
+  assert.equal(creator.state.browser.url, currentUrl);
+  assert.equal(creator.state.browser.ready, true);
+  await React.act(async () =>
     creator.browser.onLoadStart({ nativeEvent: { url: pages[1] } }),
   );
+  assert.equal(creator.state.browser.loadedUrl, null);
+  await React.act(async () =>
+    creator.browser.onLoadEnd({ nativeEvent: { url: currentUrl } }),
+  );
+  assert.equal(creator.state.browser.loadedUrl, null);
   await React.act(async () =>
     creator.browser.onMessage(message("ready", "first", pages[0])),
   );
   assert.equal(creator.state.browser.ready, false);
+
+  await React.act(async () =>
+    creator.browser.onHttpError({ nativeEvent: { statusCode: 404 } }),
+  );
+  await React.act(async () =>
+    creator.browser.onLoadEnd({ nativeEvent: { url: pages[1] } }),
+  );
+  await React.act(async () =>
+    creator.browser.onNavigationStateChange({
+      url: pages[1],
+      loading: false,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(
+    creator.state.browser.loadedUrl,
+    null,
+    "Failed pages cannot be captured",
+  );
   assert.equal(creator.state.selection.candidate, null);
+  await React.act(async () =>
+    creator.browser.onMessage(
+      message("players", "first", currentUrl, {
+        players: [],
+        inaccessibleFrames: 0,
+      }),
+    ),
+  );
+  assert.equal(creator.state.browser.url, pages[1]);
+  assert.equal(creator.state.browser.ready, false);
 
   await React.act(async () =>
     creator.actions.dispatch({ type: "go", step: 7 }),
@@ -365,6 +524,9 @@ test("creator hooks keep document guards and automatic Review working across com
     const documentId = "review-" + index;
     await React.act(async () =>
       creator.browser.onLoadStart({ nativeEvent: { url: page } }),
+    );
+    await React.act(async () =>
+      creator.browser.onLoadEnd({ nativeEvent: { url: page } }),
     );
     await React.act(async () =>
       creator.browser.onMessage(message("ready", documentId, page)),
@@ -396,7 +558,7 @@ test("creator hooks keep document guards and automatic Review working across com
   assert.deepEqual(Object.keys(creator.state.setup.checks), pages);
 });
 
-test("Cover Continue is optional for new and edited providers while required selections stay required", async (t) => {
+test("Example capture uses loaded URLs while required selections and optional covers keep their validation gates", async (t) => {
   const React = require("react");
   const { createRoot } = require("react-dom/client");
   const { JSDOM } = require("jsdom");
@@ -424,6 +586,7 @@ test("Cover Continue is optional for new and edited providers while required sel
           useCreatorBrowser: () => ({
             resetResumeTest: () => {},
             startSelection: () => {},
+            send: () => {},
           }),
         };
       if (request === "./use-creator-persistence")
@@ -458,6 +621,38 @@ test("Cover Continue is optional for new and edited providers while required sel
   await React.act(async () =>
     creator.actions.updateSetup({ initialized: true }),
   );
+  await React.act(async () => {
+    creator.actions.updateSetup({
+      draft: {
+        ...creator.state.setup.draft,
+        name: "My website",
+        origin: "https://example.com/",
+      },
+      pages: [],
+    });
+    creator.go(1);
+    creator.actions.updateBrowser({ ready: false, loadedUrl: null });
+  });
+  assert.equal(creator.primaryAction.disabled, true);
+  const examples = [
+    "https://example.com/series/a/episode/1?version=full",
+    "https://example.com/series/b/episode/2?version=full",
+  ];
+  for (const page of examples) {
+    await React.act(async () =>
+      creator.actions.updateBrowser({
+        url: "https://example.com/previous",
+        loadedUrl: page,
+        ready: false,
+      }),
+    );
+    assert.equal(creator.primaryAction.disabled, false);
+    assert.equal(creator.primaryAction.label, "creator.usePage");
+    await React.act(async () => creator.primaryAction.onPress());
+    assert.equal(creator.state.setup.pages.at(-1), page);
+  }
+  assert.equal(creator.primaryAction.label, "common.continue");
+  assert.equal(creator.primaryAction.disabled, false);
   for (const existing of [undefined, "#existing-cover"]) {
     for (const candidate of [null, { selector: "#invalid", valid: false }]) {
       await React.act(async () => {

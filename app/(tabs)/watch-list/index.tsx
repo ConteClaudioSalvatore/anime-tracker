@@ -4,7 +4,11 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { useWatchList } from "@/hooks/use-watch-list";
 import { Button, Column, Host, ScrollView, Text } from "@expo/ui";
 import { HorizontalDivider } from "@expo/ui/jetpack-compose";
-import { fillMaxWidth, weight } from "@expo/ui/jetpack-compose/modifiers";
+import {
+  fillMaxSize,
+  fillMaxWidth,
+  weight,
+} from "@expo/ui/jetpack-compose/modifiers";
 import { Stack } from "expo-router";
 import { useHeaderHeight } from "expo-router/build/react-navigation";
 import { Platform } from "react-native";
@@ -44,14 +48,27 @@ export default function WatchListScreen() {
       >
         <Column
           spacing={16}
-          style={{ padding: 16, height: "100%", width: "100%" }}
+          style={{
+            padding: 16,
+            height: Platform.OS === "android" ? undefined : "100%",
+            width: Platform.OS === "android" ? undefined : "100%",
+          }}
+          modifiers={[fillMaxSize()]}
         >
           <WatchListHeader {...list} />
-          <ScrollView style={{ width: "100%" }} modifiers={[weight(1)]}>
+          <ScrollView
+            style={{ width: Platform.OS === "android" ? undefined : "100%" }}
+            modifiers={[fillMaxWidth(), weight(1)]}
+          >
             {list.items.length ? (
               <Column
                 spacing={0}
-                style={{ backgroundColor, borderRadius: 20, width: "100%" }}
+                style={{
+                  backgroundColor,
+                  borderRadius: 20,
+                  width: Platform.OS === "android" ? undefined : "100%",
+                }}
+                modifiers={[fillMaxWidth()]}
               >
                 {list.items.map(([name, data], index) => {
                   const anime = { ...data, name: data.name ?? name };
@@ -80,8 +97,9 @@ export default function WatchListScreen() {
                 style={{
                   paddingHorizontal: 16,
                   paddingVertical: 48,
-                  width: "100%",
+                  width: Platform.OS === "android" ? undefined : "100%",
                 }}
+                modifiers={[fillMaxWidth()]}
               >
                 <Text
                   textStyle={{

@@ -86,6 +86,87 @@ function setup(
   win.document.dispatchEvent(new win.Event("DOMContentLoaded"));
   return { win, dom, messages, runtime: win.ProviderRuntime };
 }
+
+test("native navigation handshakes renew same-document IDs and reject old navigation requests", (t) => {
+  const { win, dom, messages, runtime } = setup();
+  t.after(() => dom.window.close());
+  const session = new bridge.RuntimeSession();
+  session.begin(win.location.href);
+  runtime.command({ type: "reportReady", navigationRevision: 1 });
+  const first = bridge.parseRuntimeMessage(
+    JSON.stringify(messages.at(-1)),
+    "session",
+  );
+  assert.equal(first.navigationRevision, 1);
+  assert.equal(session.accept(first), true);
+
+  win.history.pushState({}, "", "/series/example/2?version=full");
+  session.begin(win.location.href);
+  runtime.command({ type: "reportReady", navigationRevision: 2 });
+  const next = bridge.parseRuntimeMessage(
+    JSON.stringify(messages.at(-1)),
+    "session",
+  );
+  assert.notEqual(next.documentId, first.documentId);
+  assert.equal(next.navigationRevision, 2);
+  assert.equal(next.url, win.location.href);
+  assert.equal(session.accept(next), true);
+  assert.equal(session.accept(first), false);
+
+  runtime.command({ type: "reportReady", navigationRevision: 2 });
+  assert.equal(
+    messages.at(-1).documentId,
+    next.documentId,
+    "Retries retain the active identity",
+  );
+  const count = messages.length;
+  runtime.command({ type: "reportReady", navigationRevision: 1 });
+  assert.equal(
+    messages.length,
+    count,
+    "Old injected commands cannot restore an earlier navigation",
+  );
+  runtime.command({
+    type: "selectMode",
+    documentId: first.documentId,
+    enabled: true,
+  });
+  runtime.tick();
+  assert.equal(messages.at(-1).documentId, next.documentId);
+});
+
+test("readiness navigation revisions remain optional and reject malformed values", () => {
+  const message = {
+    channel: "provider-runtime",
+    sessionId: "session",
+    documentId: "doc",
+    url: provider.origin,
+    type: "ready",
+  };
+  assert.ok(bridge.parseRuntimeMessage(JSON.stringify(message), "session"));
+  assert.ok(
+    bridge.parseRuntimeMessage(
+      JSON.stringify({ ...message, navigationRevision: 0 }),
+      "session",
+    ),
+  );
+  for (const navigationRevision of [
+    -1,
+    0.5,
+    "1",
+    null,
+    Number.MAX_SAFE_INTEGER + 1,
+  ]) {
+    assert.equal(
+      bridge.parseRuntimeMessage(
+        JSON.stringify({ ...message, navigationRevision }),
+        "session",
+      ),
+      null,
+    );
+  }
+});
+
 function videoState(win, video = win.document.querySelector("video")) {
   const state = { time: 0, duration: 120, paused: false, seekable: true };
   Object.defineProperties(video, {

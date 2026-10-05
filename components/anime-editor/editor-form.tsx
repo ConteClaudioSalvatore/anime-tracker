@@ -1,8 +1,10 @@
 import type { AnimeEditor } from "@/hooks/use-anime-editor";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Button, Host } from "@expo/ui";
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import {
   KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -147,7 +149,11 @@ export default function AnimeEditorForm({ editor }: { editor: AnimeEditor }) {
               onPress={() => {
                 void save();
               }}
-              style={{ width: "100%", paddingVertical: 8 }}
+              style={{
+                width: Platform.OS === "android" ? undefined : "100%",
+                paddingVertical: 8,
+              }}
+              modifiers={[fillMaxWidth()]}
             />
           </Host>
         </ScrollView>

@@ -50,7 +50,18 @@ export function useCreatorBrowser({
   const session = React.useId();
   const pageSession = React.useRef(new RuntimeSession());
   const navigationRevision = React.useRef(0);
+  const navigationUrl = React.useRef("");
+  const loadFailed = React.useRef(false);
+  const reportReady = React.useCallback(() => {
+    webView.current?.injectJavaScript(
+      runtimeCommand({
+        type: "reportReady",
+        navigationRevision: navigationRevision.current,
+      }),
+    );
+  }, []);
   const request = React.useRef("");
+  const pendingSelectionCheck = React.useRef<string | null>(null);
   const resumeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const field = fields[step];
   const selectedPlayer = players.find(
@@ -99,7 +110,14 @@ export function useCreatorBrowser({
       resetResumeTest();
       pageChecks.current.cancel();
       setReviewPage(null);
-      updateBrowser({ source: value, url: value, ready: false });
+      navigationUrl.current = value;
+      loadFailed.current = false;
+      updateBrowser({
+        source: value,
+        url: value,
+        loadedUrl: null,
+        ready: false,
+      });
       updateSelection({ select: false, candidate: null });
       pageSession.current.begin(value);
       if (value === source)
@@ -153,9 +171,25 @@ export function useCreatorBrowser({
       requestId: token,
     });
     const selector = field && latestDraftRef.current[field];
-    if (selector) {
+    if (!selector || select) return;
+    pendingSelectionCheck.current = token;
+    const evaluate = () =>
       send({ type: "evaluate", selector, field, requestId: token });
-    }
+    evaluate();
+    let attempts = 1;
+    const retry = setInterval(() => {
+      if (pendingSelectionCheck.current !== token || attempts >= 10) {
+        clearInterval(retry);
+        return;
+      }
+      attempts++;
+      evaluate();
+    }, 500);
+    return () => {
+      clearInterval(retry);
+      if (pendingSelectionCheck.current === token)
+        pendingSelectionCheck.current = null;
+    };
   }, [step, field, ready, select, send, latestDraftRef]);
   React.useEffect(() => {
     if (step !== 6 || !ready || videoPhase !== "checking") return;
@@ -196,46 +230,70 @@ export function useCreatorBrowser({
   const onLoadStart: NonNullable<WebViewProps["onLoadStart"]> = (event) => {
     resetResumeTest();
     navigationRevision.current++;
+    navigationUrl.current = event.nativeEvent.url;
+    loadFailed.current = false;
     pageSession.current.begin(event.nativeEvent.url);
     dispatch({ type: "pageLoading" });
+    updateBrowser({ url: event.nativeEvent.url });
     pageSession.current.documentId = null;
     request.current = "";
   };
-  const onLoadEnd: NonNullable<WebViewProps["onLoadEnd"]> = () => {
-    updateBrowser({ loading: false });
-    webView.current?.injectJavaScript(runtimeCommand({ type: "reportReady" }));
+  const onLoadEnd: NonNullable<WebViewProps["onLoadEnd"]> = (event) => {
+    const loadedUrl = event.nativeEvent.url;
+    if (
+      loadedUrl !== navigationUrl.current ||
+      !allowedUrl(latestDraftRef.current, loadedUrl) ||
+      loadFailed.current
+    )
+      return;
+    updateBrowser({ loading: false, loadedUrl });
+    reportReady();
   };
   const onError: NonNullable<WebViewProps["onError"]> = () => {
-    updateBrowser({ loading: false });
+    loadFailed.current = true;
+    updateBrowser({ loading: false, loadedUrl: null });
     updateWizard({
       error: message("browser.loadFailed"),
     });
   };
   const onHttpError: NonNullable<WebViewProps["onHttpError"]> = (event) => {
-    if (event.nativeEvent.statusCode >= 400)
+    if (event.nativeEvent.statusCode >= 400) {
+      loadFailed.current = true;
+      updateBrowser({ loadedUrl: null });
       updateWizard({
         error: message("browser.httpError", {
           code: event.nativeEvent.statusCode,
         }),
       });
+    }
   };
   const onNavigationStateChange: NonNullable<
     WebViewProps["onNavigationStateChange"]
   > = (state) => {
     if (!allowedUrl(latestDraftRef.current, state.url)) return;
+    navigationUrl.current = state.url;
     pageSession.current.redirected(state.url);
-    updateBrowser({ url: state.url });
+    updateBrowser({
+      url: state.url,
+      ...(state.loading ? { loading: true, loadedUrl: null } : {}),
+    });
     updateBrowser({
       navigationState: {
         back: state.canGoBack,
         forward: state.canGoForward,
       },
     });
+    if (!state.loading && !loadFailed.current) {
+      updateBrowser({ loading: false, loadedUrl: state.url });
+      reportReady();
+    }
   };
   const onMessage: NonNullable<WebViewProps["onMessage"]> = (event) => {
     const message = parseRuntimeMessage(event.nativeEvent.data, session);
     if (
       !message ||
+      (message.type === "ready" &&
+        message.navigationRevision !== navigationRevision.current) ||
       !allowedUrl(latestDraftRef.current, message.url) ||
       !pageSession.current.accept(message)
     )
@@ -252,11 +310,20 @@ export function useCreatorBrowser({
       return;
     }
     if (message.documentId !== pageSession.current.documentId) return;
+    if (message.url !== url) {
+      pageSession.current.redirected(message.url);
+      navigationUrl.current = message.url;
+      updateBrowser((previous) => ({
+        url: message.url,
+        loadedUrl: previous.loadedUrl ? message.url : null,
+      }));
+    }
     if (
       message.type === "selection" &&
       message.requestId === request.current &&
       message.field === field
     ) {
+      pendingSelectionCheck.current = null;
       dispatch({ type: "selectionReceived", field, preview: message.preview });
     }
     if (message.type === "players") {

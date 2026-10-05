@@ -320,7 +320,9 @@ test("foreground language changes update Home feedback without replacing its ses
     },
   });
   await React.act(async () => browser.onLoadStart({ nativeEvent: { url } }));
-  await React.act(async () => browser.onMessage(event("ready")));
+  await React.act(async () =>
+    browser.onMessage(event("ready", { navigationRevision: 1 })),
+  );
   await React.act(async () =>
     browser.onMessage(
       event("anime-found", {

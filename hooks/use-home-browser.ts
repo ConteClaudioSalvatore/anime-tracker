@@ -140,6 +140,14 @@ export function useHomeBrowser() {
     if (statusTimer.current) clearTimeout(statusTimer.current);
     statusTimer.current = null;
   }
+  function reportReady() {
+    webViewRef?.current?.injectJavaScript(
+      runtimeCommand({
+        type: "reportReady",
+        navigationRevision: navigationRevision.current,
+      }),
+    );
+  }
   const injection = provider
     ? "window.__providerSession=" +
       JSON.stringify(session) +
@@ -175,11 +183,15 @@ export function useHomeBrowser() {
   };
 
   const onLoadEnd: NonNullable<WebViewProps["onLoadEnd"]> = (event) => {
-    if (staleNavigation(event.nativeEvent.url)) return;
+    if (
+      staleNavigation(event.nativeEvent.url) ||
+      event.nativeEvent.url !== loadedPage.current?.url ||
+      !provider ||
+      !allowedUrl(provider, event.nativeEvent.url)
+    )
+      return;
     setLoading(false);
-    webViewRef?.current?.injectJavaScript(
-      runtimeCommand({ type: "reportReady" }),
-    );
+    reportReady();
   };
 
   const onError: NonNullable<WebViewProps["onError"]> = () => {
@@ -217,6 +229,12 @@ export function useHomeBrowser() {
       config: provider,
       mode: matchesSeries(provider, event.url) ? "watch" : "browse",
     });
+    // Android history updates can retire the bridge without replacing the DOM.
+    // Renew its identity once native navigation has settled, including redirects.
+    if (!event.loading) {
+      setLoading(false);
+      reportReady();
+    }
   };
 
   const onMessage: NonNullable<WebViewProps["onMessage"]> = async (event) => {
@@ -224,6 +242,8 @@ export function useHomeBrowser() {
     const message = parseRuntimeMessage(event.nativeEvent.data, session);
     if (
       !message ||
+      (message.type === "ready" &&
+        message.navigationRevision !== navigationRevision.current) ||
       !allowedUrl(provider, message.url) ||
       !pageSession.current.accept(message)
     )
