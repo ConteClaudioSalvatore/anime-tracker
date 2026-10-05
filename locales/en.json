@@ -33,7 +33,7 @@
   "navigation.browserBack": "Browser back",
   "navigation.animeModal": "Add/Edit Anime",
   "home.websites": "Your websites",
-  "home.chooseProvider": "Choose a provider or teach the app how your website works.",
+  "home.chooseProvider": "Tap a website to start watching. Add your own to track progress as you watch.",
   "home.missingProvider": "The website for this saved episode is not configured. Add it or choose another provider.",
   "home.chooseWebsite": "Choose website",
   "home.closeWebsites": "Close websites",

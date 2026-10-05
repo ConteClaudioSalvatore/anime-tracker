@@ -3,6 +3,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -99,7 +100,11 @@ export default function BrowserSheet({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  sheetClose: { paddingHorizontal: 24, paddingTop: 12 },
+  sheetClose: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    alignItems: Platform.OS === "ios" ? "flex-end" : "stretch",
+  },
   details: { padding: 24, gap: 16 },
   title: { fontSize: 26, fontWeight: "700" },
 });

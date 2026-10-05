@@ -1,8 +1,8 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import React from "react";
-import { Platform, ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import ActionButton from "@/components/provider-creator/action-button";
-import ProviderSurface from "@/components/provider-creator/provider-surface";
+import ProviderCard from "./provider-card";
 import { useProviderPalette } from "@/hooks/use-provider-palette";
 import type { Provider } from "@/model";
 
@@ -23,38 +23,44 @@ export default function ProviderChooser({
   const colors = useProviderPalette();
   return (
     <ScrollView contentContainerStyle={styles.chooser}>
-      <Text
-        accessibilityRole="header"
-        style={[styles.title, { color: colors.text }]}
-      >
-        {t("home.websites")}
-      </Text>
-      <Text style={{ color: colors.text }}>{t("home.chooseProvider")}</Text>
+      <View style={styles.heading}>
+        <Text
+          accessibilityRole="header"
+          style={[styles.title, { color: colors.text }]}
+        >
+          {t("home.websites")}
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.muted }]}>
+          {t("home.chooseProvider")}
+        </Text>
+      </View>
       {missingProvider && (
-        <Text style={{ color: colors.text }}>{t("home.missingProvider")}</Text>
+        <Text accessibilityRole="alert" style={{ color: colors.error }}>
+          {t("home.missingProvider")}
+        </Text>
       )}
       {providers.map((item) => (
-        <ProviderSurface key={item.id} style={[styles.item, styles.iosItem]}>
-          <ActionButton
-            label={t("provider.openNamed", { name: item.name })}
-            onPress={() => onOpen(item)}
-          />
-          <Text style={{ color: colors.text }}>{item.origin}</Text>
-          <Text style={{ color: colors.text }}>
-            {item.verification?.progress
-              ? t("provider.trackingReady")
-              : t("provider.trackingUnverified")}
-          </Text>
-        </ProviderSurface>
+        <ProviderCard
+          key={item.id}
+          provider={item}
+          onPress={() => onOpen(item)}
+        />
       ))}
-      <ActionButton label={t("provider.add")} onPress={onAdd} />
+      <View style={styles.add}>
+        <ActionButton
+          label={t("provider.addWebsite")}
+          onPress={onAdd}
+          primary
+        />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  chooser: { padding: 24, gap: 16 },
-  title: { fontSize: 26, fontWeight: "700" },
-  item: { gap: 8, paddingVertical: 8 },
-  iosItem: Platform.OS === "ios" ? { padding: 16, borderRadius: 24 } : {},
+  chooser: { padding: 24, gap: 12 },
+  heading: { gap: 8, marginBottom: 12 },
+  title: { fontSize: 30, fontWeight: "700" },
+  subtitle: { fontSize: 16, lineHeight: 23 },
+  add: { alignItems: "center", paddingTop: 12 },
 });
