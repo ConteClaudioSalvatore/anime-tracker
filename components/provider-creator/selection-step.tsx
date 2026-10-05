@@ -44,6 +44,14 @@ export function SelectionStep({ creator }: Props) {
             : t("creator.selectionGood"),
         )}
       {candidate?.error && copy(selectionFeedback(candidate, t))}
+      {field === "coverImageSelector" && !candidate && (
+        <ActionButton
+          variant="tertiary"
+          label={t(select ? "creator.tapCover" : "creator.selectCover")}
+          onPress={startSelection}
+          disabled={select || !ready || saving}
+        />
+      )}
       {candidate && (
         <ActionButton
           variant="tertiary"

@@ -395,3 +395,120 @@ test("creator hooks keep document guards and automatic Review working across com
   assert.equal(creator.state.reviewPage, null);
   assert.deepEqual(Object.keys(creator.state.setup.checks), pages);
 });
+
+test("Cover Continue is optional for new and edited providers while required selections stay required", async (t) => {
+  const React = require("react");
+  const { createRoot } = require("react-dom/client");
+  const { JSDOM } = require("jsdom");
+  const dom = new JSDOM('<div id="root"></div>');
+  const previous = {
+    window: globalThis.window,
+    document: globalThis.document,
+    act: globalThis.IS_REACT_ACT_ENVIRONMENT,
+  };
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  const load = Module._load;
+  let useProviderCreator;
+  Module._load = function (request, parent, ...args) {
+    if (request === "expo-router")
+      return { useLocalSearchParams: () => ({}), useRouter: () => ({}) };
+    if (request === "@/hooks/use-app-translation")
+      return { useAppTranslation: () => (key) => key };
+    if (request === "@/hooks/use-provider-palette")
+      return { useProviderPalette: () => ({}) };
+    if (parent?.filename.endsWith("use-provider-creator.ts")) {
+      if (request === "./use-creator-browser")
+        return {
+          useCreatorBrowser: () => ({
+            resetResumeTest: () => {},
+            startSelection: () => {},
+          }),
+        };
+      if (request === "./use-creator-persistence")
+        return { useCreatorPersistence: () => async () => {} };
+    }
+    return load.call(this, request, parent, ...args);
+  };
+  try {
+    ({
+      useProviderCreator,
+    } = require("../hooks/provider-creator/use-provider-creator.ts"));
+  } finally {
+    Module._load = load;
+  }
+  const root = createRoot(dom.window.document.querySelector("#root"));
+  t.after(async () => {
+    await React.act(async () => root.unmount());
+    globalThis.window = previous.window;
+    globalThis.document = previous.document;
+    globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
+    dom.window.close();
+  });
+  let creator;
+  function Harness() {
+    const current = useProviderCreator();
+    React.useLayoutEffect(() => {
+      creator = current;
+    });
+    return null;
+  }
+  await React.act(async () => root.render(React.createElement(Harness)));
+  await React.act(async () =>
+    creator.actions.updateSetup({ initialized: true }),
+  );
+  for (const existing of [undefined, "#existing-cover"]) {
+    for (const candidate of [null, { selector: "#invalid", valid: false }]) {
+      await React.act(async () => {
+        creator.actions.updateSetup({
+          draft: { ...creator.state.setup.draft, coverImageSelector: existing },
+        });
+        creator.go(5);
+      });
+      await React.act(async () => {
+        if (candidate)
+          creator.actions.dispatch({
+            type: "selectionReceived",
+            field: "coverImageSelector",
+            preview: candidate,
+          });
+        else creator.actions.updateSelection({ candidate });
+        creator.actions.updateBrowser({ ready: false });
+      });
+      assert.equal(creator.canContinue, true);
+      assert.equal(creator.primaryAction.label, "common.continue");
+      assert.equal(creator.primaryAction.disabled, false);
+      await React.act(async () => creator.primaryAction.onPress());
+      assert.equal(creator.state.wizard.step, 6);
+      assert.equal(creator.state.setup.draft.coverImageSelector, existing);
+    }
+  }
+  await React.act(async () => creator.go(5));
+  await React.act(async () => {
+    creator.actions.updateSelection({
+      candidate: { selector: "#new-cover", valid: true },
+    });
+    creator.actions.updateBrowser({ ready: true });
+  });
+  await React.act(async () => creator.primaryAction.onPress());
+  assert.equal(creator.state.setup.draft.coverImageSelector, "#new-cover");
+  await React.act(async () => creator.go(5));
+  await React.act(async () => creator.actions.updateSetup({ saving: true }));
+  assert.equal(creator.primaryAction.disabled, true);
+  await React.act(async () => creator.actions.updateSetup({ saving: false }));
+  await React.act(async () => creator.skipCover());
+  assert.equal(creator.state.setup.draft.coverImageSelector, undefined);
+  for (const step of [2, 3, 4]) {
+    await React.act(async () => creator.go(step));
+    assert.equal(creator.canContinue, false);
+    assert.notEqual(creator.primaryAction.label, "common.continue");
+    await React.act(async () =>
+      creator.actions.updateSelection({
+        candidate: { selector: "#required", valid: true },
+      }),
+    );
+    assert.equal(creator.primaryAction.label, "common.continue");
+    assert.equal(creator.primaryAction.disabled, false);
+  }
+});

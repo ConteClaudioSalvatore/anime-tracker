@@ -232,6 +232,7 @@ export function providerCreatorReducer(
           manualSelector: action.preview.selector,
         },
         setup:
+          (action.field === "coverImageSelector" && !action.preview.valid) ||
           state.setup.draft[action.field] === action.preview.selector
             ? state.setup
             : {

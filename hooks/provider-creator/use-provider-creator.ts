@@ -53,6 +53,7 @@ export function useProviderCreator() {
   }, [draft]);
   const pageChecks = React.useRef(new ProviderPageChecks());
   const field = fields[step];
+  const optionalField = field === "coverImageSelector";
   const selectedPlayer = players.find(
     (player) => JSON.stringify(player.locator) === playerKey,
   );
@@ -125,8 +126,9 @@ export function useProviderCreator() {
       return;
     }
     if (field) {
-      if (!candidate?.valid) return;
-      edit({ ...draft, [field]: candidate.selector });
+      if (!optionalField && !candidate?.valid) return;
+      if (candidate?.valid && ready)
+        edit({ ...draft, [field]: candidate.selector });
     }
     if (step === 6) {
       const currentPlayer = ready ? selectedPlayer : undefined;
@@ -169,11 +171,13 @@ export function useProviderCreator() {
       ? !!draft.name?.trim() && !!draft.origin?.trim()
       : step === 1
         ? pages.length >= 2
-        : field
-          ? !!candidate?.valid && ready
-          : step === 6
-            ? (ready && !!selectedPlayer?.progress) || saveAnyway
-            : true);
+        : optionalField
+          ? true
+          : field
+            ? !!candidate?.valid && ready
+            : step === 6
+              ? (ready && !!selectedPlayer?.progress) || saveAnyway
+              : true);
   const hint =
     step === 0
       ? t("creator.websiteHint")
@@ -212,7 +216,7 @@ export function useProviderCreator() {
             onPress: capturePage,
             disabled: !ready || saving,
           }
-        : field && !candidate?.valid
+        : field && !optionalField && !candidate?.valid
           ? {
               label: t(selectionLabel[select ? 0 : 1]),
               onPress: startSelection,
