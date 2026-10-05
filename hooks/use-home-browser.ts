@@ -9,7 +9,7 @@ import {
   RuntimeSession,
 } from "@/model/provider-runtime.model";
 import type { AnimePayload, Provider } from "@/model";
-import { animeUpdated } from "@/store/app.actions";
+import { animeUpdated, animeCoverUpdated } from "@/store/app.actions";
 import {
   AccessoryContext,
   AppStateContext,
@@ -193,6 +193,22 @@ export function useHomeBrowser() {
         mode: matchesSeries(provider, message.url) ? "watch" : "browse",
       });
       send({ type: "episodeProgress", progress: savedProgress });
+      return;
+    }
+    if (message.type === "anime-cover") {
+      const { animeTitle, coverUrl } = message.payload;
+      if (
+        !matchesSeries(provider, message.url) ||
+        !store.anime[animeTitle] ||
+        store.anime[animeTitle].coverUrl === coverUrl
+      )
+        return;
+      try {
+        await AppStore.Dispatch(animeCoverUpdated(animeTitle, coverUrl));
+        await stateChanged();
+      } catch {
+        setError(feedback("home.saveCoverFailed"));
+      }
       return;
     }
     if (message.type === "players") {

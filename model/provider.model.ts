@@ -13,6 +13,7 @@ export type Provider<TInitialized extends boolean = true> = {
   player?: { selector: string; framePath: string[] };
   verification?: { progress: boolean; resume: boolean; checkedAt: string };
   examplePages?: string[];
+  coverImageSelector?: string;
 } & Initializable<
   {
     name: string;

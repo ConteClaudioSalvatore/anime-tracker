@@ -47,14 +47,14 @@ export function useExamplePageChecks({
     [url, ready, openPage, pageChecks, setReviewPage],
   );
   React.useEffect(() => {
-    if (step !== 6 || reviewPage) return;
+    if (step !== 7 || reviewPage) return;
     const unchecked = pages.find((page) => !checks[page]);
     if (!unchecked) return;
     const start = setTimeout(() => testExample(unchecked), 0);
     return () => clearTimeout(start);
   }, [step, reviewPage, pages, checks, testExample]);
   React.useEffect(() => {
-    if (step !== 6 || !ready || !reviewPage) return;
+    if (step !== 7 || !ready || !reviewPage) return;
     const run = () => {
       const documentId = pageSessionRef.current.documentId;
       if (!documentId) return;

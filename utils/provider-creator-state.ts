@@ -142,7 +142,7 @@ export function providerCreatorReducer(
         },
         selection: { ...state.selection, select: false, candidate: null },
         playback:
-          action.step === 5
+          action.step === 6
             ? { ...state.playback, timedOut: false, videoHelp: false }
             : state.playback,
       };

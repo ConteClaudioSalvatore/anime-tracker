@@ -1,5 +1,6 @@
 import type { Anime } from "../model/anime.model";
 import type { AnimePayload } from "../model/anime-payload.model";
+import { coverImageUrl } from "./cover-image";
 import { isPlaybackFinished } from "./is-anime-finieshed.util";
 
 /** Merge one title's history independently of the website used to watch it. */
@@ -43,6 +44,8 @@ export function mergeAnimeHistory(
     latestWatchedEpisode: payload.episode,
     latestVisitedUrl: payload.url ?? defaultUrl,
     providerId: payload.providerId ?? previous?.providerId,
+    coverUrl:
+      coverImageUrl(payload.coverUrl) ?? coverImageUrl(previous?.coverUrl),
     lastPlayedAt:
       playbackDate === undefined
         ? previous?.lastPlayedAt

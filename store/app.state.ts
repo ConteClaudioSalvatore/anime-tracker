@@ -3,6 +3,7 @@ import { createReducer } from "@/utils/create-reducer.util";
 import { on } from "@/utils/on.util";
 import {
   animeUpdated,
+  animeCoverUpdated,
   toggleAnimeFinished,
   removeAnime,
   upsertAnime,
@@ -11,6 +12,7 @@ import {
 } from "./app.actions";
 
 import { upsertProviderList } from "@/utils/provider-runtime";
+import { coverImageUrl } from "@/utils/cover-image";
 import { mergeAnimeHistory } from "@/utils/anime-history";
 import { isAnimeFinished } from "@/utils/is-anime-finieshed.util";
 
@@ -26,6 +28,18 @@ export const reducer = createReducer<AppStoreState>(
       ),
     },
   })),
+  on(animeCoverUpdated, (state, { payload: { animeTitle, coverUrl } }) => {
+    const anime = state.anime[animeTitle];
+    const reference = coverImageUrl(coverUrl);
+    if (!anime || !reference || anime.coverUrl === reference) return state;
+    return {
+      ...state,
+      anime: {
+        ...state.anime,
+        [animeTitle]: { ...anime, coverUrl: reference },
+      },
+    };
+  }),
   on(removeAnime, (state, { payload: animeName }) => ({
     ...state,
     anime: Object.fromEntries(

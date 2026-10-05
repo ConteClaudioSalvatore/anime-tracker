@@ -57,11 +57,11 @@ export function CreatorPanel({ creator }: Props) {
             {step === 0 && <WebsiteStep creator={creator} />}
             {step === 1 && <ExamplePagesStep creator={creator} />}
             {field && <SelectionStep creator={creator} />}
-            {step === 5 && <PlaybackStep creator={creator} />}
-            {step === 6 && <ReviewStep creator={creator} />}
+            {step === 6 && <PlaybackStep creator={creator} />}
+            {step === 7 && <ReviewStep creator={creator} />}
           </>
         )}
-        {step === 6 &&
+        {step === 7 &&
           (reviewPage
             ? copy(
                 t("creator.checkingExample", {
@@ -81,9 +81,18 @@ export function CreatorPanel({ creator }: Props) {
             {formatMessage(error, t)}
           </Text>
         )}
-        {!canContinue && step < 6 && copy(hint, true)}
+        {!canContinue && step < 7 && copy(hint, true)}
       </ScrollView>
       <View style={styles.footer}>
+        {step === 5 && (
+          <ActionButton
+            variant="tertiary"
+            label={t("creator.skipCover")}
+            onPress={creator.skipCover}
+            disabled={saving}
+          />
+        )}
+
         <View style={[styles.row, styles.navigation]}>
           {step > 0 && (
             <ActionButton

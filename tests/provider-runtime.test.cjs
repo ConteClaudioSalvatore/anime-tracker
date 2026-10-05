@@ -2723,3 +2723,255 @@ test("watchlist website labels honor recorded identity and hide ambiguous or una
     undefined,
   );
 });
+
+test("optional covers resolve relative and lazy image references without blocking metadata", (t) => {
+  const { win, dom, runtime, messages } = setup(
+    fixture + '<picture id="cover"><img src="/posters/example.jpg"></picture>',
+    "setup",
+    { ...provider, coverImageSelector: "#cover" },
+  );
+  t.after(() => dom.window.close());
+  const image = win.document.querySelector("#cover img");
+  assert.equal(
+    runtime.evaluate("#cover", "coverImageSelector").coverUrl,
+    "https://example.com/posters/example.jpg",
+  );
+  image.setAttribute("src", "data:image/png;base64,AA==");
+  image.setAttribute("data-src", "//cdn.example.net/poster.webp");
+  assert.equal(
+    runtime.evaluate("#cover", "coverImageSelector").coverUrl,
+    "https://cdn.example.net/poster.webp",
+  );
+  Object.defineProperty(image, "currentSrc", {
+    configurable: true,
+    value: "https://cdn.example.net/responsive.webp",
+  });
+  assert.equal(
+    runtime.evaluate("#cover", "coverImageSelector").coverUrl,
+    "https://cdn.example.net/responsive.webp",
+  );
+  runtime.command({ type: "extract", requestId: "cover-review" });
+  const message = bridge.parseRuntimeMessage(
+    JSON.stringify(messages.at(-1)),
+    "session",
+  );
+  assert.equal(
+    message.preview.coverUrl,
+    "https://cdn.example.net/responsive.webp",
+  );
+  assert.equal(message.preview.valid, true);
+  image.remove();
+  runtime.command({ type: "extract", requestId: "missing-cover" });
+  assert.equal(messages.at(-1).preview.valid, true);
+  assert.equal(messages.at(-1).preview.coverUrl, undefined);
+  assert.equal(
+    runtime.evaluate("#cover", "coverImageSelector").errorCode,
+    "choose-cover",
+  );
+});
+
+test("cover selectors reject ambiguous and nonremote images, while legacy providers still pass", (t) => {
+  const { win, dom, runtime, messages } = setup(
+    fixture + '<img class="cover"><img class="cover">',
+  );
+  t.after(() => dom.window.close());
+  const images = win.document.querySelectorAll(".cover");
+  for (const url of [
+    "data:image/png;base64,AA==",
+    "blob:https://example.com/id",
+    "file:///poster.jpg",
+    "javascript:alert(1)",
+    "https://user:secret@example.com/poster.jpg",
+  ]) {
+    images[0].setAttribute("src", url);
+    assert.equal(
+      runtime.evaluate("img.cover:first-of-type", "coverImageSelector").valid,
+      false,
+    );
+  }
+  for (const image of images) image.setAttribute("src", "/poster.jpg");
+  assert.equal(runtime.evaluate(".cover", "coverImageSelector").valid, false);
+  runtime.command({ type: "extract", requestId: "legacy" });
+  assert.equal(messages.at(-1).preview.valid, true);
+  assert.equal(messages.at(-1).preview.coverUrl, undefined);
+  runtime.command({
+    type: "configure",
+    config: { ...provider, coverImageSelector: "[" },
+  });
+  runtime.command({ type: "extract", requestId: "bad-optional-selector" });
+  assert.equal(messages.at(-1).preview.valid, true);
+});
+
+test("tracking carries only a cover URL and preserves it across later missing covers", (t) => {
+  const { win, dom, runtime, messages } = setup(
+    fixture + '<img id="cover" src="https://cdn.example.net/poster.jpg">',
+    "watch",
+    { ...provider, coverImageSelector: "#cover" },
+  );
+  t.after(() => dom.window.close());
+  const media = videoState(win);
+  runtime.tick();
+  media.time = 2;
+  runtime.tick();
+  const message = messages.findLast((item) => item.type === "anime-found");
+  assert.ok(message);
+  const payload = bridge.parseRuntimeMessage(
+    JSON.stringify(message),
+    "session",
+  ).payload;
+  assert.equal(payload.coverUrl, "https://cdn.example.net/poster.jpg");
+  assert.equal(payload.url, win.location.href);
+  const { mergeAnimeHistory } = require("../utils/anime-history.ts");
+  const first = mergeAnimeHistory(undefined, payload, provider.origin);
+  const later = mergeAnimeHistory(
+    first,
+    { animeTitle: first.name, episode: 2 },
+    provider.origin,
+  );
+  assert.equal(later.coverUrl, payload.coverUrl);
+  assert.equal(later.lastPlayedAt, first.lastPlayedAt);
+  assert.equal(
+    watchListSummary({ [first.name]: first })[0].coverUrl,
+    undefined,
+  );
+  for (const coverUrl of [
+    "data:image/png;base64,AA==",
+    "blob:https://example.com/id",
+    "file:///poster.jpg",
+    123,
+    "https://user:secret@example.com/poster.jpg",
+  ]) {
+    assert.equal(
+      bridge.parseRuntimeMessage(
+        JSON.stringify({ ...message, payload: { ...payload, coverUrl } }),
+        "session",
+      ),
+      null,
+    );
+    assert.equal(
+      mergeAnimeHistory(first, { ...payload, coverUrl }, provider.origin)
+        .coverUrl,
+      first.coverUrl,
+    );
+  }
+  assert.equal(
+    mergeAnimeHistory(
+      first,
+      { ...payload, coverUrl: "https://cdn.example.net/new.jpg" },
+      provider.origin,
+    ).coverUrl,
+    "https://cdn.example.net/new.jpg",
+  );
+});
+
+test("series visits update existing covers without a player or episode selection", (t) => {
+  const { win, dom, runtime, messages } = setup(
+    fixture + '<img id="cover" src="/poster.jpg">',
+    "watch",
+    { ...provider, coverImageSelector: "#cover" },
+  );
+  t.after(() => dom.window.close());
+  win.document.querySelector("video").remove();
+  win.document.querySelector("#episode-list").remove();
+  messages.length = 0;
+  // A delayed image is discovered on the next tick, independently of playback.
+  win.document.querySelector("#cover").setAttribute("src", "/delayed.jpg");
+  runtime.tick();
+  const message = messages.find((item) => item.type === "anime-cover");
+  const parsed = bridge.parseRuntimeMessage(JSON.stringify(message), "session");
+  assert.equal(parsed.payload.coverUrl, "https://example.com/delayed.jpg");
+  assert.equal(
+    messages.some((item) => item.type === "anime-found"),
+    false,
+  );
+  runtime.tick();
+  assert.equal(
+    messages.filter((item) => item.type === "anime-cover").length,
+    1,
+  );
+  const title = parsed.payload.animeTitle;
+  const original = {
+    name: title,
+    latestWatchedEpisode: 3,
+    highestWatchedEpisode: 8,
+    latestVisitedUrl: "https://example.com/series/example/3",
+    providerId: 9,
+    lastPlayedAt: 1700000000000,
+    total: 24,
+    finished: true,
+    playbackFinished: false,
+    episodeProgress: { 3: { progress: 45, total: 120 } },
+  };
+  const before = { providers: [provider], anime: { [title]: original } };
+  const after = reducer(
+    before,
+    actions.animeCoverUpdated(title, parsed.payload.coverUrl),
+  );
+  assert.deepEqual(after.anime[title], {
+    ...original,
+    coverUrl: parsed.payload.coverUrl,
+  });
+  assert.equal(after.providers, before.providers);
+  assert.equal(
+    reducer(
+      before,
+      actions.animeCoverUpdated("Unwatched title", parsed.payload.coverUrl),
+    ),
+    before,
+  );
+  assert.equal(
+    reducer(
+      before,
+      actions.animeCoverUpdated(title, "data:image/png;base64,AA=="),
+    ),
+    before,
+  );
+  assert.equal(
+    reducer(after, actions.animeCoverUpdated(title, parsed.payload.coverUrl)),
+    after,
+  );
+  runtime.command({
+    type: "configure",
+    config: { ...provider, coverImageSelector: "#cover" },
+    mode: "browse",
+  });
+  win.document.querySelector("#cover").setAttribute("src", "/other.jpg");
+  messages.length = 0;
+  runtime.tick();
+  assert.equal(
+    messages.some((item) => item.type === "anime-cover"),
+    false,
+  );
+});
+
+test("cover-only messages retain native session and document guards", () => {
+  const value = {
+    channel: "provider-runtime",
+    sessionId: "session",
+    documentId: "new-document",
+    url: provider.origin,
+    type: "anime-cover",
+    payload: {
+      animeTitle: "Series",
+      coverUrl: "https://cdn.example.net/poster.jpg",
+    },
+  };
+  const parse = (value) =>
+    bridge.parseRuntimeMessage(JSON.stringify(value), "session");
+  const message = parse(value);
+  assert.ok(message);
+  assert.equal(parse({ ...value, sessionId: "stale" }), null);
+  for (const payload of [
+    {},
+    { animeTitle: "", coverUrl: value.payload.coverUrl },
+    { ...value.payload, coverUrl: "file:///poster.jpg" },
+  ]) {
+    assert.equal(parse({ ...value, payload }), null);
+  }
+  const session = new bridge.RuntimeSession();
+  session.begin(provider.origin);
+  session.accept({ ...value, type: "ready" });
+  assert.equal(session.accept(message), true);
+  session.begin(provider.origin);
+  assert.equal(session.accept(message), false);
+});

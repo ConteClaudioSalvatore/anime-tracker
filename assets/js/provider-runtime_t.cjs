@@ -32,6 +32,7 @@
     pendingResume = null,
     awaitingResume = null;
   let lastPlayback = null;
+  let lastCover = "";
   let playbackFloor = 0;
   const history = [],
     documents = new WeakSet(),
@@ -144,6 +145,32 @@
       selectorFor(parent, doc) + " > " + part + ":nth-child(" + index + ")"
     );
   }
+  function imageUrl(element) {
+    const images = element?.matches("img")
+      ? [element]
+      : [...(element?.querySelectorAll("img") || [])];
+    const image = images.length === 1 ? images[0] : undefined;
+    if (!image) return undefined;
+    // Lazy-loaded posters often keep the remote URL in a data attribute.
+    for (const value of [
+      image.currentSrc,
+      image.getAttribute("data-src"),
+      image.getAttribute("data-original"),
+      image.getAttribute("src"),
+    ]) {
+      if (!value?.trim()) continue;
+      try {
+        const url = new URL(value, document.baseURI);
+        if (
+          ["http:", "https:"].includes(url.protocol) &&
+          !url.username &&
+          !url.password
+        )
+          return url.href;
+      } catch {}
+    }
+    return undefined;
+  }
   function evaluate(selector, kind) {
     let elements;
     try {
@@ -157,6 +184,22 @@
         valid: false,
         error: "This selection cannot be read. Choose it again.",
         errorCode: "unreadable-selection",
+      };
+    }
+    if (kind === "coverImageSelector") {
+      const coverUrl =
+        elements.length === 1 ? imageUrl(elements[0]) : undefined;
+      return {
+        selector,
+        count: elements.length,
+        texts: coverUrl ? [coverUrl] : [],
+        values: [],
+        coverUrl,
+        valid: !!coverUrl,
+        error: coverUrl
+          ? undefined
+          : "Choose one cover image with a remote URL.",
+        errorCode: coverUrl ? undefined : "choose-cover",
       };
     }
     const texts = elements.map(text),
@@ -241,6 +284,8 @@
     // The announced total is independent of released episodes and pagination.
     return {
       title: title.texts[0] || "",
+      coverUrl: evaluate(config.coverImageSelector, "coverImageSelector")
+        .coverUrl,
       episode,
       episodeCount: total.values[0] || 0,
       listedEpisodes: episodes.count,
@@ -511,7 +556,28 @@
     });
   }
   function tick() {
-    if (isMainFrame) highlightEpisodeProgress();
+    if (isMainFrame) {
+      highlightEpisodeProgress();
+      if (mode === "watch" && config.coverImageSelector) {
+        const title = evaluate(config.seriesNameSelector, "seriesNameSelector");
+        const cover = evaluate(config.coverImageSelector, "coverImageSelector");
+        const key = JSON.stringify([
+          documentId,
+          location.href,
+          config.id,
+          title.texts[0],
+          cover.coverUrl,
+        ]);
+        if (title.valid && cover.valid && key !== lastCover) {
+          lastCover = key;
+          // Cover metadata does not require an episode number or an activated player.
+          post({
+            type: "anime-cover",
+            payload: { animeTitle: title.texts[0], coverUrl: cover.coverUrl },
+          });
+        }
+      }
+    }
     framePeers.forEach((peer, frame) => {
       if (!frame.isConnected) framePeers.delete(frame);
     });
@@ -649,6 +715,7 @@
       type: "anime-found",
       payload: {
         animeTitle: preview.title,
+        coverUrl: preview.coverUrl,
         episode: preview.episode,
         episodeCount:
           preview.episodeCount > 0 ? preview.episodeCount : undefined,
@@ -710,6 +777,7 @@
                   type: "anime-found",
                   payload: {
                     animeTitle: preview.title,
+                    coverUrl: preview.coverUrl,
                     episode,
                     episodeCount:
                       preview.episodeCount > 0

@@ -7,6 +7,13 @@ export const animeUpdated = createAction(
     payload: { defaultUrl, payload },
   }),
 );
+export const animeCoverUpdated = createAction(
+  "@app/anime-cover-update",
+  (animeTitle: string, coverUrl: string) => ({
+    payload: { animeTitle, coverUrl },
+  }),
+);
+
 export const removeAnime = createAction(
   "@app/remove-anime",
   (payload: string) => ({ payload }),

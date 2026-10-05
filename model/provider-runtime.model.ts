@@ -1,10 +1,15 @@
+import { coverImageUrl } from "../utils/cover-image";
 import type { Provider } from "./provider.model";
 
 export type SelectorField =
-  "seriesNameSelector" | "episodeNumberSelector" | "totalEpisodesSelector";
+  | "seriesNameSelector"
+  | "episodeNumberSelector"
+  | "totalEpisodesSelector"
+  | "coverImageSelector";
 export const runtimeDiagnosticCodes = [
   "unreadable-selection",
   "choose-title",
+  "choose-cover",
   "choose-total",
   "choose-episodes",
   "page-timeout",
@@ -15,6 +20,7 @@ export type FieldPreview = {
   count: number;
   texts: string[];
   values: (number | null)[];
+  coverUrl?: string;
   valid: boolean;
   error?: string;
   errorCode?: RuntimeDiagnosticCode;
@@ -25,6 +31,7 @@ export type ExtractionPreview = {
   /** Zero represents an unknown announced total in setup previews. */
   episodeCount: number;
   listedEpisodes?: number;
+  coverUrl?: string;
   valid: boolean;
   errors: string[];
   errorCodes?: RuntimeDiagnosticCode[];
@@ -45,6 +52,7 @@ export type RuntimeMessage = {
   url: string;
 } & (
   | { type: "ready" }
+  | { type: "anime-cover"; payload: { animeTitle: string; coverUrl: string } }
   | {
       type: "selection";
       requestId: string;
@@ -62,6 +70,7 @@ export type RuntimeMessage = {
       type: "anime-found";
       payload: {
         animeTitle: string;
+        coverUrl?: string;
         episode: number;
         episodeCount?: number;
         progress?: number;
@@ -88,9 +97,14 @@ export function parseRuntimeMessage(
     )
       return null;
     if (
-      !["ready", "selection", "extraction", "players", "anime-found"].includes(
-        value.type,
-      )
+      ![
+        "ready",
+        "selection",
+        "extraction",
+        "players",
+        "anime-found",
+        "anime-cover",
+      ].includes(value.type)
     )
       return null;
     const strings = (items: unknown) =>
@@ -120,6 +134,7 @@ export function parseRuntimeMessage(
           "seriesNameSelector",
           "episodeNumberSelector",
           "totalEpisodesSelector",
+          "coverImageSelector",
         ].includes(value.field) ||
         typeof value.preview.selector !== "string" ||
         !Array.isArray(value.preview.texts) ||
@@ -209,6 +224,18 @@ export function parseRuntimeMessage(
       )
     )
       return null;
+    if (
+      value.type === "anime-cover" &&
+      (!value.payload ||
+        typeof value.payload.animeTitle !== "string" ||
+        !value.payload.animeTitle.trim() ||
+        !coverImageUrl(value.payload.coverUrl))
+    )
+      return null;
+    const cover = ["anime-found", "anime-cover"].includes(value.type)
+      ? value.payload.coverUrl
+      : value.preview?.coverUrl;
+    if (cover !== undefined && !coverImageUrl(cover)) return null;
     return value as RuntimeMessage;
   } catch {
     return null;

@@ -14,6 +14,7 @@ import {
 
 const diagnostics: Record<RuntimeDiagnosticCode, TranslationKey> = {
   "unreadable-selection": "runtime.unreadableSelection",
+  "choose-cover": "runtime.chooseCover",
   "choose-title": "runtime.chooseTitle",
   "choose-total": "runtime.chooseTotal",
   "choose-episodes": "runtime.chooseEpisodes",

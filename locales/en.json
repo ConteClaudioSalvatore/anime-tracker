@@ -302,5 +302,15 @@
   "anime.totalLabel": "Total episodes",
   "anime.totalHelp": "Enter the total number of episodes, or ? if it is unknown.",
   "anime.totalInvalid": "Enter a whole number greater than 0, or ? for an unknown total.",
-  "watch.providerName": "Website: {{name}}"
+  "watch.providerName": "Website: {{name}}",
+  "steps.cover": "Cover",
+  "instructions.cover": "Optional: select the series cover image. The app stores only its URL and uses it behind watchlist items. Skip this step if the website has no cover.",
+  "creator.editCover": "Cover image",
+  "creator.tapCover": "Tap the cover",
+  "creator.selectCover": "Select cover",
+  "creator.skipCover": "Skip cover",
+  "creator.coverFound": "Cover found",
+  "creator.coverMissing": "No cover on this page; the plain watchlist background will be used.",
+  "runtime.chooseCover": "Choose one cover image with a remote URL.",
+  "home.saveCoverFailed": "Could not save the cover. Reload the website to try again."
 }

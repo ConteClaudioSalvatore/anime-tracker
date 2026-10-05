@@ -128,7 +128,7 @@ export function useProviderCreator() {
       if (!candidate?.valid) return;
       edit({ ...draft, [field]: candidate.selector });
     }
-    if (step === 5) {
+    if (step === 6) {
       const currentPlayer = ready ? selectedPlayer : undefined;
       if (!currentPlayer?.progress && !saveAnyway) return;
       const acknowledged = saveAnyway;
@@ -171,7 +171,7 @@ export function useProviderCreator() {
         ? pages.length >= 2
         : field
           ? !!candidate?.valid && ready
-          : step === 5
+          : step === 6
             ? (ready && !!selectedPlayer?.progress) || saveAnyway
             : true);
   const hint =
@@ -183,19 +183,20 @@ export function useProviderCreator() {
           ? candidate?.error
             ? selectionFeedback(candidate, t)
             : t("creator.selectHint")
-          : step === 5
+          : step === 6
             ? t("creator.playbackHint")
             : t("creator.reviewHint");
   const saveError =
-    step === 6 ? providerSaveMessage(draft, pages, checks, saveAnyway) : null;
+    step === 7 ? providerSaveMessage(draft, pages, checks, saveAnyway) : null;
   const selectionLabels = {
     2: ["creator.tapTitle", "creator.selectTitle"],
     3: ["creator.tapEpisodes", "creator.selectEpisodes"],
     4: ["creator.tapTotal", "creator.selectTotal"],
+    5: ["creator.tapCover", "creator.selectCover"],
   } as const;
-  const selectionLabel = selectionLabels[step as 2 | 3 | 4];
+  const selectionLabel = selectionLabels[step as 2 | 3 | 4 | 5];
   const primaryAction =
-    step === 6
+    step === 7
       ? {
           label: saving
             ? t("common.saving")
@@ -217,7 +218,7 @@ export function useProviderCreator() {
               onPress: startSelection,
               disabled: select || !ready || saving,
             }
-          : step === 5 && !canContinue
+          : step === 6 && !canContinue
             ? {
                 label: t("creator.playEpisode"),
                 onPress: next,
@@ -241,6 +242,10 @@ export function useProviderCreator() {
     canContinue,
     hint,
     saveError: saveError ? formatMessage(saveError, t) : null,
+    skipCover: () => {
+      edit({ ...draft, coverImageSelector: undefined });
+      go(6);
+    },
     primaryAction,
     colors,
     id,

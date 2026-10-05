@@ -345,4 +345,26 @@ test("foreground language changes update Home feedback without replacing its ses
   assert.equal(scripts.length, scriptCount);
   assert.equal(saved.length, 1);
   assert.equal(mounts, 1);
+  const coverUrl = "https://cdn.example.net/poster.jpg";
+  await React.act(async () =>
+    browser.onMessage(
+      event("anime-cover", { payload: { animeTitle: "Series", coverUrl } }),
+    ),
+  );
+  assert.equal(saved.length, 2);
+  assert.deepEqual(
+    saved[1],
+    require("../store/app.actions.ts").animeCoverUpdated("Series", coverUrl),
+  );
+  assert.equal(browser.status, "Series · Episode 1 · 31 / 120 seconds");
+  await React.act(async () =>
+    browser.onMessage(
+      event("anime-cover", { payload: { animeTitle: "Unwatched", coverUrl } }),
+    ),
+  );
+  assert.equal(
+    saved.length,
+    2,
+    "An unwatched title must not create history from its cover",
+  );
 });

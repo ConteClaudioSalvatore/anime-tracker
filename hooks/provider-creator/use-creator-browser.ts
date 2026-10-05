@@ -158,7 +158,7 @@ export function useCreatorBrowser({
     }
   }, [step, field, ready, select, send, latestDraftRef]);
   React.useEffect(() => {
-    if (step !== 5 || !ready || videoPhase !== "checking") return;
+    if (step !== 6 || !ready || videoPhase !== "checking") return;
     const timer = setTimeout(() => updatePlayback({ timedOut: true }), 20000);
     return () => clearTimeout(timer);
   }, [step, ready, testRun, videoPhase, playerKey, updatePlayback]);

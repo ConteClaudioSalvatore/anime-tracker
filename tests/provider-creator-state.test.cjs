@@ -78,9 +78,9 @@ test("changing steps clears transient selection but preserves configuration and 
   before.selection.candidate = { selector: ".title", valid: true };
   before.playback.timedOut = true;
   before.playback.videoHelp = true;
-  const after = reduce(before, { type: "go", step: 5 });
+  const after = reduce(before, { type: "go", step: 6 });
   assert.deepEqual(after.wizard, {
-    step: 5,
+    step: 6,
     error: "",
     advanced: false,
     collapsed: false,
@@ -355,7 +355,7 @@ test("creator hooks keep document guards and automatic Review working across com
   assert.equal(creator.state.selection.candidate, null);
 
   await React.act(async () =>
-    creator.actions.dispatch({ type: "go", step: 6 }),
+    creator.actions.dispatch({ type: "go", step: 7 }),
   );
   await React.act(
     async () => new Promise((resolve) => setTimeout(resolve, 10)),

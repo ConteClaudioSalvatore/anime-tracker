@@ -1,3 +1,4 @@
+import CoverSurface from "./cover-surface";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { getAnimeActionContext, isAnimeFinished } from "@/utils";
@@ -62,51 +63,89 @@ export default function WatchListRow({
         });
 
   return (
-    <Row
-      alignment="start"
-      spacing={8}
-      style={{ paddingRight: 8, width: "100%" }}
-    >
-      <Column
-        spacing={8}
-        onPress={onOpen}
-        style={{ padding: 16 }}
-        modifiers={[weight(1)]}
-      >
-        <Text textStyle={{ fontSize: 17, fontWeight: "600", color: textColor }}>
-          {name}
-        </Text>
-        <Text textStyle={{ fontSize: 14, color: secondaryColor }}>
-          {episode}
-        </Text>
-        {providerName && (
-          <Text textStyle={{ fontSize: 13, color: secondaryColor }}>
-            {t("watch.providerName", { name: providerName })}
-          </Text>
-        )}
-        {status && (
-          <Text textStyle={{ fontSize: 13, fontWeight: "600", color }}>
-            {status}
-          </Text>
-        )}
-        {progress !== undefined && Platform.OS === "android" && (
-          <LinearProgressIndicator
-            progress={progress}
-            color={color}
-            modifiers={[fillMaxWidth(), height(4)]}
-          />
-        )}
-      </Column>
-      <Column style={{ paddingTop: 8 }}>
-        <ActionMenu
-          label={t("watch.rowActions", { name })}
-          actions={[
-            { label: t("common.edit"), onPress: onEdit },
-            { label: finishedText, onPress: onToggleFinished },
-            { label: t("common.remove"), onPress: onRemove, destructive: true },
-          ]}
-        />
-      </Column>
-    </Row>
+    <CoverSurface url={anime.coverUrl}>
+      {(covered) => (
+        <Row
+          alignment="start"
+          spacing={8}
+          style={{ paddingRight: 8, width: "100%" }}
+        >
+          <Column
+            spacing={8}
+            onPress={onOpen}
+            style={{ padding: 16 }}
+            modifiers={[weight(1)]}
+          >
+            <Text
+              textStyle={{
+                fontSize: 17,
+                fontWeight: "600",
+                color: covered ? "#ffffff" : textColor,
+              }}
+            >
+              {name}
+            </Text>
+            <Text
+              textStyle={{
+                fontSize: 14,
+                color: covered ? "#d9d9df" : secondaryColor,
+              }}
+            >
+              {episode}
+            </Text>
+            {providerName && (
+              <Text
+                textStyle={{
+                  fontSize: 13,
+                  color: covered ? "#d9d9df" : secondaryColor,
+                }}
+              >
+                {t("watch.providerName", { name: providerName })}
+              </Text>
+            )}
+            {status && (
+              <Text
+                textStyle={{
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: covered ? (completed ? "#78d99a" : "#ffcc80") : color,
+                }}
+              >
+                {status}
+              </Text>
+            )}
+            {progress !== undefined && Platform.OS === "android" && (
+              <LinearProgressIndicator
+                progress={progress}
+                color={
+                  covered
+                    ? completed
+                      ? "#78d99a"
+                      : anime.finished
+                        ? "#ffcc80"
+                        : "#7cb7ff"
+                    : color
+                }
+                modifiers={[fillMaxWidth(), height(4)]}
+              />
+            )}
+          </Column>
+          <Column style={{ paddingTop: 8 }}>
+            <ActionMenu
+              label={t("watch.rowActions", { name })}
+              actions={[
+                { label: t("common.edit"), onPress: onEdit },
+                { label: finishedText, onPress: onToggleFinished },
+                {
+                  label: t("common.remove"),
+                  onPress: onRemove,
+                  destructive: true,
+                },
+              ]}
+            />
+          </Column>
+        </Row>
+      )}
+    </CoverSurface>
   );
 }

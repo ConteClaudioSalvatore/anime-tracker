@@ -6,6 +6,7 @@ export const steps = [
   "steps.title",
   "steps.episodes",
   "steps.total",
+  "steps.cover",
   "steps.playback",
   "steps.review",
 ] as const;
@@ -13,6 +14,7 @@ export const fields: Partial<Record<number, SelectorField>> = {
   2: "seriesNameSelector",
   3: "episodeNumberSelector",
   4: "totalEpisodesSelector",
+  5: "coverImageSelector",
 };
 export const instructions = [
   "instructions.website",
@@ -20,6 +22,7 @@ export const instructions = [
   "instructions.title",
   "instructions.episodes",
   "instructions.total",
+  "instructions.cover",
   "instructions.playback",
   "instructions.review",
 ] as const;
@@ -30,5 +33,6 @@ export const editSteps = [
   "creator.editTitle",
   "creator.editEpisodes",
   "creator.editTotal",
+  "creator.editCover",
   "creator.editPlayback",
 ] as const;

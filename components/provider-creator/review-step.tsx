@@ -72,6 +72,16 @@ export function ReviewStep({ creator }: Props) {
                   })
                 : extractionFeedback(checks[page]).map(format).join(" "),
             )}
+          {draft.coverImageSelector &&
+            checks[page] &&
+            copy(
+              t(
+                checks[page].coverUrl
+                  ? "creator.coverFound"
+                  : "creator.coverMissing",
+              ),
+              true,
+            )}
           {checks[page]?.valid === false && (
             <ActionButton
               label={t("creator.retestExample", { index: index + 1 })}
@@ -103,11 +113,11 @@ export function ReviewStep({ creator }: Props) {
               />
             ))}
           {copy(t("creator.editStep"), true)}
-          {[0, 1, 2, 3, 4, 5].map((index) => (
+          {editSteps.map((label, index) => (
             <ActionButton
               variant="tertiary"
               key={index}
-              label={t(editSteps[index])}
+              label={t(label)}
               onPress={() => go(index)}
               disabled={saving}
             />
