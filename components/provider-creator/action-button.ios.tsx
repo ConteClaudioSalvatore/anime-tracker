@@ -24,7 +24,7 @@ export default function ActionButton({
   const t = useAppTranslation();
   const prominent = variant === "primary";
   return (
-    <Host matchContents>
+    <Host matchContents style={{ maxWidth: "100%", flexShrink: 1 }}>
       <Button
         label={label}
         systemImage={

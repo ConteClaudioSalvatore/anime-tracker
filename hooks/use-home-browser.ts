@@ -50,6 +50,22 @@ export function useHomeBrowser() {
   const resumeSent = React.useRef(new Set<string>());
   const statusTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationRevision = React.useRef(0);
+  const loadedPage = React.useRef<{ url: string; providerId?: number } | null>(
+    null,
+  );
+  const pendingOpen = React.useRef<{
+    url: string;
+    providerId: number;
+    previousUrl?: string;
+  } | null>(null);
+  function staleNavigation(url: string): boolean {
+    const pending = pendingOpen.current;
+    return (
+      !!pending &&
+      (provider?.id !== pending.providerId ||
+        (url !== pending.url && url === pending.previousUrl))
+    );
+  }
   const shouldNavigate = useProviderNavigation({
     provider,
     pageKey: () => (state.url ?? "") + ":" + navigationRevision.current,
@@ -86,10 +102,24 @@ export function useHomeBrowser() {
   );
   React.useEffect(() => {
     if (!state.reload) return;
-    webViewRef?.current?.reload();
+    pendingOpen.current = null;
+    if (provider && state.url) {
+      const current = loadedPage.current;
+      pendingOpen.current = {
+        url: state.url,
+        providerId: provider.id,
+        previousUrl: current?.url,
+      };
+      pageSession.current.begin(state.url);
+      resumeSent.current.clear();
+      // A changed source navigates itself. Reloading here can reload the old native URL.
+      if (current?.url === state.url && current.providerId === provider.id)
+        webViewRef?.current?.reload();
+    }
     updateState((previous) => ({ ...previous, reload: false }));
-  }, [state.reload, updateState, webViewRef]);
+  }, [state.reload, state.url, provider, updateState, webViewRef]);
   function open(item: Provider) {
+    pendingOpen.current = null;
     pageSession.current.begin(item.origin);
     resumeSent.current.clear();
     setError("");
@@ -127,6 +157,12 @@ export function useHomeBrowser() {
     : "";
 
   const onLoadStart: NonNullable<WebViewProps["onLoadStart"]> = (event) => {
+    if (staleNavigation(event.nativeEvent.url)) return;
+    pendingOpen.current = null;
+    loadedPage.current = {
+      url: event.nativeEvent.url,
+      providerId: provider?.id,
+    };
     navigationRevision.current++;
     pageSession.current.begin(event.nativeEvent.url);
     setLoading(true);
@@ -138,7 +174,8 @@ export function useHomeBrowser() {
     clearStatusTimer();
   };
 
-  const onLoadEnd: NonNullable<WebViewProps["onLoadEnd"]> = () => {
+  const onLoadEnd: NonNullable<WebViewProps["onLoadEnd"]> = (event) => {
+    if (staleNavigation(event.nativeEvent.url)) return;
     setLoading(false);
     webViewRef?.current?.injectJavaScript(
       runtimeCommand({ type: "reportReady" }),
@@ -161,15 +198,20 @@ export function useHomeBrowser() {
     WebViewProps["onNavigationStateChange"]
   > = (event) => {
     if (!provider) return;
-    if (!allowedUrl(provider, event.url)) return;
+    if (!allowedUrl(provider, event.url) || staleNavigation(event.url)) return;
+    loadedPage.current = { url: event.url, providerId: provider.id };
     pageSession.current.redirected(event.url);
-    updateState((previous) => ({
-      ...previous,
-      url: event.url,
-      providerId: provider.id,
-      canGoBack: event.canGoBack,
-      canGoForward: event.canGoForward,
-    }));
+    updateState((previous) =>
+      previous.reload && previous.url !== event.url
+        ? previous
+        : {
+            ...previous,
+            url: event.url,
+            providerId: provider.id,
+            canGoBack: event.canGoBack,
+            canGoForward: event.canGoForward,
+          },
+    );
     send({
       type: "configure",
       config: provider,

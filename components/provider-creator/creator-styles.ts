@@ -15,14 +15,24 @@ export const styles = StyleSheet.create({
   dot: { height: 3, flex: 1, borderRadius: 3 },
   browser: { flex: 1, minHeight: 120 },
   toolbar: { flexDirection: "row", alignItems: "center", padding: 6, gap: 4 },
-  panel: { flexShrink: 1 },
+  panel: { flexShrink: 1, alignSelf: "stretch", minWidth: 0, maxWidth: "100%" },
   iosSurface:
     Platform.OS === "ios"
       ? { marginHorizontal: 8, marginBottom: 6, borderRadius: 24 }
       : {},
   compactPanel: { maxHeight: "30%" },
-  panelScroll: { flexGrow: 0, flexShrink: 1 },
-  panelContent: { paddingHorizontal: 10, paddingVertical: 10, gap: 12 },
+  panelScroll: {
+    flexGrow: 0,
+    flexShrink: 1,
+    alignSelf: "stretch",
+    minWidth: 0,
+  },
+  panelContent: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 12,
+    alignItems: "stretch",
+  },
   row: { flexDirection: "row", flexWrap: "wrap", columnGap: 10, rowGap: 12 },
   expandedTools: {
     borderLeftWidth: StyleSheet.hairlineWidth,
@@ -34,7 +44,13 @@ export const styles = StyleSheet.create({
   footer: { paddingHorizontal: 10, paddingBottom: 8, gap: 6, flexShrink: 0 },
   navigation: { alignItems: "center" },
   spacer: { flexGrow: 1 },
-  copy: { fontSize: 14, lineHeight: 19 },
+  copy: {
+    fontSize: 14,
+    lineHeight: 19,
+    alignSelf: "stretch",
+    flexShrink: 1,
+    maxWidth: "100%",
+  },
   input: {
     alignSelf: "stretch",
     borderWidth: 1,
@@ -43,5 +59,11 @@ export const styles = StyleSheet.create({
     minHeight: 44,
     fontSize: 16,
   },
-  example: { gap: 8, paddingVertical: 8 },
+  example: {
+    gap: 8,
+    paddingVertical: 8,
+    alignSelf: "stretch",
+    minWidth: 0,
+    maxWidth: "100%",
+  },
 });

@@ -207,15 +207,23 @@ test("foreground language changes update Home feedback without replacing its ses
   };
   const scripts = [],
     saved = [];
+  let reloads = 0;
+  let updateAppState;
   const webViewRef = {
-    current: { injectJavaScript: (script) => scripts.push(script) },
+    current: {
+      injectJavaScript: (script) => scripts.push(script),
+      reload: () => reloads++,
+    },
   };
   const contexts = {
     AccessoryContext: React.createContext({ webViewRef }),
     AppStateContext: React.createContext(null),
     StoreContext: React.createContext({
       state: {
-        providers: [provider],
+        providers: [
+          provider,
+          { ...provider, id: 2, name: "Another user website" },
+        ],
         anime: {
           Series: { episodeProgress: { 1: { progress: 20, total: 120 } } },
         },
@@ -284,6 +292,7 @@ test("foreground language changes update Home feedback without replacing its ses
       url,
       providerId: provider.id,
     });
+    updateAppState = updateState;
     return React.createElement(
       contexts.AppStateContext.Provider,
       {
@@ -366,5 +375,90 @@ test("foreground language changes update Home feedback without replacing its ses
     saved.length,
     2,
     "An unwatched title must not create history from its cover",
+  );
+
+  const target = "https://example.com/series/two?episode=4";
+  await React.act(async () =>
+    updateAppState({ url: target, providerId: provider.id, reload: true }),
+  );
+  assert.equal(browser.url, target);
+  assert.equal(
+    reloads,
+    0,
+    "Changing the source must not reload the old native page",
+  );
+  await React.act(async () =>
+    browser.onNavigationStateChange({
+      url,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  await React.act(async () => browser.onLoadStart({ nativeEvent: { url } }));
+  assert.equal(
+    browser.url,
+    target,
+    "An old page callback cannot replace the requested series",
+  );
+  const beforeOldMessage = saved.length;
+  await React.act(async () =>
+    browser.onMessage(
+      event("anime-cover", { payload: { animeTitle: "Series", coverUrl } }),
+    ),
+  );
+  assert.equal(
+    saved.length,
+    beforeOldMessage,
+    "Old document metadata is retired immediately",
+  );
+  await React.act(async () =>
+    browser.onLoadStart({ nativeEvent: { url: target } }),
+  );
+  const redirect = "https://example.com/series/two?episode=4&redirected=1";
+  await React.act(async () =>
+    browser.onNavigationStateChange({
+      url: redirect,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(
+    browser.url,
+    redirect,
+    "Allowed redirects still update the current URL",
+  );
+  await React.act(async () =>
+    updateAppState({ url: redirect, providerId: provider.id, reload: true }),
+  );
+  assert.equal(
+    reloads,
+    1,
+    "Reopening the currently loaded episode reloads once",
+  );
+  assert.equal(mounts, 1, "Opening another series does not remount Home");
+  const oldProviderBrowser = browser;
+  await React.act(async () =>
+    updateAppState({ url: redirect, providerId: 2, reload: true }),
+  );
+  assert.equal(browser.provider.id, 2);
+  assert.equal(
+    reloads,
+    1,
+    "A newly mounted provider WebView must not reload the previous provider",
+  );
+  await React.act(async () =>
+    oldProviderBrowser.onNavigationStateChange({
+      url: redirect,
+      canGoBack: false,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(
+    browser.provider.id,
+    2,
+    "Old provider callbacks cannot switch providers sharing an origin",
+  );
+  await React.act(async () =>
+    browser.onLoadStart({ nativeEvent: { url: redirect } }),
   );
 });

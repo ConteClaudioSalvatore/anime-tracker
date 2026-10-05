@@ -61,7 +61,12 @@ export default function ActionButton({
         />
       )}
       <Text
-        style={{ color, fontWeight: tertiary ? "400" : "600", fontSize: 14 }}
+        style={{
+          color,
+          fontWeight: tertiary ? "400" : "600",
+          fontSize: 14,
+          flexShrink: 1,
+        }}
       >
         {label}
       </Text>
@@ -71,6 +76,8 @@ export default function ActionButton({
 const styles = StyleSheet.create({
   button: {
     minHeight: 44,
+    maxWidth: "100%",
+    flexShrink: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
