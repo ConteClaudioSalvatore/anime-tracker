@@ -15,6 +15,7 @@ export interface WatchListHeaderProps {
 
 export interface WatchListRowProps {
   name: string;
+  providerName?: string;
   anime: Anime;
   onOpen: () => void;
   onEdit: () => void;

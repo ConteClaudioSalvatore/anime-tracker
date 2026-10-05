@@ -63,6 +63,7 @@ export default function WatchListScreen() {
                       <WatchListRow
                         name={name}
                         anime={anime}
+                        providerName={list.providerName(anime)}
                         onOpen={() => list.onOpen(anime)}
                         onEdit={() => list.onEdit(anime)}
                         onToggleFinished={() => list.onToggleFinished(anime)}

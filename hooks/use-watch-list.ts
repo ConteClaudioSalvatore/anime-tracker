@@ -10,7 +10,11 @@ import {
 } from "@/utils";
 import { AppStateContext } from "@/utils/app-state.util";
 import { exportWatchList } from "@/utils/backup.util";
-import { sortWatchList, type WatchListSortMode } from "@/utils/watch-list";
+import {
+  sortWatchList,
+  watchListProviderName,
+  type WatchListSortMode,
+} from "@/utils/watch-list";
 import { useRouter } from "expo-router";
 import { useContext, useMemo, useRef, useState } from "react";
 
@@ -72,6 +76,8 @@ export function useWatchList() {
   return {
     t,
     items,
+    providerName: (anime: Anime) =>
+      watchListProviderName(anime, state.providers),
     hasHistory,
     exporting,
     onExport: exportSummary,

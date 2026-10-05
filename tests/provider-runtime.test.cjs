@@ -37,6 +37,7 @@ const {
   sortWatchList,
   watchListSummary,
   watchListProgress,
+  watchListProviderName,
 } = require("../utils/watch-list.ts");
 const { isAnimeFinished } = require("../utils/is-anime-finieshed.util.ts");
 const { ProviderNavigationGuard } = require("../utils/provider-navigation.ts");
@@ -2683,4 +2684,42 @@ test("watch list progress omits unknown totals and never changes completion or h
   assert.equal(watchListProgress({ highestWatchedEpisode: 30, total: 24 }), 1);
   assert.equal(watchListProgress({ highestWatchedEpisode: -3, total: 24 }), 0);
   assert.equal(watchListProgress({ highestWatchedEpisode: NaN, total: 24 }), 0);
+});
+
+test("watchlist website labels honor recorded identity and hide ambiguous or unavailable names", () => {
+  const first = { ...provider, id: 1, name: "First website" };
+  const second = { ...provider, id: 2, name: "Second website" };
+  const third = {
+    ...provider,
+    id: 3,
+    name: "Another website",
+    origin: "https://other.example.com/",
+    whiteListedOrigins: [],
+  };
+  const anime = {
+    providerId: 2,
+    latestVisitedUrl: "https://example.com/series/episode",
+  };
+  assert.equal(watchListProviderName(anime, [first, second]), "Second website");
+  assert.equal(
+    watchListProviderName(anime, [
+      first,
+      { ...second, name: "Renamed website" },
+    ]),
+    "Renamed website",
+  );
+  assert.equal(
+    watchListProviderName(anime, [first, third]),
+    undefined,
+    "Do not replace a deleted recorded website with an alias match",
+  );
+  assert.equal(watchListProviderName(anime, [second]), undefined);
+  assert.equal(watchListProviderName(anime, []), undefined);
+  const legacy = { latestVisitedUrl: anime.latestVisitedUrl };
+  assert.equal(watchListProviderName(legacy, [first, third]), "First website");
+  assert.equal(watchListProviderName(legacy, [first, second]), undefined);
+  assert.equal(
+    watchListProviderName({ latestVisitedUrl: "" }, [first, second]),
+    undefined,
+  );
 });

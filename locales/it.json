@@ -301,5 +301,6 @@
   "anime.saveFailed": "Impossibile salvare le modifiche. I dati inseriti sono ancora qui; riprova.",
   "anime.totalLabel": "Episodi totali",
   "anime.totalHelp": "Inserisci il numero totale di episodi oppure ? se non è noto.",
-  "anime.totalInvalid": "Inserisci un numero intero maggiore di 0 oppure ? per un totale sconosciuto."
+  "anime.totalInvalid": "Inserisci un numero intero maggiore di 0 oppure ? per un totale sconosciuto.",
+  "watch.providerName": "Sito: {{name}}"
 }

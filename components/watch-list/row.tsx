@@ -15,6 +15,7 @@ import type { WatchListRowProps } from "./types";
 
 export default function WatchListRow({
   name,
+  providerName,
   anime,
   onOpen,
   onEdit,
@@ -78,6 +79,11 @@ export default function WatchListRow({
         <Text textStyle={{ fontSize: 14, color: secondaryColor }}>
           {episode}
         </Text>
+        {providerName && (
+          <Text textStyle={{ fontSize: 13, color: secondaryColor }}>
+            {t("watch.providerName", { name: providerName })}
+          </Text>
+        )}
         {status && (
           <Text textStyle={{ fontSize: 13, fontWeight: "600", color }}>
             {status}

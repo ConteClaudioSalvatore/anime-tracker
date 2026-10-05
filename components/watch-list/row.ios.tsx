@@ -30,6 +30,7 @@ import type { WatchListRowProps } from "./types";
 
 export default function WatchListRow({
   name,
+  providerName,
   anime,
   onOpen,
   onEdit,
@@ -70,7 +71,12 @@ export default function WatchListRow({
           buttonStyle("plain"),
           frame({ maxWidth: Infinity, minHeight: 44, alignment: "leading" }),
           accessibilityLabel(
-            [t("watch.openSeries", { name }), episode, status]
+            [
+              t("watch.openSeries", { name }),
+              episode,
+              providerName && t("watch.providerName", { name: providerName }),
+              status,
+            ]
               .filter(Boolean)
               .join(", "),
           ),
@@ -102,6 +108,18 @@ export default function WatchListRow({
           >
             {episode}
           </Text>
+          {providerName && (
+            <Text
+              modifiers={[
+                font({ textStyle: "caption" }),
+                foregroundStyle({ type: "hierarchical", style: "secondary" }),
+                multilineTextAlignment("leading"),
+                fixedSize({ horizontal: false, vertical: true }),
+              ]}
+            >
+              {t("watch.providerName", { name: providerName })}
+            </Text>
+          )}
           {status && (
             <Text
               modifiers={[
