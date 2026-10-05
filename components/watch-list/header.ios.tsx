@@ -1,111 +1,134 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import { watchListSortOptions } from "@/utils/watch-list";
 import {
   Button,
   HStack,
+  Label,
   Menu,
-  Overlay,
   Picker,
   Spacer,
   Text,
-  Toggle,
 } from "@expo/ui/swift-ui";
 import {
-  background,
+  accessibilityLabel,
+  buttonBorderShape,
   buttonStyle,
-  clipShape,
-  font,
-  foregroundStyle,
+  contentShape,
+  controlSize,
+  disabled,
   frame,
   labelStyle,
-  ModifierConfig,
-  offset,
-  pickerStyle,
+  shapes,
   tag,
+  padding,
   tint,
+  foregroundStyle,
+  accessibilityValue,
 } from "@expo/ui/swift-ui/modifiers";
-import { SFSymbol } from "expo-symbols";
-import React from "react";
-
-export const WatchListHeaderContext = React.createContext<{
-  isLandscape: boolean;
-  windowWidth: number;
-  anyItems: boolean;
-  onClear: () => void;
-  onlyInProgress: boolean;
-  setOnlyInProgress: (value: boolean) => void;
-  sortMode: 1 | -1;
-  setSortMode: (value: 1 | -1) => void;
-} | null>(null);
+import type { WatchListHeaderProps } from "./types";
+import { PlatformColor } from "react-native";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function WatchListHeader({
-  modifiers,
-}: {
-  modifiers?: ModifierConfig[];
-}) {
-  const contextValue = React.useContext(WatchListHeaderContext);
-
-  if (!contextValue) return null;
-
-  const {
-    anyItems,
-    onClear,
-    onlyInProgress,
-    setOnlyInProgress,
-    sortMode,
-    setSortMode,
-  } = contextValue;
+  hasHistory,
+  onClear,
+  onAdd,
+  onExport,
+  exporting,
+  sortMode,
+  setSortMode,
+}: WatchListHeaderProps) {
+  const t = useAppTranslation();
+  const isInline = NativeTabs.BottomAccessory.usePlacement() === "inline";
+  const actionModifiers = [
+    buttonStyle("bordered"),
+    buttonBorderShape("circle"),
+    controlSize(isInline ? "small" : "regular"),
+    labelStyle("iconOnly"),
+    tint("#000000aa"),
+    foregroundStyle("white"),
+  ];
+  const actionLabelModifiers = [
+    frame({ width: 24, height: 24 }),
+    contentShape(shapes.rectangle()),
+  ];
+  const selectedSort = watchListSortOptions.find(
+    (option) => option.value === sortMode,
+  )!;
 
   return (
-    <HStack modifiers={modifiers}>
-      <Spacer />
-      {anyItems && (
-        <Button
-          modifiers={[tint("#ff000044"), buttonStyle("glassProminent")]}
-          systemImage="bin.xmark"
-          label="CLEAR"
-          onPress={onClear}
-        />
-      )}
-      <Overlay alignment="topTrailing">
-        <Menu
-          label={"Settings"}
-          modifiers={[labelStyle("titleAndIcon")]}
-          systemImage={"slider.horizontal.3" satisfies SFSymbol}
-        >
-          <Picker
-            selection={sortMode}
-            onSelectionChange={(e) => setSortMode(e)}
-            modifiers={[pickerStyle("menu")]}
-            label="Sort By"
-          >
-            {[1, -1].map((sort) => (
-              <Text key={`${sort > 0 ? "A-Z" : "Z-A"}`} modifiers={[tag(sort)]}>
-                {sort > 0 ? "A-Z" : "Z-A"}
-              </Text>
-            ))}
-          </Picker>
-          <Toggle
-            isOn={onlyInProgress}
-            onIsOnChange={(e) => setOnlyInProgress(e)}
-            label="Only show in progress"
+    <HStack spacing={isInline ? 4 : 8} modifiers={[padding({ all: 8 })]}>
+      <Menu
+        label={
+          <Label
+            title={t("watch.sortBy")}
+            systemImage="arrow.up.arrow.down"
+            modifiers={actionLabelModifiers}
           />
-        </Menu>
-        <Overlay.Content>
-          {onlyInProgress && (
-            <Text
-              modifiers={[
-                font({ size: 11, weight: "bold" }),
-                foregroundStyle("#FFFFFF"),
-                frame({ width: 18, height: 18 }),
-                background("#00aaff"),
-                clipShape("circle"),
-                offset({ x: 8, y: -8 }),
-              ]}
-            >
-              1
+        }
+        modifiers={[
+          ...actionModifiers,
+          accessibilityLabel(t("watch.sortBy")),
+          accessibilityValue(t(selectedSort.labelKey)),
+        ]}
+      >
+        <Picker
+          label={t("watch.sortBy")}
+          selection={sortMode}
+          onSelectionChange={setSortMode}
+          modifiers={[
+            tint(PlatformColor("label")),
+            foregroundStyle(PlatformColor("label")),
+          ]}
+        >
+          {watchListSortOptions.map((option) => (
+            <Text key={option.value} modifiers={[tag(option.value)]}>
+              {t(option.labelKey)}
             </Text>
-          )}
-        </Overlay.Content>
-      </Overlay>
+          ))}
+        </Picker>
+      </Menu>
+      <Spacer />
+      <Button onPress={onAdd} modifiers={actionModifiers}>
+        <Label
+          title={t("watch.addManually")}
+          systemImage="plus"
+          modifiers={actionLabelModifiers}
+        />
+      </Button>
+      <Menu
+        label={
+          <Label
+            title={t("watch.options")}
+            systemImage="ellipsis"
+            modifiers={actionLabelModifiers}
+          />
+        }
+        modifiers={actionModifiers}
+      >
+        <Button
+          label={exporting ? t("backup.exporting") : t("backup.exportList")}
+          systemImage="square.and.arrow.up"
+          modifiers={[
+            disabled(exporting),
+            tint(PlatformColor("label")),
+            foregroundStyle(PlatformColor("label")),
+          ]}
+          onPress={onExport}
+        />
+        {hasHistory && (
+          <Button
+            label={t("watch.clearTitle")}
+            systemImage="trash"
+            role="destructive"
+            modifiers={[
+              tint(PlatformColor("systemRed")),
+              foregroundStyle(PlatformColor("systemRed")),
+            ]}
+            onPress={onClear}
+          />
+        )}
+      </Menu>
     </HStack>
   );
 }

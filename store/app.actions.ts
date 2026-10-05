@@ -1,4 +1,4 @@
-import { AnimePayload } from "@/model";
+import { AnimePayload, Provider } from "@/model";
 import { createAction } from "@/utils/create-action.util";
 
 export const animeUpdated = createAction(
@@ -7,6 +7,13 @@ export const animeUpdated = createAction(
     payload: { defaultUrl, payload },
   }),
 );
+export const animeCoverUpdated = createAction(
+  "@app/anime-cover-update",
+  (animeTitle: string, coverUrl: string) => ({
+    payload: { animeTitle, coverUrl },
+  }),
+);
+
 export const removeAnime = createAction(
   "@app/remove-anime",
   (payload: string) => ({ payload }),
@@ -17,5 +24,17 @@ export const toggleAnimeFinished = createAction(
 );
 export const upsertAnime = createAction(
   "@app/upsert-anime",
-  (animeName: string, episode: number) => ({ payload: { animeName, episode } }),
+  (animeName: string, episode: number, total?: number | null) => ({
+    payload: { animeName, episode, ...(total !== undefined ? { total } : {}) },
+  }),
+);
+
+export const upsertProvider = createAction(
+  "@app/add-provider",
+  (provider: Provider) => ({ payload: provider }),
+);
+
+export const removeProvider = createAction(
+  "@app/remove-provider",
+  (providerId: number) => ({ payload: providerId }),
 );

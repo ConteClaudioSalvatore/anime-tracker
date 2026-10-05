@@ -10,3 +10,4 @@ export * from "./on-anime-remove.util";
 export * from "./on-clear-history.util";
 export * from "./on.util";
 export * from "./storage.util";
+export * from "./event-emitter.util";

@@ -1,0 +1,278 @@
+import { coverImageUrl } from "../utils/cover-image";
+import type { Provider } from "./provider.model";
+
+export type SelectorField =
+  | "seriesNameSelector"
+  | "episodeNumberSelector"
+  | "totalEpisodesSelector"
+  | "coverImageSelector";
+export const runtimeDiagnosticCodes = [
+  "unreadable-selection",
+  "choose-title",
+  "choose-cover",
+  "choose-total",
+  "choose-episodes",
+  "page-timeout",
+] as const;
+export type RuntimeDiagnosticCode = (typeof runtimeDiagnosticCodes)[number];
+export type FieldPreview = {
+  selector: string;
+  count: number;
+  texts: string[];
+  values: (number | null)[];
+  coverUrl?: string;
+  valid: boolean;
+  error?: string;
+  errorCode?: RuntimeDiagnosticCode;
+};
+export type ExtractionPreview = {
+  title: string;
+  episode: number;
+  /** Zero represents an unknown announced total in setup previews. */
+  episodeCount: number;
+  listedEpisodes?: number;
+  coverUrl?: string;
+  valid: boolean;
+  errors: string[];
+  errorCodes?: RuntimeDiagnosticCode[];
+};
+export type PlayerSample = {
+  locator: NonNullable<Provider["player"]>;
+  time: number;
+  duration: number;
+  progress: boolean;
+  resume: boolean;
+  playing: boolean;
+  seekable?: boolean;
+};
+export type RuntimeMessage = {
+  channel: "provider-runtime";
+  sessionId: string;
+  documentId: string;
+  url: string;
+} & (
+  | { type: "ready"; navigationRevision?: number }
+  | { type: "anime-cover"; payload: { animeTitle: string; coverUrl: string } }
+  | {
+      type: "selection";
+      requestId: string;
+      field: SelectorField;
+      preview: FieldPreview;
+    }
+  | { type: "extraction"; requestId: string; preview: ExtractionPreview }
+  | {
+      type: "players";
+      players: PlayerSample[];
+      inaccessibleFrames: number;
+      frameTrackingAvailable?: boolean;
+    }
+  | {
+      type: "anime-found";
+      payload: {
+        animeTitle: string;
+        coverUrl?: string;
+        episode: number;
+        episodeCount?: number;
+        progress?: number;
+        total?: number;
+        providerId: number;
+        url: string;
+        lastPlayedAt?: number;
+      };
+    }
+);
+
+export function parseRuntimeMessage(
+  raw: string,
+  sessionId: string,
+): RuntimeMessage | null {
+  try {
+    const value = JSON.parse(raw);
+    if (
+      !value ||
+      value.channel !== "provider-runtime" ||
+      value.sessionId !== sessionId ||
+      typeof value.documentId !== "string" ||
+      typeof value.url !== "string"
+    )
+      return null;
+    if (
+      ![
+        "ready",
+        "selection",
+        "extraction",
+        "players",
+        "anime-found",
+        "anime-cover",
+      ].includes(value.type)
+    )
+      return null;
+    if (
+      value.type === "ready" &&
+      value.navigationRevision !== undefined &&
+      (!Number.isSafeInteger(value.navigationRevision) ||
+        value.navigationRevision < 0)
+    )
+      return null;
+    const strings = (items: unknown) =>
+      Array.isArray(items) && items.every((item) => typeof item === "string");
+    const diagnostic = (code: unknown) =>
+      runtimeDiagnosticCodes.some((known) => known === code);
+    if (
+      value.type === "selection" &&
+      value.preview?.errorCode !== undefined &&
+      (!diagnostic(value.preview.errorCode) ||
+        typeof value.preview.error !== "string")
+    )
+      return null;
+    if (
+      value.type === "extraction" &&
+      value.preview?.errorCodes !== undefined &&
+      (!Array.isArray(value.preview.errorCodes) ||
+        !value.preview.errorCodes.every(diagnostic) ||
+        value.preview.errorCodes.length !== value.preview.errors?.length)
+    )
+      return null;
+    if (
+      value.type === "selection" &&
+      (!value.preview ||
+        typeof value.requestId !== "string" ||
+        ![
+          "seriesNameSelector",
+          "episodeNumberSelector",
+          "totalEpisodesSelector",
+          "coverImageSelector",
+        ].includes(value.field) ||
+        typeof value.preview.selector !== "string" ||
+        !Array.isArray(value.preview.texts) ||
+        !Array.isArray(value.preview.values) ||
+        typeof value.preview.valid !== "boolean")
+    )
+      return null;
+    if (
+      value.type === "extraction" &&
+      (!value.preview ||
+        typeof value.requestId !== "string" ||
+        typeof value.preview.valid !== "boolean" ||
+        !Array.isArray(value.preview.errors))
+    )
+      return null;
+    if (
+      value.type === "players" &&
+      value.frameTrackingAvailable !== undefined &&
+      typeof value.frameTrackingAvailable !== "boolean"
+    )
+      return null;
+    if (
+      value.type === "players" &&
+      (!Array.isArray(value.players) ||
+        value.players.some(
+          (item: PlayerSample) =>
+            !item?.locator ||
+            typeof item.locator.selector !== "string" ||
+            !Array.isArray(item.locator.framePath) ||
+            typeof item.progress !== "boolean" ||
+            typeof item.resume !== "boolean" ||
+            typeof item.playing !== "boolean" ||
+            (item.seekable !== undefined &&
+              typeof item.seekable !== "boolean") ||
+            !Number.isFinite(item.time) ||
+            !Number.isFinite(item.duration),
+        ))
+    )
+      return null;
+    if (
+      value.type === "anime-found" &&
+      (!value.payload ||
+        typeof value.payload.animeTitle !== "string" ||
+        !value.payload.animeTitle.trim() ||
+        !Number.isFinite(value.payload.episode) ||
+        value.payload.episode <= 0)
+    )
+      return null;
+    if (
+      value.type === "anime-found" &&
+      value.payload.lastPlayedAt !== undefined &&
+      (!Number.isFinite(value.payload.lastPlayedAt) ||
+        value.payload.lastPlayedAt <= 0)
+    )
+      return null;
+    if (
+      value.type === "selection" &&
+      (!strings(value.preview.texts) ||
+        !Number.isInteger(value.preview.count) ||
+        value.preview.count < 0 ||
+        value.preview.values.some(
+          (item: unknown) =>
+            item !== null &&
+            (typeof item !== "number" || !Number.isFinite(item)),
+        ))
+    )
+      return null;
+    if (
+      value.type === "extraction" &&
+      (!strings(value.preview.errors) ||
+        typeof value.preview.title !== "string" ||
+        !Number.isFinite(value.preview.episodeCount) ||
+        !Number.isFinite(value.preview.episode))
+    )
+      return null;
+    if (
+      value.type === "extraction" &&
+      value.preview.listedEpisodes !== undefined &&
+      (!Number.isInteger(value.preview.listedEpisodes) ||
+        value.preview.listedEpisodes < 0)
+    )
+      return null;
+    if (
+      value.type === "players" &&
+      value.players.some(
+        (item: PlayerSample) => !strings(item.locator.framePath),
+      )
+    )
+      return null;
+    if (
+      value.type === "anime-cover" &&
+      (!value.payload ||
+        typeof value.payload.animeTitle !== "string" ||
+        !value.payload.animeTitle.trim() ||
+        !coverImageUrl(value.payload.coverUrl))
+    )
+      return null;
+    const cover = ["anime-found", "anime-cover"].includes(value.type)
+      ? value.payload.coverUrl
+      : value.preview?.coverUrl;
+    if (cover !== undefined && !coverImageUrl(cover)) return null;
+    return value as RuntimeMessage;
+  } catch {
+    return null;
+  }
+}
+
+export function runtimeCommand(command: Record<string, unknown>): string {
+  return `window.ProviderRuntime?.command(${JSON.stringify(command)}); true;`;
+}
+
+/** Retired document messages must never validate a new selection or page test. */
+export class RuntimeSession {
+  documentId: string | null = null;
+  private expectedUrl: string | null = null;
+  private retired = new Set<string>();
+  begin(url: string) {
+    if (this.documentId) this.retired.add(this.documentId);
+    this.documentId = null;
+    this.expectedUrl = url;
+  }
+  redirected(url: string) {
+    this.expectedUrl = url;
+  }
+  accept(message: RuntimeMessage): boolean {
+    if (message.type === "ready") {
+      if (this.retired.has(message.documentId)) return false;
+      if (this.expectedUrl && message.url !== this.expectedUrl) return false;
+      this.documentId = message.documentId;
+      return true;
+    }
+    return message.documentId === this.documentId;
+  }
+}

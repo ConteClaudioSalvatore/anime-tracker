@@ -1,22 +1,21 @@
+import { translate as t } from "@/utils/i18n";
 import { Alert } from "react-native";
-import { Storage } from "./storage.util";
+import { AppStore } from "./app-store.util";
 
 export function onClearHistory(callback: () => void) {
-  Alert.alert(
-    "Clear watch history",
-    "Are you sure you want to clear your entire watch history?",
-    [
-      {
-        text: "Cancel",
-        style: "cancel",
+  Alert.alert(t("watch.clearTitle"), t("watch.clearConfirm"), [
+    {
+      text: t("common.cancel"),
+      style: "cancel",
+    },
+    {
+      text: t("common.yes"),
+      style: "destructive",
+      onPress: async () => {
+        await AppStore.Update((state) => ({ ...state, anime: {} })).then(
+          callback,
+        );
       },
-      {
-        text: "Yes",
-        style: "destructive",
-        onPress: () => {
-          Storage.removeItem("state").then(callback);
-        },
-      },
-    ],
-  );
+    },
+  ]);
 }

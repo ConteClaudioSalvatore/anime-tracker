@@ -1,122 +1,118 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { Button, Column, Icon, Row, Spacer, Text } from "@expo/ui";
 import {
-  BottomSheet,
-  Button,
-  Column,
-  Icon,
-  Picker,
-  Row,
-  Spacer,
-  Switch,
-  Text,
-} from "@expo/ui";
-import {
-  Button as AndroidButton,
-  Badge,
-  BadgedBox,
+  Icon as ComposeIcon,
+  IconButton,
+  SegmentedButton,
+  SingleChoiceSegmentedButtonRow,
 } from "@expo/ui/jetpack-compose";
-
-import React from "react";
+import { fillMaxWidth, size, weight } from "@expo/ui/jetpack-compose/modifiers";
 import { Platform } from "react-native";
+import ActionMenu from "./action-menu";
+import SortPicker from "./sort-picker";
+import type { WatchListHeaderProps } from "./types";
 
-export const WatchListHeaderContext = React.createContext<{
-  isLandscape: boolean;
-  windowWidth: number;
-  anyItems: boolean;
-  onClear: () => void;
-  onlyInProgress: boolean;
-  setOnlyInProgress: (value: boolean) => void;
-  sortMode: 1 | -1;
-  setSortMode: (value: 1 | -1) => void;
-  setMenuOpen?: (value: boolean) => void;
-} | null>(null);
-
-export default function WatchListHeader() {
-  const contextValue = React.useContext(WatchListHeaderContext);
-  const [menuOpen, setMenuOpen] = React.useState(false);
-
-  if (!contextValue) return null;
-
-  const {
-    anyItems,
-    onClear,
-    onlyInProgress,
-    setOnlyInProgress,
-    sortMode,
-    setSortMode,
-  } = contextValue;
+export default function WatchListHeader({
+  hasHistory,
+  onClear,
+  onAdd,
+  onExport,
+  exporting,
+  onlyInProgress,
+  setOnlyInProgress,
+  sortMode,
+  setSortMode,
+}: WatchListHeaderProps) {
+  const t = useAppTranslation();
+  const textColor = useThemeColor({}, "text");
+  const filters = [
+    { watching: true, label: t("watch.watching") },
+    { watching: false, label: t("watch.all") },
+  ];
 
   return (
-    <Row>
-      <Spacer flexible />
-      {anyItems && (
-        <AndroidButton
-          colors={{
-            containerColor: "#dd3333",
-            contentColor: "#ffffff",
-          }}
-          onClick={onClear}
-        >
-          <Icon
-            name={Icon.select({
-              ios: "bin.xmark",
-              android: import("@expo/material-symbols/delete.xml"),
-            })}
-          ></Icon>
-          <Text>CLEAR</Text>
-        </AndroidButton>
-      )}
+    <Column
+      spacing={12}
+      style={{ width: Platform.OS === "android" ? undefined : "100%" }}
+      modifiers={[fillMaxWidth()]}
+    >
       {Platform.OS === "android" ? (
-        <BadgedBox>
-          <BadgedBox.Badge>
-            {onlyInProgress && (
-              <Badge containerColor="#00aaff" contentColor="#ffffff">
-                <Text>1</Text>
-              </Badge>
-            )}
-          </BadgedBox.Badge>
-
-          <Button variant="text" onPress={() => setMenuOpen(true)}>
-            <Text>Settings</Text>
+        <SingleChoiceSegmentedButtonRow modifiers={[fillMaxWidth()]}>
+          {filters.map((filter) => (
+            <SegmentedButton
+              key={filter.label}
+              selected={onlyInProgress === filter.watching}
+              onClick={() => setOnlyInProgress(filter.watching)}
+              modifiers={[weight(1)]}
+            >
+              <SegmentedButton.Label>
+                <Text>{filter.label}</Text>
+              </SegmentedButton.Label>
+            </SegmentedButton>
+          ))}
+        </SingleChoiceSegmentedButtonRow>
+      ) : (
+        <Row spacing={8}>
+          {filters.map((filter) => (
+            <Button
+              key={filter.label}
+              variant={
+                onlyInProgress === filter.watching ? "filled" : "outlined"
+              }
+              label={filter.label}
+              onPress={() => setOnlyInProgress(filter.watching)}
+            />
+          ))}
+        </Row>
+      )}
+      <Row alignment="center" spacing={8} modifiers={[fillMaxWidth()]}>
+        <SortPicker value={sortMode} onChange={setSortMode} />
+        {Platform.OS !== "android" && <Spacer flexible />}
+        {Platform.OS === "android" ? (
+          <IconButton
+            onClick={onAdd}
+            colors={{ contentColor: textColor }}
+            modifiers={[size(48, 48)]}
+          >
+            <ComposeIcon
+              source={require("@expo/material-symbols/add.xml")}
+              size={24}
+              tint={textColor}
+              contentDescription={t("watch.addManually")}
+            />
+          </IconButton>
+        ) : (
+          <Button variant="text" onPress={onAdd}>
             <Icon
               name={Icon.select({
-                ios: "slider.horizontal.3",
-                android: import("@expo/material-symbols/filter_list.xml"),
+                ios: "plus",
+                android: import("@expo/material-symbols/add.xml"),
               })}
+              accessibilityLabel={t("watch.addManually")}
             />
           </Button>
-        </BadgedBox>
-      ) : (
-        <Button variant="text" onPress={() => setMenuOpen(true)}>
-          <Text>Settings</Text>
-          <Icon
-            name={Icon.select({
-              ios: "slider.horizontal.3",
-              android: import("@expo/material-symbols/filter_list.xml"),
-            })}
-          />
-        </Button>
-      )}
-      <BottomSheet isPresented={menuOpen} onDismiss={() => setMenuOpen(false)}>
-        <Column spacing={8}>
-          <Row alignment="center">
-            <Text>Sort By</Text>
-            <Spacer flexible />
-            <Picker
-              appearance="menu"
-              selectedValue={sortMode}
-              onValueChange={(e) => setSortMode(e)}
-            >
-              <Picker.Item value={1} label="A-Z" />
-              <Picker.Item value={-1} label="Z-A" />
-            </Picker>
-          </Row>
-          <Switch
-            label="Only show in progress"
-            value={onlyInProgress}
-            onValueChange={(e) => setOnlyInProgress(e)}
-          />
-        </Column>
-      </BottomSheet>
-    </Row>
+        )}
+        <ActionMenu
+          label={t("watch.options")}
+          actions={[
+            {
+              label: exporting ? t("backup.exporting") : t("backup.exportList"),
+              onPress: onExport,
+              disabled: exporting,
+            },
+            ...(hasHistory
+              ? [
+                  {
+                    label: t("watch.clearTitle"),
+                    onPress: onClear,
+                    destructive: true,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </Row>
+    </Column>
   );
 }

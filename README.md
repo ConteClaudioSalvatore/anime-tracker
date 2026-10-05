@@ -1,43 +1,59 @@
-# Anime Tracker (Unofficial AnimeWorld client) 💫
+# Anime Tracker
 
-> Lightweight, privacy-minded mobile app that embeds AnimeWorld and keeps a local watch history.
+Bring your own anime website. Keep your watch history and playback progress in one place.
 
----
+Anime Tracker is an Expo / React Native app for iOS and Android. You configure the websites you use, browse them inside the app, and track episodes as you watch. Your website configurations and watch history are stored locally on your device, with no Anime Tracker account or backend required.
 
-## 📌 TL;DR
+The app starts with **no built-in websites or providers**. A provider is a configuration you create that tells the app where to find series information and which video player to track. Compatibility depends on the website and its player.
 
-- Wraps https://www.animeworld.ac inside a WebView and automatically detects when you open an anime episode.
-- Stores watch progress locally (AsyncStorage) and exposes a simple **Watch List** UI to view / edit items.
-- Export and import your data as a JSON backup from the **Settings** screen.
-- Built with Expo — runs on iOS add Android (behavior may vary by platform, web is not supported by the webview library).
+## What you can do
 
----
+- **Configure your own websites.** A guided creator lets you select series titles, episode numbers, and announced totals directly on a website, then checks the configuration against two example series pages.
+- **Track playback and resume episodes.** Supported players save per-episode progress and can resume from the saved position. Embedded and cross-origin players are supported where the device and player expose the required video controls.
+- **See progress on the website.** Episode links show a green fill for their saved playback percentage, including across paginated episode lists.
+- **Keep one watch list across websites.** Matching series titles share episode progress. Recently played is the default order, with search, filters, alphabetical sorting, and manual add/edit controls available.
+- **Reopen the right episode.** History remembers the website and main episode URL used for playback. Deleting a website preserves your watch history.
+- **Manage your data.** Share a lightweight watch-list export or use full Backup / Restore to transfer website configurations and detailed history.
 
-## ✨ Features
+Ongoing series, partially released seasons, paginated episode lists, and unknown announced totals are supported. The announced total is independent of the number of episodes currently listed; an unknown total does not automatically mark a series finished.
 
-- Embedded WebView with injected JavaScript that detects anime title and episode and posts messages to the app ✅
-- Auto-tracking of the last watched episode per anime (updates only when a higher episode number is detected) ✅
-- Manual add/edit via the **Add/Edit Anime** modal ✅
-- Watch List with filtering (in-progress / watched), remove items, and clear watched ✅
-- Backup (export) and Restore (import) via device sharing / document picker (exports `anime-tracker/backup.json`) ✅
-- All data stored locally — no servers, no accounts 🔒
+## Set up a website
 
----
+1. Choose **Add provider** from the website chooser or Settings. Enter a name and homepage address.
+2. Open two different series pages and choose **Use this page** for each.
+3. Select the series title, an episode number, and the announced total on the website. Unknown-total markers such as `??`, `TBA`, `N/A`, and `Unknown` are accepted; actual episode numbers must be numeric.
+4. Open an episode, activate its player if needed, and press Play. If several players appear, choose the primary player. Advancing playback verifies progress tracking and enables Continue.
+5. Optionally check automatic resume under **Video options**. This briefly seeks one second and restores the position; it is not required to continue when progress tracking is verified.
+6. Review the automatic checks for both example pages, fix or retest any failed selections, then save the provider.
 
-## How it works (quick)
+The creator keeps the website visible above a compact panel. Expand Selection tools for a manual CSS selector, surrounding-element selection, or Undo. Existing providers can be edited from Settings.
 
-1. The main WebView (see `app/(tabs)/index.tsx`) injects JS into AnimeWorld pages and posts messages to React Native when it detects an anime/episode.
-2. Messages are parsed and persisted in the AppStore (`utils/app-store.util.ts`) which uses `AsyncStorage` under the hood (`utils/storage.util.ts`).
-3. The Watch List screen (`app/(tabs)/watch-list.tsx`) reads the stored state and shows the current progress for each anime.
-4. Backup and restore flows are implemented via `expo-file-system`, `expo-sharing` and `expo-document-picker`.
+## Playback and browsing behavior
 
----
+A detected video alone does not prove that tracking works. Some players appear only after you activate a placeholder or press Play. If progress cannot be verified, the creator offers help and requires explicit acknowledgment of the limitations before continuing without verified tracking. Automatic resume is optional and may remain unavailable even when progress tracking works.
 
-## 📱 Screenshots
+Recently played dates update only when playback advances. Paused visits, episode selection, seeking, and manual edits do not move a series to the top of the list.
 
-### IOS 🍎
+Navigating the main page to an unapproved website asks before adding its exact origin to the current provider's approved addresses. Approval must succeed before the original destination opens. Pop-ups stay blocked; embedded players do not need a website alias solely because they use another origin.
 
-<div style="display: flex;">  
+Website configurations and history are local to the app. Browsing still connects to the websites and player services you choose. Anime Tracker is not affiliated with those websites and does not host their videos.
+
+## Export and backup
+
+Settings provides two separate exports:
+
+| Action                | Contents                                                                                            | Purpose                                                                  |
+| --------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Export watch list** | `watch-list.json`, containing only `name`, `highestWatchedEpisode`, `totalEpisodes`, and `finished` | Share a portable summary of every series, regardless of current filters. |
+| **Backup / Restore**  | Full app data, including providers, playback dates, and per-episode progress                        | Transfer or restore the app's configuration and history.                 |
+
+In the lightweight export, unknown totals are `null`. `highestWatchedEpisode` is the highest episode reached, not a count of distinct episodes watched. This export omits website URLs and detailed playback data; use a full backup to restore the app.
+
+## Screenshots
+
+### iOS
+
+<div style="display: flex;">
   <img alt="home" src="assets/images/screenshots/ios/home.png" height="400" />
   <img alt="anime-progress" src="assets/images/screenshots/ios/anime-progress.png" height="400" />
   <img alt="history" src="assets/images/screenshots/ios/history.png" height="400" />
@@ -45,9 +61,9 @@
   <img alt="backup" src="assets/images/screenshots/ios/backup.png" height="400" />
 </div>
 
-### Android 🤖
+### Android
 
-<div style="display: flex;">  
+<div style="display: flex;">
   <img alt="home" src="assets/images/screenshots/android/home.png" height="400" />
   <img alt="anime-progress" src="assets/images/screenshots/android/anime-progress.png" height="400" />
   <img alt="history" src="assets/images/screenshots/android/history.png" height="400" />
@@ -55,52 +71,48 @@
   <img alt="backup" src="assets/images/screenshots/android/backup.png" height="400" />
 </div>
 
-
 ---
 
-## Getting started (development) 🔧
+## Development
 
-Requirements: Node.js and npm, plus Xcode/Android Studio if using simulators/emulators.
-
-1. Install
+Requirements: Node.js and npm, plus Xcode for iOS or Android Studio and the Android SDK for Android.
 
 ```bash
-npm install
+npm ci
+npm run ios      # Build and launch the iOS development app
+npm run android  # Build and launch the Android development app
+npm start        # Start Metro for an installed development app
 ```
 
-2. Start
+Use native development builds to test website browsing and playback. The WebView-based browser is not supported on web; `npm run web` is not a playback validation target.
+
+Dependency installation runs [scripts/patch-webview.cjs](scripts/patch-webview.cjs), which patches Android all-frame injection for `react-native-webview@13.16.1`. Rebuild the Android development app after installing the patch; Expo Go or a JavaScript reload cannot apply it. Cross-origin frame tracking requires Android System WebView support for `DOCUMENT_START_SCRIPT`. Devices without that feature retain accessible-player tracking and report the limitation for inaccessible players. Review the patch before upgrading WebView.
+
+### Code map
+
+| Area                                              | Files                                                                                                                                                                                                                                                            |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Main website browser                              | [app/(tabs)/index.tsx](<app/(tabs)/index.tsx>)                                                                                                                                                                                                                   |
+| Provider creator route and step UI                | [app/provider-creator.tsx](app/provider-creator.tsx), [components/provider-creator/](components/provider-creator/)                                                                                                                                               |
+| Wizard, browser messages, Review, and persistence | [hooks/provider-creator/](hooks/provider-creator/)                                                                                                                                                                                                               |
+| Grouped creator state and transitions             | [utils/provider-creator-state.ts](utils/provider-creator-state.ts)                                                                                                                                                                                               |
+| Website extraction and playback runtime           | [assets/js/provider-runtime_t.cjs](assets/js/provider-runtime_t.cjs), [model/provider-runtime.model.ts](model/provider-runtime.model.ts), [utils/provider-runtime.ts](utils/provider-runtime.ts), [utils/provider-page-checks.ts](utils/provider-page-checks.ts) |
+| Watch List                                        | [app/(tabs)/watch-list/](<app/(tabs)/watch-list/>), [components/watch-list/](components/watch-list/)                                                                                                                                                             |
+| Manual series editing                             | [app/anime-modal.tsx](app/anime-modal.tsx)                                                                                                                                                                                                                       |
+| Local storage, export, and backup                 | [utils/app-store.util.ts](utils/app-store.util.ts), [utils/backup.util.ts](utils/backup.util.ts), [utils/watch-list.ts](utils/watch-list.ts)                                                                                                                     |
+
+Injected scripts retain the `_t.cjs` suffix because the custom Metro transformer imports them as source strings. After changing runtime logic, reload the website: reinjection updates configuration without replacing the installed script logic.
+
+### Validation
 
 ```bash
-npm start
-# or use platform scripts
-npm run ios
-npm run android
-npm run web
+npm test
+npm run typecheck
+npm run lint
 ```
 
-Notes:
-
-- Expo powers this project — see `package.json` for scripts.
-- The app uses file-based routing (see the `app` folder) via `expo-router`.
-
----
-
-## Developer notes
-
-- Main WebView code and injected JS: `app/(tabs)/index.tsx` 🔍
-- Watch list UI & actions: `app/(tabs)/watch-list.tsx` ✅
-- Add/Edit modal: `app/anime-modal.tsx`
-- Backup / Restore: `utils/app-store.util.ts` (creates `anime-tracker/backup.json` and uses system sharing/document picker)
-- Type definitions: `model/*.ts`
-
----
-
-## Legal / Disclaimer ⚠️
-
-This is an **unofficial** client and is not affiliated with AnimeWorld. It only embeds the AnimeWorld site and stores local navigation history. Please respect the website's terms of use and copyright.
-
----
+Tests run production modules and the injected runtime with Node's test runner and JSDOM. Follow the [device acceptance checklist](docs/provider-testing.md) for real playback, embedded players, resume, navigation approvals, backups, and native UI behavior. Simulated media cannot verify native playback, keyboard handling, scrolling, or iOS Liquid Glass appearance.
 
 ## License
 
-See `LICENSE` in this repository.
+See [LICENSE](LICENSE).

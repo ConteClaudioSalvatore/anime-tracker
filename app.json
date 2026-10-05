@@ -2,10 +2,10 @@
   "expo": {
     "name": "Anime Tracker",
     "slug": "anime-tracker",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "animeworld",
+    "scheme": "animetracker",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -32,6 +32,14 @@
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/icon.png",
@@ -53,7 +61,16 @@
       "expo-image",
       "expo-sharing",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": ["en", "it"],
+            "android": ["en", "it"]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

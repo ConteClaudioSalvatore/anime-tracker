@@ -4,6 +4,13 @@ export type Anime = {
   name: string;
   latestWatchedEpisode: number;
   latestVisitedUrl: string;
+  providerId?: number;
+  /** Remote cover reference; image bytes are never persisted. */
+  coverUrl?: string;
+  /** Last observed playback time, in Unix milliseconds. Absent in older history. */
+  lastPlayedAt?: number;
+  /** Automatic completion from advancing playback. Absent in legacy history. */
+  playbackFinished?: boolean;
   /**
    * The number of the highest episode watched of a series
    */

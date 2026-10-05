@@ -1,3 +1,4 @@
+import { translate as t } from "./i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
@@ -7,9 +8,7 @@ export class Storage {
       await AsyncStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
       console.error("Error setting item:", e);
-      Alert.alert(
-        `Error settings item {key: ${key}, value: ${JSON.stringify(value)}}`,
-      );
+      Alert.alert(t("storage.writeFailed"));
     }
   }
 
@@ -19,7 +18,7 @@ export class Storage {
       return value ? JSON.parse(value) : null;
     } catch (e) {
       console.error("Error getting item:", e);
-      Alert.alert(`Error settings item key: ${key}`);
+      Alert.alert(t("storage.readFailed"));
     }
     return null;
   }
@@ -29,7 +28,7 @@ export class Storage {
       await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error("Error removing item:", error);
-      Alert.alert(`Error removing item key: ${key}`);
+      Alert.alert(t("storage.removeFailed"));
     }
   }
 }

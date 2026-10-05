@@ -1,8 +1,9 @@
+import { useAppLocalization } from "@/hooks/use-app-localization";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { WEBSITE_URI } from "@/constants/website";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { AppState, AppStoreState } from "@/model";
 import { AccessoryContext, AppStore, StoreContext } from "@/utils";
@@ -15,16 +16,19 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  useAppLocalization();
+  const t = useAppTranslation();
   const colorScheme = useColorScheme();
 
-  const [storeState, setStoreState] = React.useState<AppStoreState>({});
-  const [appState, setAppState] = React.useState<AppState>({
-    url: WEBSITE_URI,
+  const [storeState, setStoreState] = React.useState<AppStoreState>({
+    anime: {},
+    providers: [],
   });
+  const [appState, setAppState] = React.useState<AppState>({});
   const webViewRef = React.useRef<WebView>(null);
 
-  const stateChanged = () => {
-    AppStore.Get().then(setStoreState);
+  const stateChanged = async () => {
+    setStoreState(await AppStore.Get());
   };
 
   const contextData = React.useMemo<
@@ -38,7 +42,16 @@ export default function RootLayout() {
   );
 
   React.useEffect(() => {
-    stateChanged();
+    AppStore.Get().then((state) => {
+      setStoreState(state);
+      const provider = state.providers.find((item) => item.isDefault);
+      if (provider)
+        setAppState((previous) =>
+          previous.url
+            ? previous
+            : { url: provider.origin, providerId: provider.id },
+        );
+    });
   }, []);
 
   const appStateContextValue = React.useMemo(
@@ -61,8 +74,12 @@ export default function RootLayout() {
                 name="anime-modal"
                 options={{
                   presentation: "modal",
-                  title: "Add/Edit Anime",
+                  title: t("navigation.animeModal"),
                 }}
+              />
+              <Stack.Screen
+                name="provider-creator"
+                options={{ presentation: "modal", title: t("provider.add") }}
               />
             </Stack>
             <StatusBar style="auto" />

@@ -1,235 +1,169 @@
-import { Platform, StatusBar, StyleSheet, View } from "react-native";
-
-import { WEBSITE_URI } from "@/constants/website";
-import {
-  AccessoryContext,
-  AppStateContext,
-  AppStore,
-  StoreContext,
-} from "@/utils";
-import React, { useContext } from "react";
-import { WebView, WebViewMessageEvent } from "react-native-webview";
-import { WebViewNavigationEvent } from "react-native-webview/lib/RNCWebViewNativeComponent";
-
-import debounceFunction from "@/assets/js/debounce-function_t.cjs";
-import loadRoundedTheme from "@/assets/js/load-rounded-theme_t.cjs";
-import notifyAnimeEpisode from "@/assets/js/notify-anime-episode_t.cjs";
-import { AnimePayload, EpisodeProgress } from "@/model";
-import { animeUpdated } from "@/store/app.actions";
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import React from "react";
+import { Platform, StyleSheet, StatusBar, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import WebView from "react-native-webview";
+import ActionButton from "@/components/provider-creator/action-button";
+import ProviderSurface from "@/components/provider-creator/provider-surface";
 import NavigationAccessory from "@/components/navigation-accessory";
-
-const WATCH_MODE_JS = (
-  possibleResume:
-    | ({
-        episode: number;
-      } & Partial<EpisodeProgress>)
-    | null,
-  episodes: ({ episode: number } & EpisodeProgress)[],
-) => `
-// variables are declared without let/const/var to ensure they can be overridden without causing errors
-episodes = ${JSON.stringify(episodes)};
-debouncedNAE = window.debounceFunction(window.notifyAnimeEpisode, 200);
-possibleResume = ${JSON.stringify(possibleResume)};
-player = null;
-retrievePlayer = () => setInterval(() => {
-  if(player) {
-    clearInterval(interval);
-    return;
-  }
-  player = document.querySelector('iframe#player-iframe')?.contentDocument.querySelector('video#video-player');
-  if(!player) return;
-  if(possibleResume?.progress && getCurrentEpisode() === possibleResume.episode) {
-    const playCallback = () => {
-      window.ReactNativeWebView.postMessage(
-        JSON.stringify({ type: 'anime-play', payload: possibleResume })
-      );
-      player.currentTime = possibleResume.progress;
-      player.removeEventListener('play', playCallback);
-    }
-    player.addEventListener('play', playCallback);
-  }
-  player.addEventListener('timeupdate', () => debouncedNAE({ progress: player.currentTime, total: player.duration }, null, location.href));
-}, 500);
-interval = retrievePlayer();
-window.notifyAnimeEpisode(null);
-function clickActionHandler(event) {
-  player = null;
-  window.ReactNativeWebView.postMessage(
-    JSON.stringify({ type: 'anime-reload' })
-  );
-  interval = retrievePlayer();
-}
-document.querySelectorAll('.episodes > .episode > a').forEach((e) => {
-  e.addEventListener('click', (event) => {
-    window.notifyAnimeEpisode(null, event.target.textContent);
-    clickActionHandler(event);
-  });
-  const episodeIndex = episodes.findIndex(x => x.episode === +e.textContent);
-  if(episodeIndex === -1) return;
-  const episode = episodes[episodeIndex];
-  if(episode.progress + episode.total === 0) return;
-  const progress = (episode.progress / episode.total * 100).toFixed();
-  e.style.backgroundImage = \`linear-gradient(to right, #00d30045 \${progress}%, transparent \${progress}%, transparent)\`;
-});
-document.querySelectorAll('#controls > .control.prevnext').forEach(
-  (e) => e.addEventListener('click', (e) => {
-    setTimeout(() => clickActionHandler(e), 0);
-  })
-);
-`;
-
-const JS_TO_INJECT = (
-  watchMode: boolean,
-  possibleResume: Parameters<typeof WATCH_MODE_JS>[0],
-  episodes: Parameters<typeof WATCH_MODE_JS>[1] = [],
-) =>
-  `${debounceFunction};
-  ${notifyAnimeEpisode};
-  ${loadRoundedTheme};
-  ${watchMode ? WATCH_MODE_JS(possibleResume, episodes) : ""}
-  true;`;
-
-/**
- * A regex matching the url only when in play mode
- */
-const WATCH_MODE_MATCHER = new RegExp(
-  "^" + WEBSITE_URI.replace(".ac/", String.raw`.\w+/play`),
-);
+import ProviderChooser from "@/components/home/provider-chooser";
+import BrowserSheet from "@/components/home/browser-sheet";
+import { useHomeBrowser } from "@/hooks/use-home-browser";
+import { useProviderPalette } from "@/hooks/use-provider-palette";
 
 export default function HomeScreen() {
-  const { webViewRef } = React.useContext(AccessoryContext);
-  const { state, updateState } = useContext(AppStateContext);
-  const { url, canGoForward = false, canGoBack = false, ...params } = state;
-  const [currentAnime, setCurrentAnime] = React.useState<{
-    episode: number;
-    animeName: string;
-  } | null>(null);
-  const { state: storeState, stateChanged } = React.useContext(StoreContext);
-  const resume = React.useMemo<
-    Parameters<typeof WATCH_MODE_JS>[0] | null
-  >(() => {
-    if (!currentAnime) return null;
-    return {
-      episode: currentAnime.episode,
-      progress:
-        storeState[currentAnime.animeName]?.episodeProgress?.[
-          currentAnime.episode
-        ]?.progress,
-    };
-  }, [currentAnime, storeState]);
-  const playedEpisodes = React.useMemo<
-    ({ episode: number } & EpisodeProgress)[]
-  >(() => {
-    if (!currentAnime) return [];
-    return Object.entries(
-      storeState[currentAnime.animeName]?.episodeProgress ?? {},
-    ).map(([ep, progressInfo]) => ({
-      episode: +ep,
-      ...progressInfo,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentAnime]);
-  const watchMode = !!WATCH_MODE_MATCHER.exec(url as string);
-
-  const onNavigation = (e: WebViewNavigationEvent) => {
-    if (url === e.url) return;
-    updateState({
-      url: e.url,
-      canGoBack: e.canGoBack,
-      canGoForward: e.canGoForward,
-    });
-  };
-
-  const onMessage = async (e: WebViewMessageEvent) => {
-    if (!e.nativeEvent.data) return;
-    const message = JSON.parse(e.nativeEvent.data);
-    if (message.type === "anime-reload") {
-      webViewRef?.current?.reload();
-    }
-    if (message.type !== "anime-found") return;
-    const payload: AnimePayload = message.payload;
-    setCurrentAnime({
-      animeName: payload.animeTitle,
-      episode: payload.episode,
-    });
-    await AppStore.Dispatch(animeUpdated(url as string, payload)).then(
-      stateChanged,
-    );
-  };
-
-  const onShouldStart = (e: WebViewNavigationEvent) => {
-    return e.url.startsWith(WEBSITE_URI);
-  };
-
+  const t = useAppTranslation();
+  const {
+    provider,
+    providers,
+    url,
+    browserSheet,
+    webViewRef,
+    injection,
+    loading,
+    error,
+    notice,
+    status,
+    open,
+    setSheet,
+    dismissNotice,
+    onLoadStart,
+    onLoadEnd,
+    onError,
+    onHttpError,
+    onNavigationStateChange,
+    onMessage,
+    shouldNavigate,
+  } = useHomeBrowser();
+  const router = useRouter();
+  const colors = useProviderPalette();
+  const bg = colors.bg;
+  const fg = colors.text;
+  const chooser = (
+    <ProviderChooser
+      providers={providers}
+      missingProvider={!!url && !provider}
+      onOpen={open}
+      onAdd={() => {
+        setSheet();
+        router.navigate("/provider-creator");
+      }}
+    />
+  );
+  // Keep the iOS browser wrappers layout-only; styled wrappers break native tab minimization.
   return (
     <View
-      style={StyleSheet.compose(
-        styles.container,
+      style={[
+        styles.screen,
+        !provider && { backgroundColor: bg },
         Platform.OS === "android" && {
-          paddingBlockStart: StatusBar.currentHeight,
+          paddingTop: StatusBar.currentHeight,
+          backgroundColor: provider ? "#000" : bg,
         },
-      )}
+      ]}
     >
-      <WebView
-        ref={webViewRef}
-        style={{ backgroundColor: "transparent" }}
-        source={{ uri: url as string }}
-        onNavigationStateChange={onNavigation}
-        onShouldStartLoadWithRequest={onShouldStart}
-        injectedJavaScript={JS_TO_INJECT(watchMode, resume, playedEpisodes)}
-        onMessage={onMessage}
-        onLoadEnd={() => {
-          if (!params.reload) return;
-          updateState({
-            url,
-            canGoBack,
-            canGoForward,
-          });
-          if (Platform.OS === "ios") {
-            webViewRef?.current?.reload();
-          }
-        }}
-        contentInsetAdjustmentBehavior="always"
-        javaScriptEnabled
-        domStorageEnabled
-        scrollEnabled
-        webviewDebuggingEnabled
-        onOpenWindow={() => false}
-        useWebView2
-        bounces={true}
-        {...(Platform.OS === "android"
-          ? {
-              allowsFullscreenVideo: true,
-              allowsInlineMediaPlayback: true,
-            }
-          : {})}
-      />
-      {Platform.OS !== "ios" && (
-        <SafeAreaView
-          style={{
-            position: "absolute",
-            bottom: 0,
-            insetInline: 0,
-          }}
-          pointerEvents="box-none"
-        >
-          <NavigationAccessory />
-        </SafeAreaView>
+      {!provider ? (
+        <SafeAreaView style={styles.screen}>{chooser}</SafeAreaView>
+      ) : (
+        <>
+          <WebView
+            key={provider.id}
+            ref={webViewRef}
+            source={{ uri: url! }}
+            style={[styles.screen, styles.webView]}
+            containerStyle={Platform.OS === "ios" ? undefined : styles.browser}
+            contentInsetAdjustmentBehavior="always"
+            scrollEnabled
+            bounces
+            injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
+            injectedJavaScriptForMainFrameOnly={false}
+            injectedJavaScriptBeforeContentLoaded={injection}
+            injectedJavaScript={injection}
+            onLoadStart={onLoadStart}
+            onLoadEnd={onLoadEnd}
+            onError={onError}
+            onHttpError={onHttpError}
+            onNavigationStateChange={onNavigationStateChange}
+            onShouldStartLoadWithRequest={shouldNavigate}
+            onMessage={onMessage}
+            javaScriptEnabled
+            domStorageEnabled
+            allowsFullscreenVideo
+            allowsInlineMediaPlayback
+            setSupportMultipleWindows
+            onOpenWindow={() => {
+              /* Keep pop-ups separate from provider navigation. */
+            }}
+          />
+          {Platform.OS !== "ios" && (
+            <SafeAreaView
+              edges={["left", "right"]}
+              pointerEvents="box-none"
+              style={[
+                styles.androidAccessory,
+                { backgroundColor: colors.card },
+              ]}
+            >
+              <NavigationAccessory />
+            </SafeAreaView>
+          )}
+          {!!(error || notice) && (
+            <ProviderSurface
+              style={[
+                styles.notice,
+                { backgroundColor: colors.card },
+                Platform.OS !== "ios" && { bottom: 76 },
+              ]}
+            >
+              <Text
+                accessibilityRole="alert"
+                numberOfLines={3}
+                style={{ color: fg, flex: 1 }}
+              >
+                {error || notice}
+              </Text>
+              <ActionButton
+                label={t("common.dismiss")}
+                onPress={dismissNotice}
+              />
+            </ProviderSurface>
+          )}
+        </>
       )}
+      <BrowserSheet
+        sheet={browserSheet}
+        provider={provider}
+        url={url}
+        loading={loading}
+        status={status}
+        error={error}
+        notice={notice}
+        onClose={() => setSheet()}
+        onChooseWebsite={() => setSheet("providers")}
+      >
+        {chooser}
+      </BrowserSheet>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  buttons: {
-    justifyContent: "space-between",
-    flexDirection: "row",
-    paddingBlock: 8,
-    paddingInline: 12,
+  browser: { backgroundColor: "#000" },
+  webView: { backgroundColor: "transparent" },
+  screen: { flex: 1 },
+  androidAccessory: {
+    height: 64,
+    flexShrink: 0,
   },
-  container: {
-    flex: 1,
-    flexDirection: "column",
+  notice: {
+    position: "absolute",
+    bottom: 8,
+    left: 12,
+    right: 12,
+    padding: 10,
+    borderRadius: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 });
