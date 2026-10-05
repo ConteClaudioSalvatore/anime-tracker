@@ -12,7 +12,7 @@ export function CoverImage({
   size?: { width: number; height: number };
   visible: boolean;
   onLoad: () => void;
-  onError: () => void;
+  onError: (error?: string) => void;
 }) {
   return (
     <View
@@ -21,7 +21,7 @@ export function CoverImage({
       importantForAccessibility="no-hide-descendants"
       style={[
         styles.container,
-        // A SwiftUI background must provide a concrete Yoga size for hosted content.
+        // Native UI backgrounds need a concrete Yoga size for hosted content.
         size && { width: size.width, height: size.height, flex: 0 },
         { opacity: visible ? 1 : 0 },
       ]}
@@ -33,7 +33,7 @@ export function CoverImage({
         contentPosition="center"
         recyclingKey={url}
         onLoad={onLoad}
-        onError={onError}
+        onError={(event) => onError(event.error)}
         style={[
           styles.image,
           size && { width: size.width * 0.58, height: size.height },

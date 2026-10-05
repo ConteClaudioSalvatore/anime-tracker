@@ -3,8 +3,10 @@ import { Action, AppStoreState, Provider } from "@/model";
 import { reducer } from "@/store/app.state";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
+import { StorageAccessFramework } from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import React from "react";
+import { Platform } from "react-native";
 import { Storage } from "./storage.util";
 import { WriteQueue } from "./write-queue";
 import {
@@ -105,6 +107,13 @@ export class AppStore {
 
   public static async Backup(): Promise<void> {
     const res = await this.Get();
+    if (Platform.OS === "android") {
+      await this.SaveAndroidJson(
+        "anime-tracker-backup",
+        JSON.stringify(res, null, 2),
+      );
+      return;
+    }
     this.BACKUP.create({
       overwrite: true,
       intermediates: true,
@@ -122,6 +131,14 @@ export class AppStore {
   }
 
   public static async ExportWatchList(): Promise<void> {
+    if (Platform.OS === "android") {
+      const state = await this.Get();
+      await this.SaveAndroidJson(
+        "watch-list",
+        JSON.stringify(watchListSummary(state.anime), null, 2),
+      );
+      return;
+    }
     if (!(await Sharing.isAvailableAsync())) {
       throw new TranslationError(message("backup.sharingUnavailable"));
     }
@@ -133,6 +150,30 @@ export class AppStore {
       mimeType: "application/json",
       dialogTitle: t("backup.shareList"),
     });
+  }
+
+  private static async SaveAndroidJson(
+    name: string,
+    contents: string,
+  ): Promise<void> {
+    const destination =
+      await StorageAccessFramework.requestDirectoryPermissionsAsync();
+    if (!destination.granted) return;
+    const uri = await StorageAccessFramework.createFileAsync(
+      destination.directoryUri,
+      name,
+      "application/json",
+    );
+    try {
+      await StorageAccessFramework.writeAsStringAsync(uri, contents);
+    } catch (error) {
+      try {
+        await StorageAccessFramework.deleteAsync(uri);
+      } catch {
+        // Preserve the original write failure if cleanup is unavailable.
+      }
+      throw error;
+    }
   }
 
   public static async RestoreBackup(): Promise<void> {

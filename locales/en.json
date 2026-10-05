@@ -116,7 +116,7 @@
   "backup.restoreConfirm": "Are you sure to restore the previous backup? This will override your current data.",
   "backup.proceed": "Proceed",
   "backup.exportFailed": "Could not export watch list",
-  "backup.exportFailedHelp": "Check that storage and system sharing are available, then try again.",
+  "backup.exportFailedHelp": "Check that storage is available and try again.",
   "backup.exporting": "Exporting…",
   "backup.exportList": "Export watch list",
   "backup.exportSection": "Watch list export",
@@ -312,5 +312,7 @@
   "creator.coverFound": "Cover found",
   "creator.coverMissing": "No cover on this page; the plain watchlist background will be used.",
   "runtime.chooseCover": "Choose one cover image with a remote URL.",
-  "home.saveCoverFailed": "Could not save the cover. Reload the website to try again."
+  "home.saveCoverFailed": "Could not save the cover. Reload the website to try again.",
+  "backup.saveFailed": "Could not save backup",
+  "backup.saveFailedHelp": "Check that storage is available and try again."
 }

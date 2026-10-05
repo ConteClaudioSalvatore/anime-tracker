@@ -4,11 +4,20 @@ import { coverImageUrl } from "@/utils/cover-image";
 export function useCoverImage(value: string | undefined) {
   const url = coverImageUrl(value);
   const [loaded, setLoaded] = useState<string>();
-  const [failed, setFailed] = useState<string>();
+  const [failed, setFailed] = useState<{ url?: string; error?: string }>();
+  const status: "missing" | "failed" | "loaded" | "loading" = !url
+    ? "missing"
+    : failed?.url === url
+      ? "failed"
+      : loaded === url
+        ? "loaded"
+        : "loading";
   return {
-    url: url !== failed ? url : undefined,
-    visible: !!url && loaded === url && failed !== url,
+    url: status !== "failed" ? url : undefined,
+    visible: status === "loaded",
+    status,
+    error: status === "failed" ? failed?.error : undefined,
     onLoad: () => setLoaded(url),
-    onError: () => setFailed(url),
+    onError: (error?: string) => setFailed({ url, error }),
   };
 }

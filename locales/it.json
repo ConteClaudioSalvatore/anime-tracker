@@ -116,7 +116,7 @@
   "backup.restoreConfirm": "Vuoi ripristinare il backup precedente? I dati attuali verranno sovrascritti.",
   "backup.proceed": "Procedi",
   "backup.exportFailed": "Impossibile esportare la lista anime",
-  "backup.exportFailedHelp": "Verifica che l’archiviazione e la condivisione di sistema siano disponibili, poi riprova.",
+  "backup.exportFailedHelp": "Verifica che lo spazio di archiviazione sia disponibile e riprova.",
   "backup.exporting": "Esportazione…",
   "backup.exportList": "Esporta lista anime",
   "backup.exportSection": "Esportazione lista anime",
@@ -312,5 +312,7 @@
   "creator.coverFound": "Copertina trovata",
   "creator.coverMissing": "Nessuna copertina in questa pagina; verrà usato lo sfondo semplice.",
   "runtime.chooseCover": "Scegli una sola copertina con un URL remoto.",
-  "home.saveCoverFailed": "Impossibile salvare la copertina. Ricarica il sito per riprovare."
+  "home.saveCoverFailed": "Impossibile salvare la copertina. Ricarica il sito per riprovare.",
+  "backup.saveFailed": "Impossibile salvare il backup",
+  "backup.saveFailedHelp": "Verifica che lo spazio di archiviazione sia disponibile e riprova."
 }

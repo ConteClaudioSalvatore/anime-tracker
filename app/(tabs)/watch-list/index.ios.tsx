@@ -45,94 +45,107 @@ export default function WatchListScreen() {
           backgroundColor: PlatformColor("systemGroupedBackgroundColor"),
         }}
       >
-        <ScrollView>
-          <VStack
-            spacing={16}
-            modifiers={[
-              padding({ horizontal: 16, top: 8, bottom: 24 }),
-              frame({ maxWidth: Infinity }),
-            ]}
+        <VStack
+          spacing={16}
+          modifiers={[
+            padding({ horizontal: 16, top: 8 }),
+            frame({
+              maxWidth: Infinity,
+              maxHeight: Infinity,
+              alignment: "top",
+            }),
+          ]}
+        >
+          <WatchListHeader {...list} />
+          <ScrollView
+            modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}
           >
-            <WatchListHeader {...list} />
-            {list.items.length ? (
-              <LazyVStack
-                spacing={0}
-                modifiers={[
-                  background(
-                    PlatformColor("secondarySystemGroupedBackgroundColor"),
-                  ),
-                  cornerRadius(20),
-                ]}
-              >
-                {list.items.map(([name, data], index) => {
-                  const anime = { ...data, name: data.name ?? name };
-                  return (
-                    <VStack key={name} spacing={0}>
-                      {index > 0 && (
-                        <Divider modifiers={[padding({ horizontal: 16 })]} />
-                      )}
-                      <WatchListRow
-                        name={name}
-                        anime={anime}
-                        providerName={list.providerName(anime)}
-                        onOpen={() => list.onOpen(anime)}
-                        onEdit={() => list.onEdit(anime)}
-                        onToggleFinished={() => list.onToggleFinished(anime)}
-                        onRemove={() => list.onRemove(anime)}
-                      />
-                    </VStack>
-                  );
-                })}
-              </LazyVStack>
-            ) : (
-              <VStack
-                spacing={12}
-                modifiers={[
-                  padding({ horizontal: 16, vertical: 48 }),
-                  frame({ maxWidth: Infinity }),
-                ]}
-              >
-                <Text
+            <VStack
+              modifiers={[
+                padding({ bottom: 24 }),
+                frame({ maxWidth: Infinity }),
+              ]}
+            >
+              {list.items.length ? (
+                <LazyVStack
+                  spacing={0}
                   modifiers={[
-                    font({ textStyle: "title3", weight: "semibold" }),
-                    multilineTextAlignment("center"),
-                    fixedSize({ horizontal: false, vertical: true }),
+                    background(
+                      PlatformColor("secondarySystemGroupedBackgroundColor"),
+                    ),
+                    cornerRadius(20),
                   ]}
                 >
-                  {list.emptyTitle}
-                </Text>
-                <Text
+                  {list.items.map(([name, data], index) => {
+                    const anime = { ...data, name: data.name ?? name };
+                    return (
+                      <VStack key={name} spacing={0}>
+                        {index > 0 && (
+                          <Divider modifiers={[padding({ horizontal: 16 })]} />
+                        )}
+                        <WatchListRow
+                          name={name}
+                          anime={anime}
+                          providerName={list.providerName(anime)}
+                          onOpen={() => list.onOpen(anime)}
+                          onEdit={() => list.onEdit(anime)}
+                          onToggleFinished={() => list.onToggleFinished(anime)}
+                          onRemove={() => list.onRemove(anime)}
+                        />
+                      </VStack>
+                    );
+                  })}
+                </LazyVStack>
+              ) : (
+                <VStack
+                  spacing={12}
                   modifiers={[
-                    font({ textStyle: "body" }),
-                    foregroundStyle({
-                      type: "hierarchical",
-                      style: "secondary",
-                    }),
-                    multilineTextAlignment("center"),
-                    fixedSize({ horizontal: false, vertical: true }),
+                    padding({ horizontal: 16, vertical: 48 }),
+                    frame({ maxWidth: Infinity }),
                   ]}
                 >
-                  {list.emptyDetail}
-                </Text>
-                {list.emptyKind === "history" && (
-                  <Button
-                    label={t("watch.addManually")}
-                    systemImage="plus"
-                    onPress={list.onAdd}
-                    modifiers={[buttonStyle("glass")]}
-                  />
-                )}
-                {list.emptyKind === "watching" && (
-                  <Button
-                    label={t("watch.all")}
-                    onPress={() => list.setOnlyInProgress(false)}
-                    modifiers={[buttonStyle("glass")]}
-                  />
-                )}
-              </VStack>
-            )}
-          </VStack>
-        </ScrollView>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: "title3", weight: "semibold" }),
+                      multilineTextAlignment("center"),
+                      fixedSize({ horizontal: false, vertical: true }),
+                    ]}
+                  >
+                    {list.emptyTitle}
+                  </Text>
+                  <Text
+                    modifiers={[
+                      font({ textStyle: "body" }),
+                      foregroundStyle({
+                        type: "hierarchical",
+                        style: "secondary",
+                      }),
+                      multilineTextAlignment("center"),
+                      fixedSize({ horizontal: false, vertical: true }),
+                    ]}
+                  >
+                    {list.emptyDetail}
+                  </Text>
+                  {list.emptyKind === "history" && (
+                    <Button
+                      label={t("watch.addManually")}
+                      systemImage="plus"
+                      onPress={list.onAdd}
+                      modifiers={[buttonStyle("glass")]}
+                    />
+                  )}
+                  {list.emptyKind === "watching" && (
+                    <Button
+                      label={t("watch.all")}
+                      onPress={() => list.setOnlyInProgress(false)}
+                      modifiers={[buttonStyle("glass")]}
+                    />
+                  )}
+                </VStack>
+              )}
+            </VStack>
+          </ScrollView>
+        </VStack>
       </Host>
     </>
   );

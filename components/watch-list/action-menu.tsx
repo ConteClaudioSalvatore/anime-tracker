@@ -4,6 +4,7 @@ import {
   DropdownMenuItem,
   Icon as ComposeIcon,
   IconButton,
+  FilledIconButton,
 } from "@expo/ui/jetpack-compose";
 import { size } from "@expo/ui/jetpack-compose/modifiers";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 
 interface ActionMenuProps {
   label: string;
+  overCover?: boolean;
   actions: {
     label: string;
     onPress: () => void;
@@ -21,7 +23,11 @@ interface ActionMenuProps {
   }[];
 }
 
-export default function ActionMenu({ label, actions }: ActionMenuProps) {
+export default function ActionMenu({
+  label,
+  actions,
+  overCover = false,
+}: ActionMenuProps) {
   const t = useAppTranslation();
   const textColor = useThemeColor({}, "text");
   const destructiveColor = useThemeColor(
@@ -49,6 +55,7 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
   };
 
   if (Platform.OS === "android") {
+    const TriggerButton = overCover ? FilledIconButton : IconButton;
     return (
       <DropdownMenu
         expanded={expanded}
@@ -56,17 +63,22 @@ export default function ActionMenu({ label, actions }: ActionMenuProps) {
         modifiers={[size(48, 48)]}
       >
         <DropdownMenu.Trigger>
-          <IconButton
+          <TriggerButton
             onClick={() => setExpanded(true)}
             modifiers={[size(48, 48)]}
+            colors={
+              overCover
+                ? { containerColor: "#24242a", contentColor: "#ffffff" }
+                : undefined
+            }
           >
             <ComposeIcon
               source={require("@expo/material-symbols/more_horiz.xml")}
               size={24}
-              tint={textColor}
+              tint={overCover ? "#ffffff" : textColor}
               contentDescription={label}
             />
-          </IconButton>
+          </TriggerButton>
         </DropdownMenu.Trigger>
         <DropdownMenu.Items>
           {actions.map((action) => (

@@ -35,6 +35,7 @@ test("Clear all removes only anime history after confirmation and preserves prov
       return {
         Alert: { alert: (_title, _message, options) => (buttons = options) },
       };
+    if (request === "expo-file-system/legacy") return {};
     if (request === "expo-file-system")
       return { File: class {}, Paths: { document: "test" } };
     if (request === "expo-document-picker" || request === "expo-sharing")

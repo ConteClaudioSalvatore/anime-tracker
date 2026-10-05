@@ -1392,7 +1392,37 @@ test("saving a provider rejects failed writes and returns its stored ID after re
     shared = [];
   let sharingAvailable = true,
     fileFailure = false;
+  const nativePlatform = { OS: "ios" };
+  let directoryGranted = true,
+    androidWriteFailure = false;
+  const androidCreated = [],
+    androidDeleted = [],
+    androidFiles = new Map();
+
   Module._load = function (request, parent, ...args) {
+    if (request === "react-native") return { Platform: nativePlatform };
+    if (request === "expo-file-system/legacy")
+      return {
+        StorageAccessFramework: {
+          requestDirectoryPermissionsAsync: async () => ({
+            granted: directoryGranted,
+            directoryUri: "content://chosen-folder",
+          }),
+          createFileAsync: async (directory, name, mimeType) => {
+            if (fileFailure) throw new Error("create failed");
+            const uri = directory + "/" + name + ".json";
+            androidCreated.push({ directory, name, mimeType, uri });
+            return uri;
+          },
+          writeAsStringAsync: async (uri, contents) => {
+            if (androidWriteFailure) throw new Error("write failed");
+            androidFiles.set(uri, contents);
+          },
+          deleteAsync: async (uri) => {
+            androidDeleted.push(uri);
+          },
+        },
+      };
     if (request === "expo-file-system")
       return {
         File: class {
@@ -1534,6 +1564,58 @@ test("saving a provider rejects failed writes and returns its stored ID after re
   fileFailure = true;
   await assert.rejects(AppStore.ExportWatchList(), /disk full/);
   fileFailure = false;
+  nativePlatform.OS = "android";
+  sharingAvailable = false;
+  const beforeAndroid = JSON.stringify(stored);
+  const shareCount = shared.length;
+  await AppStore.Backup();
+  assert.deepEqual(
+    JSON.parse(
+      androidFiles.get("content://chosen-folder/anime-tracker-backup.json"),
+    ),
+    JSON.parse(JSON.stringify(await AppStore.Get())),
+  );
+  await AppStore.ExportWatchList();
+  assert.deepEqual(
+    JSON.parse(androidFiles.get("content://chosen-folder/watch-list.json")),
+    watchListSummary(stored.anime),
+  );
+  assert.equal(
+    shared.length,
+    shareCount,
+    "Android saves must not invoke sharing",
+  );
+  assert.ok(
+    androidCreated.every((item) => item.mimeType === "application/json"),
+  );
+  directoryGranted = false;
+  const createCount = androidCreated.length;
+  await AppStore.Backup();
+  await AppStore.ExportWatchList();
+  assert.equal(
+    androidCreated.length,
+    createCount,
+    "Cancel must not create a file",
+  );
+  assert.equal(JSON.stringify(stored), beforeAndroid);
+  directoryGranted = true;
+  fileFailure = true;
+  await assert.rejects(AppStore.ExportWatchList(), /create failed/);
+  fileFailure = false;
+  androidWriteFailure = true;
+  await assert.rejects(AppStore.Backup(), /write failed/);
+  assert.equal(
+    androidDeleted.at(-1),
+    "content://chosen-folder/anime-tracker-backup.json",
+  );
+  androidWriteFailure = false;
+  await AppStore.Backup();
+  assert.equal(
+    JSON.stringify(stored),
+    beforeAndroid,
+    "Saving files must preserve app state",
+  );
+  nativePlatform.OS = "ios";
   // With multiple websites, disabling startup remains a valid choice.
   await AppStore.Update((previous) => ({
     ...previous,

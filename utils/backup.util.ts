@@ -19,7 +19,11 @@ export function restoreBackup(callback: () => void): void {
 }
 
 export async function saveBackup(): Promise<void> {
-  await AppStore.Backup();
+  try {
+    await AppStore.Backup();
+  } catch {
+    Alert.alert(t("backup.saveFailed"), t("backup.saveFailedHelp"));
+  }
 }
 
 export async function exportWatchList(): Promise<void> {

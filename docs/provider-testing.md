@@ -2,6 +2,8 @@
 
 Run `npm test`, `npx tsc --noEmit`, and `npm run lint`. Tests execute the production runtime against local HTML fixtures. Media timing is controlled in the fixtures; native playback must also be checked on a device.
 
+On Android, Export watch list and Backup must open the system folder picker and write `watch-list.json` and `anime-tracker-backup.json` into the selected folder, without opening a sharing app. Cancel the picker and confirm no file is created and app data is unchanged. Simulate a failed create or write, confirm localized retry feedback, and retry successfully. Open the saved files with a file manager: the watchlist contains only its four summary fields, while the full backup retains provider configuration and complete history. Restore the full backup through the existing document picker. On iOS, both exports must retain the system share sheet and its Save to Files action. System picker behavior and external storage writes require device checks.
+
 ## English and Italian
 
 Rebuild the development apps after adding `expo-localization`; a JavaScript reload does not install the native module or declare the supported system languages. The app follows the phone or OS per-app language preferences, selects the first supported English or Italian locale, and falls back to English. There is no in-app language selector.
