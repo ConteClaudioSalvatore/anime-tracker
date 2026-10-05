@@ -39,7 +39,20 @@ export function useHomeBrowser() {
   );
   const setSheet = (browserSheet?: "providers" | "status") =>
     updateState((previous) => ({ ...previous, browserSheet }));
-  const [loading, setLoading] = React.useState(false);
+  const loading = state.browserLoading ?? false;
+  const setLoading = React.useCallback(
+    (browserLoading: boolean) =>
+      updateState((previous) =>
+        previous.browserLoading === browserLoading
+          ? previous
+          : { ...previous, browserLoading },
+      ),
+    [updateState],
+  );
+  React.useEffect(() => {
+    setLoading(false);
+    return () => setLoading(false);
+  }, [provider?.id, setLoading]);
   const [error, setError] = React.useState<AppMessage>("");
   const [notice, setNotice] = React.useState<AppMessage>("");
   const [status, setStatus] = React.useState<AppMessage>(
@@ -211,6 +224,7 @@ export function useHomeBrowser() {
   > = (event) => {
     if (!provider) return;
     if (!allowedUrl(provider, event.url) || staleNavigation(event.url)) return;
+    setLoading(event.loading);
     loadedPage.current = { url: event.url, providerId: provider.id };
     pageSession.current.redirected(event.url);
     updateState((previous) =>
@@ -232,7 +246,6 @@ export function useHomeBrowser() {
     // Android history updates can retire the bridge without replacing the DOM.
     // Renew its identity once native navigation has settled, including redirects.
     if (!event.loading) {
-      setLoading(false);
       reportReady();
     }
   };

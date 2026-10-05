@@ -37,6 +37,17 @@ export default function WatchListHeader({
   setSortMode,
 }: WatchListHeaderProps) {
   const t = useAppTranslation();
+  const actionModifiers = [
+    buttonStyle("glass"),
+    buttonBorderShape("circle"),
+    controlSize("regular"),
+    labelStyle("iconOnly"),
+    frame({ minWidth: 44, minHeight: 44 }),
+  ];
+  const actionLabelModifiers = [
+    frame({ width: 20, height: 20 }),
+    contentShape(shapes.rectangle()),
+  ];
   const selectedSort = watchListSortOptions.find(
     (option) => option.value === sortMode,
   )!;
@@ -71,34 +82,22 @@ export default function WatchListHeader({
           </Picker>
         </Menu>
         <Spacer />
-        <Button
-          label={t("watch.addManually")}
-          systemImage="plus"
-          onPress={onAdd}
-          modifiers={[
-            buttonStyle("glass"),
-            labelStyle("iconOnly"),
-            frame({ minWidth: 44, minHeight: 44 }),
-          ]}
-        />
+        <Button onPress={onAdd} modifiers={actionModifiers}>
+          <Label
+            title={t("watch.addManually")}
+            systemImage="plus"
+            modifiers={actionLabelModifiers}
+          />
+        </Button>
         <Menu
           label={
             <Label
               title={t("watch.options")}
               systemImage="ellipsis"
-              modifiers={[
-                frame({ width: 20, height: 20 }),
-                contentShape(shapes.rectangle()),
-              ]}
+              modifiers={actionLabelModifiers}
             />
           }
-          modifiers={[
-            buttonStyle("glass"),
-            buttonBorderShape("circle"),
-            controlSize("regular"),
-            labelStyle("iconOnly"),
-            frame({ minWidth: 44, minHeight: 44 }),
-          ]}
+          modifiers={actionModifiers}
         >
           <Button
             label={exporting ? t("backup.exporting") : t("backup.exportList")}

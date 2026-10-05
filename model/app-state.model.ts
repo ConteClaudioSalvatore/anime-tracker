@@ -3,6 +3,7 @@ export type AppState = {
   url?: string;
   canGoBack?: boolean;
   canGoForward?: boolean;
+  browserLoading?: boolean;
   reload?: boolean;
   browserSheet?: "providers" | "status";
 };

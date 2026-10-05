@@ -62,7 +62,7 @@ test("Home renews Android same-document navigation and saves progress back to ep
     isDefault: true,
   };
   let store = { providers: [provider], anime: {} };
-  let refreshStore, browser;
+  let refreshStore, browser, appState, updateApp;
   const packets = [],
     scripts = [];
   const webViewRef = {
@@ -111,6 +111,8 @@ test("Home renews Android same-document navigation and saves progress back to ep
       providerId: provider.id,
     });
     const [snapshot, setSnapshot] = React.useState(store);
+    appState = app;
+    updateApp = updateState;
     refreshStore = async () => setSnapshot(store);
     return React.createElement(
       contexts.AppStateContext.Provider,
@@ -159,11 +161,15 @@ test("Home renews Android same-document navigation and saves progress back to ep
   await React.act(async () =>
     browser.onLoadStart({ nativeEvent: { url: provider.origin } }),
   );
+  assert.equal(browser.loading, true);
+  assert.equal(appState.browserLoading, true);
   win.eval(browser.injection);
   win.document.dispatchEvent(new win.Event("DOMContentLoaded"));
   await React.act(async () =>
     browser.onLoadEnd({ nativeEvent: { url: provider.origin } }),
   );
+  assert.equal(browser.loading, false);
+  assert.equal(appState.browserLoading, false);
   await drain();
   const firstDocument = win.ProviderRuntime.documentId;
   const firstUrl = "https://example.com/series/example/1";
@@ -283,5 +289,54 @@ test("Home renews Android same-document navigation and saves progress back to ep
   assert.match(
     win.document.querySelectorAll("#episode-list a")[1].style.backgroundImage,
     /linear-gradient/,
+  );
+
+  await React.act(async () =>
+    browser.onLoadStart({ nativeEvent: { url: secondUrl } }),
+  );
+  await React.act(async () =>
+    browser.onLoadEnd({ nativeEvent: { url: firstUrl } }),
+  );
+  assert.equal(
+    appState.browserLoading,
+    true,
+    "Stale load ends cannot stop loading",
+  );
+  await React.act(async () => browser.onError());
+  assert.equal(appState.browserLoading, false, "Failed loads stop the spinner");
+
+  await React.act(async () =>
+    browser.onNavigationStateChange({
+      url: secondUrl,
+      loading: true,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(appState.browserLoading, true);
+  await React.act(async () =>
+    browser.onNavigationStateChange({
+      url: secondUrl,
+      loading: false,
+      canGoBack: true,
+      canGoForward: false,
+    }),
+  );
+  assert.equal(appState.browserLoading, false);
+
+  await React.act(async () =>
+    browser.onLoadStart({ nativeEvent: { url: secondUrl } }),
+  );
+  await React.act(async () =>
+    updateApp((previous) => ({
+      ...previous,
+      url: undefined,
+      providerId: undefined,
+    })),
+  );
+  assert.equal(
+    appState.browserLoading,
+    false,
+    "Leaving the website resets loading",
   );
 });
