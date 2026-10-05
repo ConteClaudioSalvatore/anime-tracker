@@ -36,7 +36,7 @@ export function CoverImage({
         onError={onError}
         style={[
           styles.image,
-          size && { width: size.width, height: size.height },
+          size && { width: size.width * 0.58, height: size.height },
         ]}
       />
       <View style={[StyleSheet.absoluteFill, styles.shade]} />
@@ -45,9 +45,9 @@ export function CoverImage({
 }
 const styles = StyleSheet.create({
   container: { flex: 1, overflow: "hidden", backgroundColor: "#17171c" },
-  image: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0 },
+  image: { position: "absolute", top: 0, bottom: 0, right: 0, width: "58%" },
   shade: {
     experimental_backgroundImage:
-      "linear-gradient(90deg, rgba(23, 23, 28, 0.88) 0%, rgba(23, 23, 28, 0.84) 44%, rgba(23, 23, 28, 0.76) 58%, rgba(23, 23, 28, 0.60) 72%, rgba(23, 23, 28, 0.30) 86%, rgba(23, 23, 28, 0.12) 100%)",
+      "linear-gradient(90deg, #17171c 0%, #17171c 42%, rgba(23, 23, 28, 0.85) 48%, rgba(23, 23, 28, 0.60) 54%, rgba(23, 23, 28, 0.30) 62%, rgba(23, 23, 28, 0.12) 78%, rgba(23, 23, 28, 0.12) 100%)",
   },
 });
