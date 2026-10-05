@@ -27,6 +27,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { WatchListHeaderProps } from "./types";
 import { PlatformColor } from "react-native";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function WatchListHeader({
   hasHistory,
@@ -38,10 +39,11 @@ export default function WatchListHeader({
   setSortMode,
 }: WatchListHeaderProps) {
   const t = useAppTranslation();
+  const isInline = NativeTabs.BottomAccessory.usePlacement() === "inline";
   const actionModifiers = [
     buttonStyle("bordered"),
     buttonBorderShape("circle"),
-    controlSize("regular"),
+    controlSize(isInline ? "small" : "regular"),
     labelStyle("iconOnly"),
     tint("#000000aa"),
     foregroundStyle("white"),
@@ -55,7 +57,7 @@ export default function WatchListHeader({
   )!;
 
   return (
-    <HStack spacing={8} modifiers={[padding({ all: 8 })]}>
+    <HStack spacing={isInline ? 4 : 8} modifiers={[padding({ all: 8 })]}>
       <Menu
         label={
           <Label

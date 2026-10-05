@@ -11,21 +11,25 @@ import {
   controlSize,
   foregroundStyle,
   frame,
+  labelStyle,
   padding,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { usePathname } from "expo-router";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useContext } from "react";
 
 export default function TabAccessory() {
   const pathName = usePathname();
+  const isInline = NativeTabs.BottomAccessory.usePlacement() === "inline";
   const t = useAppTranslation();
   const list = useWatchListContext();
   const { stateChanged } = useContext(StoreContext);
   const actionModifiers = [
     buttonStyle("glassProminent"),
-    buttonBorderShape("capsule"),
-    controlSize("regular"),
+    buttonBorderShape(isInline ? "circle" : "capsule"),
+    controlSize(isInline ? "small" : "regular"),
+    labelStyle(isInline ? "iconOnly" : "titleAndIcon"),
     foregroundStyle("white"),
   ];
 
@@ -36,7 +40,7 @@ export default function TabAccessory() {
       {pathName.startsWith("/watch-list") ? (
         <WatchListHeader {...list} />
       ) : (
-        <HStack spacing={8} modifiers={[padding({ all: 8 })]}>
+        <HStack spacing={isInline ? 4 : 8} modifiers={[padding({ all: 8 })]}>
           <Button
             onPress={saveBackup}
             modifiers={[...actionModifiers, tint("#00ff5588")]}
@@ -44,7 +48,9 @@ export default function TabAccessory() {
             <Label
               title={t("backup.backup")}
               systemImage="square.and.arrow.up"
-              modifiers={[frame({ height: 24 })]}
+              modifiers={[
+                frame({ width: isInline ? 24 : undefined, height: 24 }),
+              ]}
             />
           </Button>
           <Spacer />
@@ -55,7 +61,9 @@ export default function TabAccessory() {
             <Label
               title={t("backup.restore")}
               systemImage="square.and.arrow.down"
-              modifiers={[frame({ height: 24 })]}
+              modifiers={[
+                frame({ width: isInline ? 24 : undefined, height: 24 }),
+              ]}
             />
           </Button>
         </HStack>

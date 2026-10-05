@@ -25,10 +25,7 @@ export default function TabLayout() {
 
   return (
     <WatchListContext.Provider value={watchList}>
-      <NativeTabs
-        blurEffect="dark"
-        minimizeBehavior={isHome ? "onScrollDown" : "never"}
-      >
+      <NativeTabs blurEffect="dark" minimizeBehavior="onScrollDown">
         {Platform.OS === "ios" && (
           <NativeTabs.BottomAccessory>
             <TabAccessory />
