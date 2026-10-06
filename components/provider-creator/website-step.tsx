@@ -4,6 +4,7 @@ import type { ProviderCreator } from "@/hooks/provider-creator/use-provider-crea
 import ActionButton from "./action-button";
 import ProviderInput from "./provider-input";
 import { styles } from "./creator-styles";
+import { useRouter } from "expo-router";
 
 type Props = {
   creator: Pick<
@@ -13,6 +14,7 @@ type Props = {
 };
 export function WebsiteStep({ creator }: Props) {
   const t = useAppTranslation();
+  const router = useRouter();
   const { colors, edit, changeWebsite, state, actions } = creator;
   const { draft, aliasInput } = state.setup;
   const { advanced } = state.wizard;
@@ -53,6 +55,12 @@ export function WebsiteStep({ creator }: Props) {
         ]}
       />
       {copy(t("provider.homepageHelp"), true)}
+      {copy(t("provider.privacyHelp"), true)}
+      <ActionButton
+        variant="tertiary"
+        label={t("privacy.title")}
+        onPress={() => router.push("/privacy")}
+      />
       <ActionButton
         expanded={advanced}
         label={t("provider.aliases")}

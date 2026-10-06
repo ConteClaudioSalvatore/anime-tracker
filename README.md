@@ -113,6 +113,10 @@ npm run lint
 
 Tests run production modules and the injected runtime with Node's test runner and JSDOM. Follow the [device acceptance checklist](docs/provider-testing.md) for real playback, embedded players, resume, navigation approvals, backups, and native UI behavior. Simulated media cannot verify native playback, keyboard handling, scrolling, or iOS Liquid Glass appearance.
 
+## Privacy and App Store submission
+
+The app includes an offline privacy policy in Settings and website setup. Publication-ready copies are in [English](docs/privacy-policy.md) and [Italian](docs/privacy-policy.it.md). See [App Store submission guidance](docs/app-store-submission.md) for policy publication, content authorization, review notes, age ratings, and native privacy-manifest validation.
+
 ## License
 
 See [LICENSE](LICENSE).

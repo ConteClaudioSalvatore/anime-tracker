@@ -71,6 +71,13 @@ export default function RootLayout() {
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen
+                name="privacy"
+                options={{
+                  title: t("privacy.title"),
+                  headerBackTitle: t("common.settings"),
+                }}
+              />
+              <Stack.Screen
                 name="anime-modal"
                 options={{
                   presentation: "modal",

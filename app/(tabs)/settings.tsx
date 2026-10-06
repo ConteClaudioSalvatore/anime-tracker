@@ -1,6 +1,7 @@
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useProviderPalette } from "@/hooks/use-provider-palette";
 import SettingsProviders from "@/components/settings/providers";
+import SettingsPrivacy from "@/components/settings/privacy";
 import SettingsActionButton from "@/components/settings/action-button";
 import { StoreContext } from "@/utils";
 import { restoreBackup, saveBackup } from "@/utils/backup.util";
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
           {t("common.settings")}
         </Text>
         <SettingsProviders />
+        <SettingsPrivacy />
         <View style={styles.backup}>
           <Text style={[styles.heading, { color: colors.text }]}>
             {t("backup.backup")}
