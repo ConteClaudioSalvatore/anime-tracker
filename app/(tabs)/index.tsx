@@ -20,6 +20,7 @@ export default function HomeScreen() {
     url,
     browserSheet,
     webViewRef,
+    webViewGeneration,
     injection,
     loading,
     error,
@@ -34,6 +35,8 @@ export default function HomeScreen() {
     onHttpError,
     onNavigationStateChange,
     onMessage,
+    onContentProcessDidTerminate,
+    onRenderProcessGone,
     shouldNavigate,
   } = useHomeBrowser();
   const router = useRouter();
@@ -68,7 +71,7 @@ export default function HomeScreen() {
       ) : (
         <>
           <WebView
-            key={provider.id}
+            key={`${provider.id}:${webViewGeneration}`}
             ref={webViewRef}
             source={{ uri: url! }}
             style={[styles.screen, styles.webView]}
@@ -87,6 +90,8 @@ export default function HomeScreen() {
             onNavigationStateChange={onNavigationStateChange}
             onShouldStartLoadWithRequest={shouldNavigate}
             onMessage={onMessage}
+            onContentProcessDidTerminate={onContentProcessDidTerminate}
+            onRenderProcessGone={onRenderProcessGone}
             javaScriptEnabled
             domStorageEnabled
             allowsFullscreenVideo

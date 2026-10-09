@@ -1,6 +1,7 @@
 import { useMessageFormatter } from "@/hooks/use-app-translation";
 import { message as feedback, type AppMessage } from "@/utils/i18n";
 import React from "react";
+import { AppState } from "react-native";
 import type { WebViewProps } from "react-native-webview";
 import runtime from "@/assets/js/provider-runtime_t.cjs";
 import {
@@ -63,6 +64,8 @@ export function useHomeBrowser() {
   const resumeSent = React.useRef(new Set<string>());
   const statusTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationRevision = React.useRef(0);
+  const [webViewGeneration, setWebViewGeneration] = React.useState(0);
+  const pendingRecovery = React.useRef<"reload" | "replace" | null>(null);
   const loadedPage = React.useRef<{ url: string; providerId?: number } | null>(
     null,
   );
@@ -71,6 +74,43 @@ export function useHomeBrowser() {
     providerId: number;
     previousUrl?: string;
   } | null>(null);
+  const recoverWebView = React.useCallback(() => {
+    const recovery = pendingRecovery.current;
+    if (!recovery || !provider || !state.url || !webViewRef?.current) return;
+    pendingRecovery.current = null;
+    pendingOpen.current = null;
+    navigationRevision.current++;
+    pageSession.current.begin(state.url);
+    resumeSent.current.clear();
+    setLoading(true);
+    setError("");
+    setNotice("");
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+    statusTimer.current = null;
+    // A terminated Android renderer cannot reuse its native WebView.
+    if (recovery === "replace") setWebViewGeneration((value) => value + 1);
+    else webViewRef.current.reload();
+  }, [provider, state.url, setLoading, webViewRef]);
+  React.useEffect(() => {
+    pendingRecovery.current = null;
+  }, [provider?.id, state.url]);
+  const recoverOnAppReturn = React.useEffectEvent(recoverWebView);
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") recoverOnAppReturn();
+    });
+    return () => subscription.remove();
+  }, []);
+  function processTerminated(replace: boolean) {
+    if (!provider || !state.url) return;
+    // Retire the dead document before any queued media messages arrive.
+    navigationRevision.current++;
+    pageSession.current.begin(state.url);
+    pendingRecovery.current =
+      replace || pendingRecovery.current === "replace" ? "replace" : "reload";
+    // Wait until the app is active before loading the replacement content.
+    if (AppState.currentState === "active") recoverWebView();
+  }
   function staleNavigation(url: string): boolean {
     const pending = pendingOpen.current;
     return (
@@ -399,6 +439,7 @@ export function useHomeBrowser() {
     url: state.url,
     browserSheet: state.browserSheet,
     webViewRef,
+    webViewGeneration,
     injection,
     loading,
     error: format(error),
@@ -413,6 +454,8 @@ export function useHomeBrowser() {
     onHttpError,
     onNavigationStateChange,
     onMessage,
+    onContentProcessDidTerminate: () => processTerminated(false),
+    onRenderProcessGone: () => processTerminated(true),
     shouldNavigate,
   };
 }

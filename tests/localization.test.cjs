@@ -235,9 +235,11 @@ test("foreground language changes update Home feedback without replacing its ses
       ApproveProviderOrigin: async () => {},
     },
   };
-  let locales = [{ languageCode: "it" }],
-    listener,
-    removals = 0;
+  let locales = [{ languageCode: "it" }];
+  const appStateListeners = new Set();
+  const listener = (state) => {
+    for (const callback of appStateListeners) callback(state);
+  };
   let useHomeBrowser, useAppLocalization;
   const load = Module._load;
   Module._load = function (request, parent, ...args) {
@@ -246,8 +248,8 @@ test("foreground language changes update Home feedback without replacing its ses
         Alert: { alert: () => {} },
         AppState: {
           addEventListener: (_event, callback) => {
-            listener = callback;
-            return { remove: () => removals++ };
+            appStateListeners.add(callback);
+            return { remove: () => appStateListeners.delete(callback) };
           },
         },
       };
@@ -270,7 +272,7 @@ test("foreground language changes update Home feedback without replacing its ses
   const root = createRoot(dom.window.document.querySelector("#root"));
   t.after(async () => {
     await React.act(async () => root.unmount());
-    assert.equal(removals, 1);
+    assert.equal(appStateListeners.size, 0);
     await i18n.changeLanguage("en");
     globalThis.window = previous.window;
     globalThis.document = previous.document;

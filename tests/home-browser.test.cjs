@@ -65,8 +65,25 @@ test("Home renews Android same-document navigation and saves progress back to ep
   let refreshStore, browser, appState, updateApp;
   const packets = [],
     scripts = [];
+  let reloads = 0;
+  const appListeners = new Set();
+  const nativeAppState = {
+    currentState: "active",
+    addEventListener: (name, listener) => {
+      assert.equal(name, "change");
+      appListeners.add(listener);
+      return { remove: () => appListeners.delete(listener) };
+    },
+  };
+  async function changeAppState(value) {
+    await React.act(async () => {
+      nativeAppState.currentState = value;
+      for (const listener of [...appListeners]) listener(value);
+    });
+  }
   const webViewRef = {
     current: {
+      reload: () => reloads++,
       injectJavaScript: (script) => {
         scripts.push(script);
         site.window.eval(script);
@@ -85,6 +102,7 @@ test("Home renews Android same-document navigation and saves progress back to ep
   };
   const load = Module._load;
   Module._load = function (request, parent, ...args) {
+    if (request === "react-native") return { AppState: nativeAppState };
     if (request === "@/utils") return contexts;
     if (request === "@/assets/js/provider-runtime_t.cjs") return runtime;
     if (request === "@/hooks/use-app-translation")
@@ -127,6 +145,11 @@ test("Home renews Android same-document navigation and saves progress back to ep
   const root = createRoot(ui.window.document.querySelector("#root"));
   t.after(async () => {
     await React.act(async () => root.unmount());
+    assert.equal(
+      appListeners.size,
+      0,
+      "Unmount removes the app-state listener",
+    );
     globalThis.window = previous.window;
     globalThis.document = previous.document;
     globalThis.IS_REACT_ACT_ENVIRONMENT = previous.act;
@@ -324,6 +347,95 @@ test("Home renews Android same-document navigation and saves progress back to ep
   );
   assert.equal(appState.browserLoading, false);
 
+  await changeAppState("background");
+  await changeAppState("active");
+  assert.equal(
+    reloads,
+    0,
+    "Healthy pages survive app return without reloading",
+  );
+
+  const recoveryDocument = win.ProviderRuntime.documentId;
+  const historyBeforeRecovery = JSON.stringify(store.anime);
+  await changeAppState("background");
+  await React.act(async () => browser.onContentProcessDidTerminate());
+  await React.act(async () => browser.onContentProcessDidTerminate());
+  assert.equal(reloads, 0, "Background termination waits for app return");
+  const recoveryScripts = scripts.length;
+  await React.act(async () =>
+    browser.onMessage({
+      nativeEvent: {
+        data: JSON.stringify({
+          channel: "provider-runtime",
+          sessionId,
+          documentId: recoveryDocument,
+          url: secondUrl,
+          type: "anime-found",
+          payload: {
+            animeTitle: "Dead Document",
+            episode: 99,
+            progress: 20,
+            total: 120,
+          },
+        }),
+      },
+    }),
+  );
+  assert.equal(scripts.length, recoveryScripts);
+  assert.equal(store.anime["Dead Document"], undefined);
+  await changeAppState("inactive");
+  assert.equal(reloads, 0);
+  await changeAppState("active");
+  assert.equal(reloads, 1, "Queued iOS recovery reloads once on app return");
+  assert.equal(
+    browser.url,
+    secondUrl,
+    "Recovery retains the current episode URL",
+  );
+  assert.equal(appState.providerId, provider.id);
+  assert.equal(browser.loading, true);
+  assert.equal(JSON.stringify(store.anime), historyBeforeRecovery);
+  await changeAppState("active");
+  assert.equal(reloads, 1, "Consumed recovery cannot reload again");
+  await navigate(secondUrl);
+  assert.equal(browser.loading, false);
+  assert.notEqual(win.ProviderRuntime.documentId, recoveryDocument);
+
+  await React.act(async () => browser.onContentProcessDidTerminate());
+  assert.equal(reloads, 2, "Foreground iOS termination recovers immediately");
+  await navigate(secondUrl);
+  const generation = browser.webViewGeneration;
+  await React.act(async () => browser.onRenderProcessGone());
+  assert.equal(browser.webViewGeneration, generation + 1);
+  assert.equal(
+    reloads,
+    2,
+    "Android replaces the dead WebView instead of reloading",
+  );
+  assert.equal(browser.url, secondUrl);
+  await navigate(secondUrl);
+  await changeAppState("background");
+  await React.act(async () => browser.onRenderProcessGone());
+  assert.equal(browser.webViewGeneration, generation + 1);
+  await changeAppState("active");
+  assert.equal(browser.webViewGeneration, generation + 2);
+  await navigate(secondUrl);
+
+  await changeAppState("background");
+  await React.act(async () => browser.onContentProcessDidTerminate());
+  await React.act(async () =>
+    updateApp((previous) => ({ ...previous, url: firstUrl })),
+  );
+  await changeAppState("active");
+  assert.equal(
+    reloads,
+    2,
+    "URL changes cancel queued recovery of the old page",
+  );
+  await navigate(secondUrl);
+  await changeAppState("background");
+  await React.act(async () => browser.onRenderProcessGone());
+
   await React.act(async () =>
     browser.onLoadStart({ nativeEvent: { url: secondUrl } }),
   );
@@ -339,4 +451,7 @@ test("Home renews Android same-document navigation and saves progress back to ep
     false,
     "Leaving the website resets loading",
   );
+  await changeAppState("active");
+  assert.equal(browser.webViewGeneration, generation + 2);
+  assert.equal(reloads, 2, "Leaving the website cancels pending recovery");
 });

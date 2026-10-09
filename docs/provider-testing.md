@@ -46,6 +46,8 @@ Clear and retype the episode without it being replaced with zero while editing. 
 
 ## Provider checks
 
+On physical iOS and Android devices, open an episode, play long enough to save progress, and send the app to the background. Return after several minutes and after using other memory-intensive apps. Confirm the current website and full episode URL remain selected and the page is usable without a manual reload. A healthy WebView must not reload on every app return. If the OS terminates its content process, recovery should wait until the app is active: iOS reloads the current page, while Android replaces the dead WebView. Verify the page loads, tracking binds to the new document, saved watch history survives, and optional resume still works. Repeat after changing the page or website before a queued recovery runs, and after leaving Home. Old document messages must not update history or revive the previous website. Confirm iOS tab minimization and its bottom accessory still work after recovery. Renderer termination and the black-screen symptom require device validation; automated lifecycle tests do not prove native recovery.
+
 On both iOS and Android:
 
 1. Start with no providers. Confirm the Websites screen offers Add provider and no preconfigured website.
