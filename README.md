@@ -53,22 +53,29 @@ In the lightweight export, unknown totals are `null`. `highestWatchedEpisode` is
 
 ### iOS
 
+The website screenshot was captured on an iPhone 18 Pro simulator running iOS 27.0. The other iOS screenshots were captured on an iPhone 17 Pro simulator running iOS 26.5. Website names and addresses have been anonymized in the images; they represent user-created configurations, not built-in providers. The website page is an original facsimile with fictional content and illustrative episode progress.
+
 <div style="display: flex;">
-  <img alt="home" src="assets/images/screenshots/ios/home.png" height="400" />
-  <img alt="anime-progress" src="assets/images/screenshots/ios/anime-progress.png" height="400" />
-  <img alt="history" src="assets/images/screenshots/ios/history.png" height="400" />
-  <img alt="search-history" src="assets/images/screenshots/ios/search-history.png" height="400" />
-  <img alt="backup" src="assets/images/screenshots/ios/backup.png" height="400" />
+  <img alt="Configured website chooser" src="assets/images/screenshots/ios/home.png" height="400" />
+  <img alt="Guided website setup" src="assets/images/screenshots/ios/website-setup.png" height="400" />
+  <img alt="Illustrative episode progress on a facsimile website" src="assets/images/screenshots/ios/anime-progress.png" height="400" />
+  <img alt="Watch List with saved episode progress" src="assets/images/screenshots/ios/history.png" height="400" />
+  <img alt="Watch List filtered by search" src="assets/images/screenshots/ios/search-history.png" height="400" />
+  <img alt="Website settings and Backup / Restore controls" src="assets/images/screenshots/ios/backup.png" height="400" />
 </div>
 
 ### Android
 
+Captured on the running QEMU Android 17 emulator. Website names and addresses use anonymous example values. The website page is an original facsimile with fictional content and illustrative episode progress. Development controls were hidden before capture.
+
 <div style="display: flex;">
-  <img alt="home" src="assets/images/screenshots/android/home.png" height="400" />
-  <img alt="anime-progress" src="assets/images/screenshots/android/anime-progress.png" height="400" />
-  <img alt="history" src="assets/images/screenshots/android/history.png" height="400" />
-  <img alt="search-history" src="assets/images/screenshots/android/search-history.png" height="400" />
-  <img alt="backup" src="assets/images/screenshots/android/backup.png" height="400" />
+  <img alt="Configured website chooser" src="assets/images/screenshots/android/home.png" height="400" />
+  <img alt="Guided website setup" src="assets/images/screenshots/android/website-setup.png" height="400" />
+  <img alt="Saved episode progress highlighted on a website" src="assets/images/screenshots/android/anime-progress.png" height="400" />
+  <img alt="Watch List with saved episode progress" src="assets/images/screenshots/android/history.png" height="400" />
+  <img alt="Watch List filtered by search" src="assets/images/screenshots/android/search-history.png" height="400" />
+  <img alt="Website settings" src="assets/images/screenshots/android/settings.png" height="400" />
+  <img alt="Privacy settings and Backup / Restore controls" src="assets/images/screenshots/android/backup.png" height="400" />
 </div>
 
 ---
