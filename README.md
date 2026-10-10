@@ -44,7 +44,7 @@ Ongoing series, partially released seasons, paginated episode lists, and unknown
 
 ### iOS
 
-The website screenshot was captured on an iPhone 18 Pro simulator running iOS 27.0. The other iOS screenshots were captured on an iPhone 17 Pro simulator running iOS 26.5. Website names and addresses have been anonymized in the images; they represent user-created configurations, not built-in providers. The website page is an original facsimile with fictional content and illustrative episode progress.
+Captured on an iPhone 18 Pro simulator running iOS 27.0, including the website chooser, guided setup, watch list, search, and Settings. Moon Library and Cloud Library are fictional website names representing user-created configurations, not built-in providers. Watch-list captures used the original website configurations so covers could load before website names and addresses were anonymized with ImageGen. The website screenshot shows an original facsimile with fictional content and illustrative episode progress.
 
 <p align="center">
   <img alt="Configured website chooser" src="assets/images/screenshots/ios/home.png" width="180" />
