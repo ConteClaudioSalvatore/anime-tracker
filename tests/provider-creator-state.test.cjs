@@ -250,7 +250,9 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
     dom.window.close();
   });
   const commands = [];
+  let reloads = 0;
   const webView = {
+    reload: () => reloads++,
     injectJavaScript: (script) => {
       const json = script.slice(
         "window.ProviderRuntime?.command(".length,
@@ -292,7 +294,7 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
       pages,
       initialized: true,
     });
-    creator.actions.dispatch({ type: "go", step: 2 });
+    creator.actions.dispatch({ type: "go", step: 1 });
   });
   function message(type, documentId, url, payload = {}) {
     return {
@@ -358,13 +360,37 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
       canGoForward: false,
     }),
   );
-  assert.equal(
-    commands.filter((command) => command.type === "reportReady").length,
-    reports + 1,
+  assert.ok(
+    commands.filter((command) => command.type === "reportReady").length >
+      reports,
     "Request readiness again once the native redirect URL is known",
   );
   assert.equal(creator.state.browser.loadedUrl, pages[0]);
   assert.equal(creator.state.browser.ready, false);
+  const reportsBeforeTitle = commands.filter(
+    (command) => command.type === "reportReady",
+  ).length;
+  await React.act(async () =>
+    creator.actions.dispatch({ type: "go", step: 2 }),
+  );
+  assert.equal(creator.state.selection.select, false);
+  assert.equal(creator.state.browser.ready, false);
+  assert.ok(
+    commands.filter((command) => command.type === "reportReady").length >
+      reportsBeforeTitle,
+    "Entering Title retries readiness when page capture preceded the handshake",
+  );
+  const reportsAfterTitle = commands.filter(
+    (command) => command.type === "reportReady",
+  ).length;
+  await React.act(
+    async () => new Promise((resolve) => setTimeout(resolve, 550)),
+  );
+  assert.ok(
+    commands.filter((command) => command.type === "reportReady").length >
+      reportsAfterTitle,
+    "A dropped readiness reply cannot leave Title permanently disabled",
+  );
   await React.act(async () =>
     creator.browser.onMessage(message("ready", "first", pages[0])),
   );
@@ -424,7 +450,16 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
       command.type === "evaluate" &&
       command.requestId === previousCheck.requestId,
   ).length;
-  // Drop the first recheck response when returning to the title step.
+  // The DOM may still be filling in when a completed step is revisited.
+  await React.act(async () =>
+    creator.browser.onMessage(
+      message("selection", "first", pages[0], {
+        requestId: previousCheck.requestId,
+        field: "seriesNameSelector",
+        preview: { ...preview, count: 0, texts: [], valid: false },
+      }),
+    ),
+  );
   await React.act(
     async () => new Promise((resolve) => setTimeout(resolve, 550)),
   );
@@ -434,7 +469,7 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
         command.type === "evaluate" &&
         command.requestId === previousCheck.requestId,
     ).length > checksBeforeRetry,
-    "Returning to a completed step retries a lost selector evaluation",
+    "Returning to a completed step retries an invalid selector evaluation",
   );
   await React.act(async () =>
     creator.browser.onMessage(
@@ -445,7 +480,7 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
       }),
     ),
   );
-  assert.equal(creator.state.selection.candidate, null);
+  assert.equal(creator.state.selection.candidate.valid, false);
   await React.act(async () =>
     creator.browser.onMessage(
       message("selection", "first", pages[0], {
@@ -457,6 +492,43 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
   );
   assert.deepEqual(creator.state.selection.candidate, preview);
   assert.equal(creator.state.selection.select, false);
+  await React.act(async () =>
+    creator.actions.updateSetup({
+      draft: {
+        ...creator.state.setup.draft,
+        episodeNumberSelector: ".episodes",
+        totalEpisodesSelector: ".total",
+        coverImageSelector: ".cover",
+      },
+    }),
+  );
+  const selectorFields = {
+    2: "seriesNameSelector",
+    3: "episodeNumberSelector",
+    4: "totalEpisodesSelector",
+    5: "coverImageSelector",
+  };
+  for (const step of [3, 4, 5, 4, 3, 2, 3, 4, 5, 2]) {
+    await React.act(async () => creator.actions.dispatch({ type: "go", step }));
+    const evaluation = commands.findLast(
+      (command) => command.type === "evaluate",
+    );
+    const field = selectorFields[step];
+    assert.equal(evaluation.field, field);
+    assert.equal(evaluation.selector, creator.state.setup.draft[field]);
+    assert.equal(creator.state.selection.candidate, null);
+    await React.act(async () =>
+      creator.browser.onMessage(
+        message("selection", "first", pages[0], {
+          requestId: evaluation.requestId,
+          field,
+          preview: { ...preview, selector: evaluation.selector },
+        }),
+      ),
+    );
+    assert.equal(creator.state.selection.candidate.valid, true);
+    assert.equal(creator.state.browser.ready, true);
+  }
   // Same-document navigation need not produce a native navigation callback.
   const currentUrl = pages[0] + "/episode/2?view=full";
   await React.act(async () =>
@@ -485,6 +557,9 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
   await React.act(async () =>
     creator.browser.onHttpError({ nativeEvent: { statusCode: 404 } }),
   );
+  await React.act(async () => creator.browser.confirmUsablePage());
+  assert.equal(reloads, 1);
+  assert.equal(creator.state.browser.ready, false);
   await React.act(async () =>
     creator.browser.onLoadEnd({ nativeEvent: { url: pages[1] } }),
   );
@@ -520,21 +595,94 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
     async () => new Promise((resolve) => setTimeout(resolve, 10)),
   );
   assert.equal(creator.state.reviewPage, pages[0]);
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const helpTimers = new Map();
+  let timerTime = 0;
+  globalThis.setTimeout = (callback, delay, ...args) => {
+    if (delay !== 15000) return nativeSetTimeout(callback, delay, ...args);
+    const timer = {};
+    helpTimers.set(timer, { at: timerTime + delay, callback });
+    return timer;
+  };
+  globalThis.clearTimeout = (timer) => {
+    if (helpTimers.has(timer)) helpTimers.delete(timer);
+    else nativeClearTimeout(timer);
+  };
+  function advanceHelpTimers(delay) {
+    timerTime += delay;
+    for (const [timer, entry] of helpTimers) {
+      if (entry.at > timerTime) continue;
+      helpTimers.delete(timer);
+      entry.callback();
+    }
+  }
+  t.after(() => {
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+  });
   for (const [index, page] of pages.entries()) {
     const documentId = "review-" + index;
     await React.act(async () =>
       creator.browser.onLoadStart({ nativeEvent: { url: page } }),
     );
-    await React.act(async () =>
-      creator.browser.onLoadEnd({ nativeEvent: { url: page } }),
-    );
+    if (index === 0) {
+      await React.act(async () => advanceHelpTimers(15000));
+      assert.equal(creator.browser.loadHelpVisible, true);
+      assert.equal(creator.state.reviewPage, page);
+      assert.equal(creator.state.setup.checks[page], undefined);
+      await React.act(async () =>
+        creator.actions.updateBrowser({ ready: true, loading: false }),
+      );
+      assert.equal(creator.browser.loadHelpVisible, false);
+      await React.act(async () =>
+        creator.actions.updateBrowser({ ready: false, loading: true }),
+      );
+      assert.equal(creator.browser.loadHelpVisible, false);
+      await React.act(async () => advanceHelpTimers(14999));
+      assert.equal(creator.browser.loadHelpVisible, false);
+      await React.act(async () => advanceHelpTimers(1));
+      assert.equal(creator.browser.loadHelpVisible, true);
+      await React.act(async () => creator.browser.keepWaiting());
+      assert.equal(creator.browser.loadHelpVisible, false);
+      await React.act(async () => advanceHelpTimers(14999));
+      assert.equal(creator.browser.loadHelpVisible, false);
+      await React.act(async () => advanceHelpTimers(1));
+      assert.equal(creator.browser.loadHelpVisible, true);
+      await React.act(async () => creator.browser.confirmUsablePage());
+      assert.equal(creator.state.browser.ready, false);
+      assert.equal(creator.state.setup.checks[page], undefined);
+    } else {
+      await React.act(async () =>
+        creator.browser.onLoadEnd({ nativeEvent: { url: page } }),
+      );
+    }
     await React.act(async () =>
       creator.browser.onMessage(message("ready", documentId, page)),
     );
+    assert.equal(creator.state.browser.ready, true);
+    assert.equal(creator.state.browser.loadedUrl, page);
+    assert.equal(creator.browser.loadHelpVisible, false);
     const extraction = commands.findLast(
       (command) => command.type === "extract",
     );
     assert.equal(extraction.documentId, documentId);
+    await React.act(async () =>
+      creator.browser.onMessage(
+        message("extraction", documentId, page, {
+          requestId: extraction.requestId,
+          preview: {
+            title: "",
+            episode: 0,
+            episodeCount: 0,
+            valid: false,
+            errors: ["Missing title"],
+          },
+        }),
+      ),
+    );
+    assert.equal(creator.state.setup.checks[page], undefined);
+    assert.equal(creator.state.reviewPage, page);
     await React.act(async () =>
       creator.browser.onMessage(
         message("extraction", documentId, page, {
@@ -556,6 +704,8 @@ test("creator hooks recover redirected pages, follow document URLs, and retain s
   }
   assert.equal(creator.state.reviewPage, null);
   assert.deepEqual(Object.keys(creator.state.setup.checks), pages);
+  globalThis.setTimeout = nativeSetTimeout;
+  globalThis.clearTimeout = nativeClearTimeout;
 });
 
 test("Example capture uses loaded URLs while required selections and optional covers keep their validation gates", async (t) => {
@@ -573,6 +723,7 @@ test("Example capture uses loaded URLs while required selections and optional co
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   const load = Module._load;
   let useProviderCreator;
+  let selectionStarts = 0;
   Module._load = function (request, parent, ...args) {
     if (request === "expo-router")
       return { useLocalSearchParams: () => ({}), useRouter: () => ({}) };
@@ -585,7 +736,7 @@ test("Example capture uses loaded URLs while required selections and optional co
         return {
           useCreatorBrowser: () => ({
             resetResumeTest: () => {},
-            startSelection: () => {},
+            startSelection: () => selectionStarts++,
             send: () => {},
           }),
         };
@@ -653,6 +804,31 @@ test("Example capture uses loaded URLs while required selections and optional co
   }
   assert.equal(creator.primaryAction.label, "common.continue");
   assert.equal(creator.primaryAction.disabled, false);
+  await React.act(async () => {
+    creator.actions.updateBrowser({
+      source: "https://example.com/",
+      url: examples[1],
+      loadedUrl: examples[1],
+      ready: true,
+    });
+    creator.go(0);
+  });
+  await React.act(async () => creator.primaryAction.onPress());
+  assert.equal(creator.state.wizard.step, 1);
+  assert.equal(creator.state.browser.ready, true);
+  assert.equal(creator.state.browser.loadedUrl, examples[1]);
+  assert.equal(creator.state.browser.url, examples[1]);
+  await React.act(async () => {
+    creator.go(2);
+    creator.actions.updateBrowser({ ready: false });
+  });
+  assert.equal(creator.state.selection.select, false);
+  assert.equal(creator.primaryAction.label, "creator.selectTitle");
+  assert.equal(creator.primaryAction.disabled, true);
+  await React.act(async () => creator.actions.updateBrowser({ ready: true }));
+  assert.equal(creator.state.selection.select, false);
+  assert.equal(creator.primaryAction.label, "creator.selectTitle");
+  assert.equal(creator.primaryAction.disabled, false);
   for (const existing of [undefined, "#existing-cover"]) {
     for (const candidate of [null, { selector: "#invalid", valid: false }]) {
       await React.act(async () => {
@@ -672,9 +848,22 @@ test("Example capture uses loaded URLs while required selections and optional co
         creator.actions.updateBrowser({ ready: false });
       });
       assert.equal(creator.canContinue, true);
-      assert.equal(creator.primaryAction.label, "common.continue");
+      assert.equal(creator.primaryAction.label, "creator.selectCover");
+      assert.equal(creator.primaryAction.disabled, true);
+      await React.act(async () =>
+        creator.actions.updateBrowser({ ready: true }),
+      );
       assert.equal(creator.primaryAction.disabled, false);
+      const previousStarts = selectionStarts;
       await React.act(async () => creator.primaryAction.onPress());
+      assert.equal(selectionStarts, previousStarts + 1);
+      assert.equal(creator.state.wizard.step, 5);
+      await React.act(async () =>
+        creator.actions.updateSelection({ select: true }),
+      );
+      assert.equal(creator.primaryAction.label, "creator.tapCover");
+      assert.equal(creator.primaryAction.disabled, true);
+      await React.act(async () => creator.go(6));
       assert.equal(creator.state.wizard.step, 6);
       assert.equal(creator.state.setup.draft.coverImageSelector, existing);
     }
@@ -686,6 +875,8 @@ test("Example capture uses loaded URLs while required selections and optional co
     });
     creator.actions.updateBrowser({ ready: true });
   });
+  assert.equal(creator.primaryAction.label, "common.continue");
+  assert.equal(creator.primaryAction.disabled, false);
   await React.act(async () => creator.primaryAction.onPress());
   assert.equal(creator.state.setup.draft.coverImageSelector, "#new-cover");
   await React.act(async () => creator.go(5));

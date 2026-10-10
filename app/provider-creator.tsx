@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
@@ -56,7 +57,11 @@ export default function ProviderCreatorScreen() {
         ) : (
           <>
             <CreatorHeader creator={creator} />
-            {source && step > 0 && <CreatorBrowser creator={creator} />}
+            {source && (
+              <View style={step === 0 ? { display: "none" } : styles.screen}>
+                <CreatorBrowser creator={creator} />
+              </View>
+            )}
             <CreatorPanel creator={creator} />
           </>
         )}

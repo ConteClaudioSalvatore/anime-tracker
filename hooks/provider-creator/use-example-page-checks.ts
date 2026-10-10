@@ -75,12 +75,12 @@ export function useExamplePageChecks({
     pageChecks,
   ]);
   React.useEffect(() => {
-    if (!reviewPage) return;
+    if (!reviewPage || !ready) return;
     const timeout = setTimeout(
       () => completeCheck(pageChecks.current.finish()),
       15000,
     );
     return () => clearTimeout(timeout);
-  }, [reviewPage, completeCheck, pageChecks]);
+  }, [reviewPage, ready, completeCheck, pageChecks]);
   return { completeCheck, testExample };
 }

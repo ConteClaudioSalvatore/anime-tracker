@@ -26,7 +26,7 @@ export function CreatorPanel({ creator }: Props) {
     state,
     actions,
   } = creator;
-  const { pages, saving } = state.setup;
+  const { draft, pages, saving } = state.setup;
   const { step, error, collapsed } = state.wizard;
   const { ready } = state.browser;
   const { select } = state.selection;
@@ -51,6 +51,24 @@ export function CreatorPanel({ creator }: Props) {
         style={styles.panelScroll}
         contentContainerStyle={styles.panelContent}
       >
+        {creator.browser.loadHelpVisible && (
+          <View style={styles.example}>
+            {copy(t("creator.loadHelp"))}
+            <View style={[styles.row, { alignItems: "center" }]}>
+              <ActionButton
+                label={t("creator.pageUsable")}
+                onPress={creator.browser.confirmUsablePage}
+                disabled={saving}
+              />
+              <ActionButton
+                variant="tertiary"
+                label={t("creator.keepWaiting")}
+                onPress={creator.browser.keepWaiting}
+                disabled={saving}
+              />
+            </View>
+          </View>
+        )}
         {!collapsed && (
           <>
             {copy(t(instructions[step]))}
@@ -85,12 +103,22 @@ export function CreatorPanel({ creator }: Props) {
       </ScrollView>
       <View style={styles.footer}>
         {step === 5 && (
-          <ActionButton
-            variant="tertiary"
-            label={t("creator.skipCover")}
-            onPress={creator.skipCover}
-            disabled={saving}
-          />
+          <View style={styles.row}>
+            <ActionButton
+              variant="tertiary"
+              label={t("creator.skipCover")}
+              onPress={creator.skipCover}
+              disabled={saving}
+            />
+            {!!draft.coverImageSelector && (
+              <ActionButton
+                variant="tertiary"
+                label={t("creator.keepCover")}
+                onPress={() => go(6)}
+                disabled={saving}
+              />
+            )}
+          </View>
         )}
 
         <View style={[styles.row, styles.navigation]}>

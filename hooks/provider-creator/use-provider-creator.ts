@@ -42,7 +42,7 @@ export function useProviderCreator() {
     saved,
   } = state.setup;
   const { step } = state.wizard;
-  const { loadedUrl, ready } = state.browser;
+  const { source, loadedUrl, ready } = state.browser;
   const { select, candidate } = state.selection;
   const { players, playerKey } = state.playback;
   const { reviewPage } = state;
@@ -98,12 +98,14 @@ export function useProviderCreator() {
         ];
         if (origin !== draft.origin || aliases.length)
           edit({ ...draft, origin, whiteListedOrigins });
-        updateBrowser({
-          source: origin,
-          url: origin,
-          loadedUrl: null,
-          ready: false,
-        });
+        if (!source || origin !== draft.origin)
+          updateBrowser({
+            source: origin,
+            url: origin,
+            loadedUrl: null,
+            ready: false,
+            loading: true,
+          });
         go(1);
       } catch (cause) {
         updateWizard({
@@ -222,7 +224,7 @@ export function useProviderCreator() {
             onPress: capturePage,
             disabled: !loadedUrl || saving,
           }
-        : field && !optionalField && !candidate?.valid
+        : field && !candidate?.valid
           ? {
               label: t(selectionLabel[select ? 0 : 1]),
               onPress: startSelection,

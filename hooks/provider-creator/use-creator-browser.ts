@@ -17,6 +17,7 @@ import { ProviderPageChecks } from "@/utils/provider-page-checks";
 import { useProviderNavigation } from "@/hooks/use-provider-navigation";
 import { fields } from "@/components/provider-creator/creator-config";
 import { useExamplePageChecks } from "./use-example-page-checks";
+import { useCreatorLoadHelp } from "./use-creator-load-help";
 import type { CreatorState } from "./use-creator-state";
 
 type BrowserOptions = CreatorState & {
@@ -34,7 +35,7 @@ export function useCreatorBrowser({
 }: BrowserOptions) {
   const { draft, saving } = state.setup;
   const { step } = state.wizard;
-  const { source, url, ready } = state.browser;
+  const { source, url, ready, loading, loadedUrl } = state.browser;
   const { select } = state.selection;
   const { players, playerKey, testRun } = state.playback;
 
@@ -52,6 +53,17 @@ export function useCreatorBrowser({
   const navigationRevision = React.useRef(0);
   const navigationUrl = React.useRef("");
   const loadFailed = React.useRef(false);
+  const usablePage = React.useRef<{ url: string; revision: number } | null>(
+    null,
+  );
+  const [readinessRun, retryReadiness] = React.useReducer(
+    (run: number) => run + 1,
+    0,
+  );
+  const { loadHelpVisible, keepWaiting } = useCreatorLoadHelp(
+    JSON.stringify([step, url, state.reviewPage]),
+    step > 0 && !!source && (loading || !ready),
+  );
   const reportReady = React.useCallback(() => {
     webView.current?.injectJavaScript(
       runtimeCommand({
@@ -60,6 +72,16 @@ export function useCreatorBrowser({
       }),
     );
   }, []);
+  React.useEffect(() => {
+    if (step === 0 || ready || loading || !loadedUrl || loadedUrl !== url)
+      return;
+    const retry = () => {
+      if (!loadFailed.current) reportReady();
+    };
+    retry();
+    const timer = setInterval(retry, 500);
+    return () => clearInterval(timer);
+  }, [step, ready, loading, loadedUrl, url, reportReady]);
   const request = React.useRef("");
   const pendingSelectionCheck = React.useRef<string | null>(null);
   const resumeTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,11 +134,14 @@ export function useCreatorBrowser({
       setReviewPage(null);
       navigationUrl.current = value;
       loadFailed.current = false;
+      usablePage.current = null;
+      keepWaiting();
       updateBrowser({
         source: value,
         url: value,
         loadedUrl: null,
         ready: false,
+        loading: true,
       });
       updateSelection({ select: false, candidate: null });
       pageSession.current.begin(value);
@@ -132,6 +157,7 @@ export function useCreatorBrowser({
       updateBrowser,
       updateSelection,
       source,
+      keepWaiting,
     ],
   );
   const shouldNavigate = useProviderNavigation({
@@ -190,7 +216,7 @@ export function useCreatorBrowser({
       if (pendingSelectionCheck.current === token)
         pendingSelectionCheck.current = null;
     };
-  }, [step, field, ready, select, send, latestDraftRef]);
+  }, [step, field, ready, select, send, latestDraftRef, readinessRun]);
   React.useEffect(() => {
     if (step !== 6 || !ready || videoPhase !== "checking") return;
     const timer = setTimeout(() => updatePlayback({ timedOut: true }), 20000);
@@ -227,11 +253,27 @@ export function useCreatorBrowser({
     send({ type: "resetPlayerTest" });
     dispatch({ type: "retryPlayback" });
   }
+  function confirmUsablePage() {
+    keepWaiting();
+    if (saving || !allowedUrl(latestDraftRef.current, url)) return;
+    if (loadFailed.current) {
+      webView.current?.reload();
+      return;
+    }
+    usablePage.current = { url, revision: navigationRevision.current };
+    if (state.reviewPage) pageChecks.current.start(state.reviewPage);
+    reportReady();
+  }
+  React.useEffect(() => {
+    usablePage.current = null;
+  }, [step]);
   const onLoadStart: NonNullable<WebViewProps["onLoadStart"]> = (event) => {
     resetResumeTest();
     navigationRevision.current++;
     navigationUrl.current = event.nativeEvent.url;
     loadFailed.current = false;
+    usablePage.current = null;
+    keepWaiting();
     pageSession.current.begin(event.nativeEvent.url);
     dispatch({ type: "pageLoading" });
     updateBrowser({ url: event.nativeEvent.url });
@@ -251,7 +293,8 @@ export function useCreatorBrowser({
   };
   const onError: NonNullable<WebViewProps["onError"]> = () => {
     loadFailed.current = true;
-    updateBrowser({ loading: false, loadedUrl: null });
+    usablePage.current = null;
+    updateBrowser({ loading: false, loadedUrl: null, ready: false });
     updateWizard({
       error: message("browser.loadFailed"),
     });
@@ -259,7 +302,8 @@ export function useCreatorBrowser({
   const onHttpError: NonNullable<WebViewProps["onHttpError"]> = (event) => {
     if (event.nativeEvent.statusCode >= 400) {
       loadFailed.current = true;
-      updateBrowser({ loadedUrl: null });
+      usablePage.current = null;
+      updateBrowser({ loadedUrl: null, ready: false });
       updateWizard({
         error: message("browser.httpError", {
           code: event.nativeEvent.statusCode,
@@ -292,6 +336,7 @@ export function useCreatorBrowser({
     const message = parseRuntimeMessage(event.nativeEvent.data, session);
     if (
       !message ||
+      loadFailed.current ||
       (message.type === "ready" &&
         message.navigationRevision !== navigationRevision.current) ||
       !allowedUrl(latestDraftRef.current, message.url) ||
@@ -299,7 +344,18 @@ export function useCreatorBrowser({
     )
       return;
     if (message.type === "ready") {
-      updateBrowser({ ready: true, url: message.url });
+      const confirmed =
+        usablePage.current?.url === message.url &&
+        usablePage.current.revision === navigationRevision.current;
+      updateBrowser({
+        ready: true,
+        url: message.url,
+        ...(confirmed ? { loading: false, loadedUrl: message.url } : {}),
+      });
+      if (confirmed) {
+        usablePage.current = null;
+        retryReadiness();
+      }
       webView.current?.injectJavaScript(
         runtimeCommand({
           type: "configure",
@@ -323,7 +379,7 @@ export function useCreatorBrowser({
       message.requestId === request.current &&
       message.field === field
     ) {
-      pendingSelectionCheck.current = null;
+      if (message.preview.valid) pendingSelectionCheck.current = null;
       dispatch({ type: "selectionReceived", field, preview: message.preview });
     }
     if (message.type === "players") {
@@ -359,6 +415,9 @@ export function useCreatorBrowser({
     testSelector,
     choosePlayer,
     retryPlayback,
+    loadHelpVisible,
+    keepWaiting,
+    confirmUsablePage,
     onLoadStart,
     onLoadEnd,
     onError,
