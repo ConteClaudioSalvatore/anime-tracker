@@ -2,7 +2,7 @@
   "expo": {
     "name": "Anime Tracker",
     "slug": "anime-tracker",
-    "version": "3.0.0",
+    "version": "3.0.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "animetracker",
@@ -37,7 +37,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#10103C",
+        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"

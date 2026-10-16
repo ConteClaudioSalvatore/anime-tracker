@@ -1,7 +1,7 @@
 {
   "name": "anime-tracker",
   "main": "expo-router/entry",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "scripts": {
     "postinstall": "node ./scripts/patch-webview.cjs",
     "start": "expo start",
