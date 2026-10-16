@@ -2257,6 +2257,121 @@ test("a selector learned from one episode stays inside its list on longer and pa
     assert.equal(result.values[49], start + 49);
   }
 });
+test("combined episode entries do not block ordinary episodes or change announced totals", (t) => {
+  const { dom, win, runtime, messages } = setup(fixture, "watch");
+  t.after(() => dom.window.close());
+  win.document.querySelector("#episode-total").textContent = "366";
+  win.document.querySelector("#episode-list").innerHTML =
+    '<li><a class="active">2</a></li><li><a>52-53</a></li><li><a>68–69</a></li><li><a>Episodes 176 — 177</a></li>';
+  const preview = runtime.extract();
+  assert.equal(preview.valid, true);
+  assert.equal(preview.episode, 2);
+  assert.equal(preview.episodeCount, 366);
+  assert.equal(preview.listedEpisodes, 4);
+  assert.deepEqual(
+    Array.from(
+      runtime.evaluate(provider.episodeNumberSelector, "episodeNumberSelector")
+        .values,
+    ),
+    [2, 52, 68, 176],
+  );
+  const video = videoState(win);
+  let clock = 1700000000000;
+  win.Date.now = () => clock;
+  runtime.tick();
+  video.time = 2;
+  clock += 2000;
+  runtime.tick();
+  const payload = messages
+    .filter((item) => item.type === "anime-found")
+    .at(-1).payload;
+  assert.equal(payload.episode, 2);
+  assert.equal(payload.episodeCount, 366);
+  assert.ok(payload.lastPlayedAt > 0);
+});
+
+test("combined videos use their first episode consistently for playback, resume, clicks and highlights", (t) => {
+  const { dom, win, runtime, messages } = setup(fixture, "watch");
+  t.after(() => dom.window.close());
+  win.document.querySelector("#episode-list").innerHTML =
+    '<li><a class="active" href="/series/example/52">52-53</a></li><li><a href="/series/example/54">54</a></li>';
+  win.document.querySelector("#episode-total").textContent = "366";
+  const combined = win.document.querySelector("#episode-list a");
+  const video = videoState(win);
+  runtime.command({
+    type: "episodeProgress",
+    progress: { "Example Series": { 52: { progress: 30, total: 120 } } },
+  });
+  assert.match(combined.style.backgroundImage, /25%/);
+  runtime.command({
+    type: "resume",
+    resume: { title: "Example Series", episode: 52, progress: 42 },
+  });
+  runtime.tick();
+  assert.equal(video.time, 42);
+  let payload = messages
+    .filter((item) => item.type === "anime-found")
+    .at(-1).payload;
+  assert.equal(payload.episode, 52);
+  assert.equal(payload.progress, 42);
+  const state = reducer(
+    { anime: {}, providers: [] },
+    actions.animeUpdated(provider.origin, payload),
+  );
+  assert.equal(state.anime["Example Series"].episodeProgress[52].progress, 42);
+  assert.equal(state.anime["Example Series"].episodeProgress[53], undefined);
+  combined.classList.remove("active");
+  win.document.addEventListener("click", (event) => event.preventDefault());
+  combined.click();
+  payload = messages
+    .filter((item) => item.type === "anime-found")
+    .at(-1).payload;
+  assert.equal(payload.episode, 52);
+  assert.equal(payload.url, combined.href);
+  assert.equal(runtime.extract().episode, 52);
+  runtime.command({ type: "episodeProgress", progress: {} });
+  assert.equal(combined.style.backgroundImage, "");
+});
+
+test("episode ranges reject ambiguous, reversed, overlapping and unknown entries without relaxing totals", (t) => {
+  const { dom, win, runtime } = setup();
+  t.after(() => dom.window.close());
+  const list = win.document.querySelector("#episode-list");
+  for (const label of [
+    "52-",
+    "52-??",
+    "53-52",
+    "52-52",
+    "0-2",
+    "52/53",
+    "52 & 53",
+    "52-53-54",
+    "52.5-53.5",
+    "Series 52-53",
+    "9007199254740992-9007199254740993",
+    "??",
+  ]) {
+    list.innerHTML = "<li><a>" + label + "</a></li>";
+    assert.equal(runtime.extract().valid, false, label);
+  }
+  for (const labels of [
+    ["52-53", "53"],
+    ["52-54", "53-55"],
+    ["52", "52"],
+  ]) {
+    list.innerHTML = labels
+      .map((label) => "<li><a>" + label + "</a></li>")
+      .join("");
+    assert.equal(runtime.extract().valid, false, labels.join(", "));
+  }
+  list.innerHTML = '<li><a class="active">52-53</a></li>';
+  assert.equal(runtime.extract().valid, true);
+  assert.equal(runtime.extract().episode, 52);
+  assert.equal(Number.isNaN(runtime.number("52-53")), true);
+  win.document.querySelector("#episode-total").textContent = "52-53";
+  assert.equal(runtime.extract().valid, false);
+});
+
 test("invalid selectors, duplicate titles, and invalid totals produce actionable errors", (t) => {
   const { dom, win, runtime } = setup();
   t.after(() => dom.window.close());

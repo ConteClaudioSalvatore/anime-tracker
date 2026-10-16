@@ -83,6 +83,26 @@
       label,
     );
   };
+  function episodeRange(value) {
+    const single = number(value);
+    if (Number.isFinite(single) && single > 0) return [single, single];
+    const match = String(value || "")
+      .trim()
+      .match(
+        /^(?:(?:episodes?|ep\.?|episodio|episodi)\s*[:#]?\s*)?(\d+)\s*[-–—]\s*(\d+)\s*(?:episodes?|episodi)?$/i,
+      );
+    if (!match) return [NaN, NaN];
+    const start = Number(match[1]),
+      end = Number(match[2]);
+    return Number.isSafeInteger(start) &&
+      Number.isSafeInteger(end) &&
+      start > 0 &&
+      end > start
+      ? [start, end]
+      : [NaN, NaN];
+  }
+  // A combined video has one saved position, keyed by its first episode.
+  const episodeNumber = (value) => episodeRange(value)[0];
   function query(selector, doc = document) {
     try {
       return selector ? [...doc.querySelectorAll(selector)] : [];
@@ -204,7 +224,12 @@
       };
     }
     const texts = elements.map(text),
-      values = texts.map(number);
+      ranges = kind === "episodeNumberSelector" ? texts.map(episodeRange) : [],
+      values =
+        kind === "episodeNumberSelector"
+          ? ranges.map(([start]) => start)
+          : texts.map(number);
+    const orderedRanges = [...ranges].sort((a, b) => a[0] - b[0]);
     const valid =
       kind === "seriesNameSelector"
         ? elements.length === 1 && !!texts[0]
@@ -214,7 +239,10 @@
               unknownTotal(texts[0]))
           : elements.length > 0 &&
             values.every((value) => Number.isFinite(value) && value > 0) &&
-            new Set(values).size === values.length;
+            orderedRanges.every(
+              (range, index) =>
+                index === 0 || range[0] > orderedRanges[index - 1][1],
+            );
     return {
       selector,
       count: elements.length,
@@ -278,7 +306,7 @@
         ) || element.parentElement?.matches(".active, .selected"),
     );
     const selectedEpisode =
-      number(text(active)) ||
+      episodeNumber(text(active)) ||
       lastEpisode ||
       (episodes.count === 1 ? episodes.values[0] : 0);
     const episode = Number.isFinite(selectedEpisode) ? selectedEpisode : 0;
@@ -310,7 +338,7 @@
     const highlights = new Map();
     if (mode === "watch")
       query(config.episodeNumberSelector).forEach((element) => {
-        const episode = number(text(element)),
+        const episode = episodeNumber(text(element)),
           saved = episodes?.[episode];
         if (
           !(episode > 0) ||
@@ -759,7 +787,7 @@
           return;
         }
         if (element) {
-          const episode = number(text(element));
+          const episode = episodeNumber(text(element));
           if (episode > 0) {
             lastEpisode = episode;
             lastPosted = 0;

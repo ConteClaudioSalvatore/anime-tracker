@@ -2,6 +2,8 @@
 
 Run `npm test`, `npx tsc --noEmit`, and `npm run lint`. Tests execute the production runtime against local HTML fixtures. Media timing is controlled in the fixtures; native playback must also be checked on a device.
 
+For combined episode videos, include explicit labels such as `52-53` and `68–69` in the configured episode list, including hidden pagination groups. Ordinary episodes must still extract and track. A combined video's saved position, resume command, and green progress highlight use its first episode number (for example, `52`); the runtime does not invent separate playback positions for the other episodes. The announced total remains independent of the number of links. Reversed, overlapping, incomplete, and unknown episode ranges must fail validation, and a range must never be accepted as an announced total. Check this on both Android and iOS after reloading the website with the updated runtime.
+
 On Android, Export watch list and Backup must open the system folder picker and write `watch-list.json` and `anime-tracker-backup.json` into the selected folder, without opening a sharing app. Cancel the picker and confirm no file is created and app data is unchanged. Simulate a failed create or write, confirm localized retry feedback, and retry successfully. Open the saved files with a file manager: the watchlist contains only its four summary fields, while the full backup retains provider configuration and complete history. Restore the full backup through the existing document picker. On iOS, both exports must retain the system share sheet and its Save to Files action. System picker behavior and external storage writes require device checks.
 
 ## English and Italian
